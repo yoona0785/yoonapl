@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公域店铺新增</title>
+  <style>
+    :root{--primary:#051D86;--primary-hover:#0a2aa0;--primary-light:#EBF0FF;--text-main:#333;--text-sub:#666;--text-hint:#aaa;--text-error:#f00;--bg-page:#F4F6F9;--bg-white:#fff;--bg-hover:#F0F3FF;--border:#ECECEC;--divider:#F2F2F2;--nav-h:48px;--sidebar-w:160px;--logic-w:820px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;background:#eef2f7;color:var(--text-main)}
+    button,input{font:inherit}
+    .workbench{display:flex;min-height:100vh}
+    .logic-panel{width:56px;background:#f7f9fc;border-right:1px solid var(--border);transition:width .22s ease;overflow:hidden;flex:0 0 auto}
+    .logic-panel.expanded{width:var(--logic-w)}
+    .logic-toolbar{height:56px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);background:#fff}
+    .logic-toggle{height:32px;padding:0 12px;border:1px solid var(--border);background:#fff;color:var(--primary);border-radius:4px;cursor:pointer;white-space:nowrap}
+    .logic-paper-wrap{padding:16px}
+    .logic-paper{width:794px;min-height:1123px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:32px 40px;box-shadow:0 4px 14px rgba(19,31,55,.04)}
+    .logic-panel:not(.expanded) .logic-paper-wrap{display:none}
+    .logic-paper h1{margin:0 0 18px;font-size:20px}
+    .logic-paper h2{margin:24px 0 10px;font-size:16px}
+    .logic-paper li{font-size:14px;line-height:1.8;color:#4b5563}
+    .logic-paper ol{margin:0;padding-left:20px}
+    .preview-stage{flex:1;min-width:0;padding:16px}
+    .app-shell{min-height:calc(100vh - 32px);background:var(--bg-page);border:1px solid #e8ecf2;border-radius:14px;overflow:hidden}
+    .topnav{display:flex;align-items:stretch;height:var(--nav-h);background:#fff;border-bottom:1px solid var(--border)}
+    .nav-logo{width:160px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--primary);border-right:1px solid var(--border);flex:0 0 auto}
+    .nav-toggle{width:44px;display:flex;align-items:center;justify-content:center;color:#5d6470;cursor:pointer;flex:0 0 auto}
+    .nav-tabs{display:flex;align-items:stretch;gap:4px;padding:0 12px;flex:1;overflow:auto}
+    .nav-tab{position:relative;display:flex;align-items:center;gap:6px;padding:0 14px;font-size:14px;color:#666;white-space:nowrap;cursor:pointer}
+    .nav-tab.active{color:var(--primary);font-weight:600}
+    .nav-tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--primary)}
+    .tab-close{display:inline;font-size:12px;color:#a0a6b2;cursor:pointer}
+    .nav-tab.fixed .tab-close{display:none!important}
+    .nav-right{display:flex;align-items:center;padding:0 16px;color:#666;border-left:1px solid var(--border);flex:0 0 auto}
+    .main-wrap{display:flex;min-height:calc(100vh - 32px - 48px)}
+    .sidebar{width:var(--sidebar-w);background:#fff;border-right:1px solid var(--border);flex:0 0 auto;padding:12px 0;transition:width .22s ease;overflow:hidden}
+    .sb-search{padding:0 12px 12px}
+    .sb-search input{width:100%;height:30px;border:1px solid var(--border);border-radius:5px;padding:0 10px;font-size:13px;outline:none}
+    .m1{height:40px;padding:0 12px;display:flex;align-items:center;gap:8px;cursor:pointer;color:#333;background:var(--bg-hover);color:var(--primary)}
+    .m1-icon svg{width:18px;height:18px;stroke:var(--primary);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+    .m1-label{font-size:14px;flex:1}
+    .m1-arrow{font-size:14px;transform:rotate(90deg)}
+    .m2-wrap{padding:2px 8px 8px}
+    .m2-item{height:32px;padding:0 8px;display:flex;align-items:center;border-radius:4px;color:var(--primary);background:var(--primary-light);font-size:12px;font-weight:600}
+    .sidebar.collapsed{width:44px}
+    .sidebar.collapsed .sb-search,.sidebar.collapsed .m1-label,.sidebar.collapsed .m1-arrow,.sidebar.collapsed .m2-wrap{display:none}
+    .sidebar.collapsed .m1{justify-content:center;padding:0}
+    .content{flex:1;min-width:0;padding:16px}
+    .canvas{min-height:calc(100vh - 32px - 48px - 32px);background:#fff;border:1px solid var(--border);border-radius:12px;padding:0}
+    .form-topbar{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--divider);background:#fff;border-radius:12px 12px 0 0;position:sticky;top:0;z-index:20}
+    .back-title{font-size:15px;color:var(--primary);font-weight:600;cursor:pointer}
+    .top-actions{display:flex;align-items:center;gap:10px}
+    .form-layout{display:grid;grid-template-columns:minmax(0,760px) 116px;gap:16px;padding:16px 18px 24px;background:#fff;align-items:start}
+    .form-main{min-width:0}
+    .form-card{border:1px solid var(--border);border-radius:6px;background:#fff;padding:20px 24px;margin-bottom:14px;scroll-margin-top:76px}
+    .section-title{font-size:15px;font-weight:600;margin-bottom:18px;padding-left:10px;border-left:3px solid var(--primary)}
+    .form-grid{display:flex;flex-direction:column;gap:18px}
+    .form-item{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:flex-start}
+    .form-item>label{display:flex;align-items:center;min-height:32px;font-size:13px;color:#666;margin:0;line-height:1.4}
+    .required::before{content:"*";color:var(--text-error);margin-right:4px}
+    .field{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;padding:0 12px;color:#333;outline:none;font-size:13px;width:360px}
+    .field:focus{border-color:var(--primary)}
+    .radio-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:32px;font-size:14px;color:#333}
+    .radio-pill{height:32px;display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:4px;padding:0 14px;cursor:pointer;background:#fff;color:#333}
+    .radio-pill.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .error-text{font-size:12px;color:var(--text-error);margin-top:6px;display:none}
+    .anchor-nav{position:sticky;top:16px;align-self:start;justify-self:end;width:100px;border-left:1px solid var(--divider);padding-left:12px;background:#fff;z-index:10}
+    .anchor-item{height:34px;display:flex;align-items:center;font-size:13px;color:#666;cursor:pointer;border-left:2px solid transparent;padding-left:8px;margin-left:-13px}
+    .anchor-item.active,.anchor-item:hover{color:var(--primary);border-left-color:var(--primary);font-weight:600}
+    .btn-primary,.btn-secondary{height:32px;border-radius:4px;padding:0 14px;cursor:pointer;font-size:14px}
+    .btn-primary{background:var(--primary);border:none;color:#fff}
+    .btn-primary:hover{background:var(--primary-hover)}
+    .btn-secondary{background:#fff;border:1px solid var(--border);color:#333}
+    .toast{display:none;position:fixed;top:62px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #b7eb8f;color:#135200;border-radius:6px;padding:10px 16px;z-index:2000;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+    .toast.open{display:block}
+    .tab-context-menu{display:none;position:fixed;z-index:3000;width:132px;background:#fff;border:1px solid #e8ecf0;border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px 0}
+    .tab-context-menu.open{display:block}
+    .tab-context-menu div{height:32px;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#333;cursor:pointer}
+    .tab-context-menu div:hover{background:var(--primary-light);color:var(--primary)}
+  </style>
+</head>
+<body>
+  <div class="workbench">
+    <aside class="logic-panel" id="logicPanel">
+      <div class="logic-toolbar"><button class="logic-toggle" onclick="toggleLogic()">展开逻辑</button></div>
+      <div class="logic-paper-wrap">
+        <div class="logic-paper">
+          <h1>公域店铺表单逻辑说明</h1>
+          <h2>1. 页面路径</h2>
+          <ol><li>页面路径：订单兑换 - 公域店铺 - 新建。</li><li>从公域店铺列表点击「新增」进入；编辑操作复用本页。</li></ol>
+          <h2>2. 表单字段</h2>
+          <ol><li>电商平台：单项选择，必选，无默认；可选淘宝、天猫、京东、抖音、快手、拼多多、小红书、其他。</li><li>店铺名称：文本输入，必填，50 字符内。</li><li>店铺 ID：文本输入，必填，50 字符内。</li></ol>
+          <h2>3. 表单交互</h2>
+          <ol><li>保存时校验所有必填项及填写规则。</li><li>相同 ID 不可重复创建。</li><li>保存成功返回公域店铺列表页。</li></ol>
+        </div>
+      </div>
+    </aside>
+    <main class="preview-stage">
+      <div class="app-shell">
+        <nav class="topnav">
+          <div class="nav-logo">品牌运营系统</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="nav-tabs">
+            <div class="nav-tab fixed" onclick="goList()">公域店铺</div>
+            <div class="nav-tab active" id="pageTab" oncontextmenu="openTabContext(event)">店铺新建 <span class="tab-close" onclick="closeCurrentTab(event)">×</span></div>
+          </div>
+          <div class="nav-right">账户名称 ▾</div>
+        </nav>
+        <div class="main-wrap">
+          <aside class="sidebar" id="sidebar">
+            <div class="sb-search"><input placeholder="搜索报表" /></div>
+            <div class="m1">
+              <span class="m1-icon"><svg viewBox="0 0 24 24"><path d="M3.75 7.5h5l1.8 2.1h9.7v7.9a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2z"></path><path d="M3.75 7.5a2 2 0 0 1 2-2h4.3l1.7 2h6.5a2 2 0 0 1 2 2v.1"></path></svg></span>
+              <span class="m1-label">营销中心</span><span class="m1-arrow">›</span>
+            </div>
+            <div class="m2-wrap"><div class="m2-item">订单兑换</div></div>
+          </aside>
+          <section class="content">
+            <div class="canvas">
+              <div class="form-topbar">
+                <div class="back-title" onclick="goList()">‹ <span id="pageTitle">店铺新建</span></div>
+                <div class="top-actions"><button class="btn-secondary" onclick="goList()">取消</button><button class="btn-primary" onclick="saveForm()">保存</button></div>
+              </div>
+              <div class="form-layout">
+                <div class="form-main">
+                  <section class="form-card" id="basic">
+                    <div class="section-title">基础信息</div>
+                    <div class="form-grid">
+                      <div class="form-item">
+                        <label class="required">电商平台</label>
+                        <div>
+                          <div class="radio-row" data-radio-group="platform">
+                            <span class="radio-pill" onclick="selectPlatform(this)">淘宝</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">天猫</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">京东</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">抖音</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">快手</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">拼多多</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">小红书</span>
+                            <span class="radio-pill" onclick="selectPlatform(this)">其他</span>
+                          </div>
+                          <div class="error-text" id="platformError">请选择电商平台</div>
+                        </div>
+                      </div>
+                      <div class="form-item">
+                        <label class="required">店铺名称</label>
+                        <div><input class="field" id="storeName" maxlength="50" placeholder="请输入店铺名称" /><div class="error-text" id="nameError">请输入 50 字符内的店铺名称</div></div>
+                      </div>
+                      <div class="form-item">
+                        <label class="required">店铺ID</label>
+                        <div><input class="field" id="storeId" maxlength="50" placeholder="请输入店铺 ID" /><div class="error-text" id="idError">请输入 50 字符内的店铺 ID</div></div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+                <aside class="anchor-nav"><div class="anchor-item active" onclick="jumpAnchor('basic',this)">基础信息</div></aside>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="tab-context-menu" id="tabContextMenu">
+    <div onclick="closeCurrentTab()">关闭当前</div>
+    <div onclick="closeOtherTabs()">关闭其他</div>
+    <div onclick="closeAllTabs()">关闭全部</div>
+  </div>
+  <div class="toast" id="toast">保存成功，返回公域店铺列表</div>
+  <script>
+    const duplicateIds=['TM278035','JD278036','DY278037'];
+    const params=new URLSearchParams(location.search);
+    const mode=params.get('mode')||'create';
+    function initMode(){
+      if(mode==='edit'){
+        document.getElementById('pageTitle').textContent='店铺编辑';
+        document.getElementById('pageTab').textContent='店铺编辑';
+        fillDemo();
+      }else if(mode==='detail'){
+        document.getElementById('pageTitle').textContent='店铺详情';
+        document.getElementById('pageTab').textContent='店铺详情';
+        fillDemo();
+        document.querySelectorAll('input').forEach(input=>input.disabled=true);
+        document.querySelectorAll('.radio-pill').forEach(pill=>pill.style.pointerEvents='none');
+        document.querySelector('.btn-primary').style.display='none';
+      }
+    }
+    function fillDemo(){
+      document.querySelectorAll('[data-radio-group="platform"] .radio-pill').forEach(pill=>{if(pill.textContent==='天猫')pill.classList.add('active')});
+      document.getElementById('storeName').value='天猫官方旗舰店';
+      document.getElementById('storeId').value='TM278035';
+    }
+    function toggleLogic(){const panel=document.getElementById('logicPanel');const btn=panel.querySelector('.logic-toggle');panel.classList.toggle('expanded');btn.textContent=panel.classList.contains('expanded')?'收起逻辑':'展开逻辑'}
+    function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
+    function selectPlatform(el){el.parentElement.querySelectorAll('.radio-pill').forEach(item=>item.classList.remove('active'));el.classList.add('active');document.getElementById('platformError').style.display='none'}
+    function jumpAnchor(id,el){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('.anchor-item').forEach(item=>item.classList.remove('active'));el.classList.add('active')}
+    function saveForm(){
+      document.querySelectorAll('.error-text').forEach(el=>el.style.display='none');
+      const platform=document.querySelector('[data-radio-group="platform"] .active');
+      const name=document.getElementById('storeName').value.trim();
+      const id=document.getElementById('storeId').value.trim();
+      let valid=true;
+      if(!platform){document.getElementById('platformError').style.display='block';valid=false}
+      if(!name||name.length>50){document.getElementById('nameError').style.display='block';valid=false}
+      if(!id||id.length>50){document.getElementById('idError').textContent='请输入 50 字符内的店铺 ID';document.getElementById('idError').style.display='block';valid=false}
+      if(mode==='create'&&duplicateIds.includes(id)){document.getElementById('idError').textContent='店铺 ID 已存在，不可重复创建';document.getElementById('idError').style.display='block';valid=false}
+      if(!valid)return;
+      showToast('保存成功，返回公域店铺列表',goList);
+    }
+    function showToast(message,callback){const toast=document.getElementById('toast');toast.textContent=message;toast.classList.add('open');setTimeout(()=>{toast.classList.remove('open');if(callback)callback()},900)}
+    function openTabContext(event){event.preventDefault();const menu=document.getElementById('tabContextMenu');menu.style.left=`${event.clientX}px`;menu.style.top=`${event.clientY}px`;menu.classList.add('open')}
+    function closeTabContext(){document.getElementById('tabContextMenu').classList.remove('open')}
+    function closeCurrentTab(event){if(event)event.stopPropagation();closeTabContext();goList()}
+    function closeOtherTabs(){closeTabContext();showToast('已关闭其他页签')}
+    function closeAllTabs(){closeTabContext();goList()}
+    document.addEventListener('click',closeTabContext);
+    function goList(){window.location.href='./公域店铺列表.html'}
+    initMode();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>兑换数据原型</title>
+  <style>
+    :root{
+      --primary:#051D86;
+      --primary-hover:#0a2aa0;
+      --primary-light:#EBF0FF;
+      --text-main:#333333;
+      --text-sub:#666666;
+      --text-hint:#AAAAAA;
+      --text-error:#FF0000;
+      --text-warn:#FF7800;
+      --success:#52C41A;
+      --bg-page:#F4F6F9;
+      --bg-white:#FFFFFF;
+      --bg-hover:#F0F3FF;
+      --border:#ECECEC;
+      --divider:#F2F2F2;
+      --nav-h:48px;
+      --sidebar-w:160px;
+      --logic-w:820px;
+      font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:#eef2f7;color:var(--text-main)}
+    button,input,select{font:inherit}
+    .workbench{display:flex;min-height:100vh}
+    .logic-panel{
+      width:56px;
+      background:#f7f9fc;
+      border-right:1px solid var(--border);
+      transition:width .22s ease;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .logic-panel.expanded{width:var(--logic-w)}
+    .logic-toolbar{
+      height:56px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-bottom:1px solid var(--border);
+      background:#fff;
+    }
+    .logic-toggle{
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--primary);
+      border-radius:4px;
+      height:32px;
+      padding:0 12px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .logic-paper-wrap{padding:16px}
+    .logic-paper{
+      width:794px;
+      min-height:1123px;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:32px 40px;
+      box-shadow:0 4px 14px rgba(19,31,55,.04);
+    }
+    .logic-panel:not(.expanded) .logic-paper-wrap{display:none}
+    .logic-paper h1{margin:0 0 18px;font-size:20px}
+    .logic-paper h2{margin:24px 0 10px;font-size:16px}
+    .logic-paper p,.logic-paper li{font-size:14px;line-height:1.8;color:#4b5563}
+    .logic-paper ol{margin:0;padding-left:20px}
+
+    .preview-stage{flex:1;min-width:0;padding:16px}
+    .app-shell{
+      min-height:calc(100vh - 32px);
+      background:var(--bg-page);
+      border:1px solid #e8ecf2;
+      border-radius:14px;
+      overflow:hidden;
+    }
+    .topnav{
+      display:flex;
+      align-items:stretch;
+      height:var(--nav-h);
+      background:#fff;
+      border-bottom:1px solid var(--border);
+    }
+    .nav-logo{
+      width:160px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:15px;
+      font-weight:700;
+      color:var(--primary);
+      border-right:1px solid var(--border);
+      flex:0 0 auto;
+    }
+    .nav-toggle{
+      width:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#5d6470;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+    .nav-tabs{display:flex;align-items:stretch;gap:4px;padding:0 12px;flex:1;overflow:auto}
+    .nav-tab{
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding:0 14px;
+      font-size:14px;
+      color:#666;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+    .nav-tab.active{color:var(--primary);font-weight:600}
+    .tab-close{
+      display:inline;
+      font-size:12px;
+      color:#a0a6b2;
+      cursor:pointer;
+    }
+    .nav-tab.fixed .tab-close{display:none!important}
+    .nav-tab.active::after{
+      content:"";
+      position:absolute;
+      left:12px;right:12px;bottom:0;
+      height:2px;background:var(--primary);
+    }
+    .nav-right{
+      display:flex;
+      align-items:center;
+      padding:0 16px;
+      color:#666;
+      border-left:1px solid var(--border);
+      flex:0 0 auto;
+    }
+
+    .main-wrap{display:flex;min-height:calc(100vh - 32px - 48px)}
+    .sidebar{
+      width:var(--sidebar-w);
+      background:#fff;
+      border-right:1px solid var(--border);
+      flex:0 0 auto;
+      padding:12px 0;
+      transition:width .22s ease;
+      overflow:hidden;
+    }
+    .sb-search{padding:0 12px 12px}
+    .sb-search input{
+      width:100%;height:30px;border:1px solid var(--border);border-radius:5px;
+      padding:0 10px;font-size:13px;color:#666;outline:none;
+    }
+    .sb-search input:focus{border-color:var(--primary)}
+    .sb-empty{
+      display:none;
+      padding:8px 12px 12px;
+      font-size:12px;
+      color:#999;
+    }
+    .m-group{margin-bottom:2px}
+    .m1{
+      height:40px;padding:0 12px;display:flex;align-items:center;gap:8px;
+      cursor:pointer;color:#333;
+    }
+    .m1:hover,.m1.active{background:var(--bg-hover);color:var(--primary)}
+    .m1:hover .m1-icon svg,.m1.active .m1-icon svg{stroke:var(--primary)}
+    .m1-icon svg{
+      width:18px;height:18px;stroke:#999;fill:none;stroke-width:1.5;
+      stroke-linecap:round;stroke-linejoin:round;
+    }
+    .m1-label{font-size:14px;flex:1}
+    .m1-arrow{font-size:14px;transition:transform .2s ease}
+    .m1.open .m1-arrow{transform:rotate(90deg)}
+    .m2-wrap{padding:2px 8px 8px}
+    .m2-wrap.hidden{display:none}
+    .m2-item{
+      height:32px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;border-radius:4px;
+      color:#666;font-size:12px;cursor:pointer;
+    }
+    .m2-item:hover,.m2-item.active{background:var(--primary-light);color:var(--primary)}
+    .m2-item.active{font-weight:600}
+    .m2-item-label{flex:1;min-width:0}
+    .sidebar.collapsed{width:44px}
+    .sidebar.collapsed .sb-search,
+    .sidebar.collapsed .sb-empty,
+    .sidebar.collapsed .m1-label,
+    .sidebar.collapsed .m1-arrow,
+    .sidebar.collapsed .m2-wrap{display:none}
+    .sidebar.collapsed .m1{
+      justify-content:center;
+      padding:0;
+    }
+    .sidebar-flyout{
+      display:none;
+      position:fixed;
+      min-width:132px;
+      background:#fff;
+      border:1px solid #e8ecf0;
+      border-radius:6px;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);
+      padding:6px;
+      z-index:1200;
+    }
+    .sidebar-flyout.open{display:block}
+    .flyout-item{
+      height:32px;padding:0 10px;display:flex;align-items:center;border-radius:4px;
+      font-size:12px;color:#666;cursor:pointer;white-space:nowrap;
+    }
+    .flyout-item:hover{background:var(--primary-light);color:var(--primary)}
+
+    .content{flex:1;min-width:0;padding:16px}
+    .canvas{
+      min-height:calc(100vh - 32px - 48px - 32px);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:18px 18px 0;
+    }
+    .page-title{font-size:20px;font-weight:700;margin-bottom:16px}
+    .divider{height:1px;background:var(--divider);margin:0 -18px 16px}
+    .toolbar{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+      margin-bottom:14px;
+    }
+    .search-group{
+      display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-width:0;
+    }
+    .field{
+      height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;
+      padding:0 12px;color:#666;outline:none;font-size:13px;
+    }
+    .field.input{width:180px}
+    .field.select{width:140px}
+    .field.date{width:180px}
+    .field:focus{border-color:var(--primary)}
+    .icon-btn{
+      width:32px;height:32px;border:none;background:transparent;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .icon-btn svg{width:18px;height:18px;stroke:#666;fill:none;stroke-width:1.8}
+    .link-btn{color:var(--primary);font-size:13px;cursor:pointer}
+    .op-area{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+    .btn-primary,.btn-secondary{
+      height:32px;border-radius:4px;padding:0 14px;cursor:pointer;font-size:14px
+    }
+    .btn-primary{background:var(--primary);border:none;color:#fff}
+    .btn-secondary{background:#fff;border:1px solid var(--border);color:#333}
+
+    .summary{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .stats-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:14px;
+    }
+    .stats-head-left{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      min-width:0;
+    }
+    .stats-title{
+      font-size:20px;
+      font-weight:700;
+      color:#222;
+      white-space:nowrap;
+    }
+    .stats-update-time{
+      font-size:13px;
+      color:#999;
+      white-space:nowrap;
+    }
+    .stats-head-right{
+      display:flex;
+      align-items:center;
+      gap:20px;
+      flex:0 0 auto;
+    }
+    .stats-head-link{
+      font-size:14px;
+      color:var(--primary);
+      font-weight:600;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .summary-card{
+      border:1px solid #e8eefc;
+      border-radius:8px;
+      background:#f4f7ff;
+      padding:28px 22px 24px;
+    }
+    .summary-card .label{font-size:13px;color:#666;margin-bottom:6px}
+    .summary-card .value{font-size:28px;font-weight:700;color:#222}
+    .summary-card .hint{font-size:12px;color:#999;margin-top:6px}
+    table{width:100%;border-collapse:collapse}
+    thead th{
+      height:40px;background:#f7f8fb;border-bottom:1px solid var(--divider);
+      font-size:13px;font-weight:600;color:#666;text-align:left;padding:0 14px;
+    }
+    tbody td{
+      height:72px;border-bottom:1px solid var(--divider);padding:0 14px;
+      font-size:14px;color:#333;vertical-align:middle;
+    }
+    tbody tr:hover{background:#f9fbff}
+    tbody tr.selected{background:var(--primary-light)}
+    .dist-user{display:flex;flex-direction:column;gap:4px}
+    .dist-user .nick{color:var(--primary);font-weight:600}
+    .dist-user .meta{font-size:12px;color:#7a8291;line-height:1.5}
+    .event-cell{display:flex;flex-direction:column;gap:4px}
+    .event-type{font-size:12px;color:var(--text-warn)}
+    .event-name{font-size:14px;color:var(--primary);font-weight:600;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+    .event-id{font-size:12px;color:#7a8291}
+    .time-range{display:flex;flex-direction:column;gap:4px}
+    .time-range .long-term{font-size:12px;color:#7a8291}
+    .owner-meta{display:flex;flex-direction:column;gap:4px}
+    .owner-meta .user{font-size:13px;color:#666}
+    .owner-meta .time{font-size:12px;color:#7a8291}
+    .status{
+      display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+    }
+    .status::before{content:"";width:6px;height:6px;border-radius:50%}
+    .status.pending{color:var(--text-warn)}
+    .status.pending::before{background:var(--text-warn)}
+    .status.approved{color:var(--success)}
+    .status.approved::before{background:var(--success)}
+    .status.rejected{color:var(--text-error)}
+    .status.rejected::before{background:var(--text-error)}
+    .status.disabled{color:#aaa}
+    .status.disabled::before{background:#aaa}
+    .status-switch{
+      width:46px;
+      height:24px;
+      border-radius:12px;
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      padding:0 7px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      transition:all .2s ease;
+      box-sizing:border-box;
+    }
+    .status-switch::after{
+      content:"";
+      position:absolute;
+      top:3px;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:0 1px 3px rgba(0,0,0,.15);
+      transition:all .2s ease;
+    }
+    .status-switch.on{
+      justify-content:flex-start;
+      background:var(--primary);
+      color:#fff;
+    }
+    .status-switch.on::after{right:3px}
+    .status-switch.off{
+      justify-content:flex-end;
+      background:#cfcfcf;
+      color:#fff;
+    }
+    .status-switch.off::after{left:3px}
+    .money{font-weight:600;color:#1f2937}
+    .money.waiting{color:var(--text-warn)}
+    .action-links{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+    .action-links .link{color:var(--primary);cursor:pointer}
+    .action-links .danger{color:var(--text-error);cursor:pointer}
+    .more-trigger{color:#666;cursor:pointer;font-weight:700}
+    .action-menu{
+      display:none;position:fixed;z-index:1300;background:#fff;border:1px solid #e8ecf0;border-radius:4px;
+      box-shadow:0 8px 20px rgba(0,0,0,.12);padding:4px 0;min-width:110px;
+    }
+    .action-menu.open{display:block}
+    .action-menu-item{
+      padding:9px 16px;font-size:13px;color:#333;cursor:pointer;white-space:nowrap;
+    }
+    .action-menu-item:hover{background:var(--bg-hover)}
+    .action-menu-item.danger{color:var(--text-error)}
+    .action-menu-item.danger:hover{background:#fff0f0}
+    .tab-context-menu{display:none;position:fixed;z-index:9999;width:132px;background:#fff;border:1px solid #e8ecf0;border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px 0}
+    .tab-context-menu.open{display:block}
+    .tab-context-menu div{height:32px;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#333;cursor:pointer}
+    .tab-context-menu div:hover{background:var(--primary-light);color:var(--primary)}
+    .footer-bar{
+      height:48px;display:flex;align-items:center;justify-content:flex-end;gap:10px;
+      color:#666;font-size:13px;
+    }
+    .page-num{
+      width:28px;height:28px;border:1px solid var(--border);border-radius:4px;
+      display:flex;align-items:center;justify-content:center;background:#fff;
+    }
+    .page-num.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .page-section{display:none}
+    .page-section.active{display:block}
+    .section-note{
+      padding:12px 14px;margin-bottom:14px;border:1px solid #d8e0fa;border-radius:8px;
+      background:#f8faff;font-size:13px;color:#50607a;
+    }
+    .stats-row{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .table-link{color:var(--primary);cursor:pointer}
+    .table-link:hover{text-decoration:underline}
+    .config-card{
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fff;
+      padding:18px 20px;
+      margin-bottom:14px;
+    }
+    .config-title{
+      font-size:15px;font-weight:600;margin-bottom:14px;padding-left:10px;border-left:3px solid var(--primary);
+    }
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px 18px;
+    }
+    .form-item label{
+      display:block;font-size:13px;color:#666;margin-bottom:8px;
+    }
+    .radio-row,.check-row{
+      display:flex;align-items:center;gap:16px;flex-wrap:wrap;height:32px;color:#333;font-size:14px;
+    }
+    .switch-box{
+      width:46px;height:24px;border-radius:12px;background:var(--primary);position:relative;display:inline-block;
+    }
+    .switch-box::after{
+      content:"";position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+      box-shadow:0 1px 3px rgba(0,0,0,.15);
+    }
+    .mask{
+      display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:1000;
+    }
+    .mask.open{display:block}
+    .modal{
+      display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:520px;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);z-index:1001;
+    }
+    .modal.open{display:block}
+    .modal-header{
+      height:56px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;
+      font-size:16px;font-weight:600;border-bottom:1px solid var(--divider);
+    }
+    .modal-close{font-size:24px;color:#999;cursor:pointer}
+    .modal-body{padding:18px 20px}
+    .modal-tip{
+      padding:10px 12px;border-radius:6px;background:#f8faff;border:1px solid #d8e0fa;
+      font-size:13px;color:#50607a;line-height:1.7;margin-bottom:16px;
+    }
+    .modal-footer{
+      padding:0 20px 20px;display:flex;justify-content:flex-end;gap:10px;
+    }
+    .modal-grid{
+      display:grid;
+      grid-template-columns:140px 1fr;
+      gap:14px 18px;
+      font-size:14px;
+      color:#4b5563;
+    }
+    .modal-grid .label{color:#666}
+    .modal-grid .value{color:#333}
+    .share-box{
+      border:1px dashed #cfd7ea;
+      border-radius:8px;
+      padding:12px 14px;
+      background:#fafcff;
+      margin-bottom:12px;
+    }
+    .share-box-title{font-size:13px;color:#666;margin-bottom:8px}
+    .share-box-code{
+      font-size:13px;
+      color:#333;
+      line-height:1.7;
+      word-break:break-all;
+    }
+    .drawer{
+      position:fixed;
+      top:0;
+      right:-440px;
+      width:400px;
+      height:100vh;
+      background:#fff;
+      box-shadow:-8px 0 24px rgba(0,0,0,.12);
+      z-index:1002;
+      transition:right .28s cubic-bezier(0.4,0,0.2,1);
+      display:flex;
+      flex-direction:column;
+    }
+    .drawer.open{right:0}
+    .drawer.order-detail-drawer{
+      width:min(1180px, calc(100vw - 48px));
+      right:calc(-1 * min(1180px, calc(100vw - 48px)));
+    }
+    .drawer.order-detail-drawer.open{right:0}
+    .drawer-header{
+      height:56px;
+      padding:0 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--divider);
+      font-size:16px;
+      font-weight:600;
+    }
+    .drawer-body{
+      flex:1;
+      overflow:auto;
+      padding:18px 20px 24px;
+    }
+    .order-detail-drawer .drawer-header{
+      height:64px;
+      padding:0 48px;
+      font-size:20px;
+    }
+    .order-detail-drawer .drawer-body{
+      padding:32px 48px 24px;
+    }
+    .order-meta-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:22px 56px;
+      margin-bottom:34px;
+      font-size:16px;
+      color:#222;
+    }
+    .order-meta-item{
+      display:flex;
+      align-items:center;
+      min-height:24px;
+      white-space:nowrap;
+    }
+    .order-meta-item .label{
+      color:#111;
+      font-weight:600;
+      margin-right:8px;
+    }
+    .order-goods-table{
+      width:100%;
+      border:1px solid var(--divider);
+      border-collapse:collapse;
+      margin-bottom:24px;
+    }
+    .order-goods-table th{
+      height:48px;
+      background:#f7f7f7;
+      border:1px solid var(--divider);
+      text-align:center;
+      font-size:15px;
+      color:#222;
+      font-weight:600;
+      padding:0 12px;
+    }
+    .order-goods-table td{
+      height:132px;
+      border:1px solid var(--divider);
+      text-align:center;
+      vertical-align:middle;
+      font-size:15px;
+      color:#333;
+      padding:16px 12px;
+    }
+    .goods-name-cell{
+      text-align:left!important;
+      line-height:1.8;
+    }
+    .goods-name-cell .goods-code{
+      display:block;
+      margin-top:20px;
+      color:#333;
+    }
+    .discount-lines{
+      line-height:1.7;
+      text-align:left;
+      white-space:nowrap;
+    }
+    .order-pay-total{
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:14px;
+      font-size:18px;
+      margin:8px 0 28px;
+    }
+    .order-pay-total .price{
+      color:#E60012;
+      font-size:20px;
+    }
+    .log-item{
+      padding:12px 0;
+      border-bottom:1px solid var(--divider);
+    }
+    .log-item:last-child{border-bottom:none}
+    .log-main{font-size:14px;color:#333;margin-bottom:4px}
+    .log-sub{font-size:12px;color:#7a8291;line-height:1.7}
+    .drawer-footer{
+      padding:14px 20px 20px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      border-top:1px solid var(--divider);
+    }
+    .order-detail-drawer .drawer-footer{
+      padding:14px 48px 20px;
+      background:#fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="workbench">
+    <aside class="logic-panel" id="logicPanel">
+      <div class="logic-toolbar">
+        <button class="logic-toggle" onclick="toggleLogic()">展开逻辑</button>
+      </div>
+      <div class="logic-paper-wrap">
+        <div class="logic-paper">
+          <h1>兑换数据逻辑说明</h1>
+          <h2>1. 页面定位</h2>
+          <ol>
+            <li>页面路径为“营销中心 - 订单兑换 - 兑换数据”，用于查看订单兑换活动对应的奖励发放明细。</li>
+            <li>页面默认承接“订单兑换列表”中点击“查看数据详情”进入，默认带活动名称筛选条件。</li>
+          </ol>
+          <h2>2. 搜索逻辑</h2>
+          <ol>
+            <li>用户ID/手机号：精准搜索。</li>
+            <li>用户昵称：模糊搜索。</li>
+            <li>用户注册时间：开始时间至结束时间，精确到秒。</li>
+            <li>状态：下拉选择，默认全部，可选待开始、进行中、已结束。</li>
+            <li>活动：下拉选择所有状态的活动；从活动列表页进入时默认带入活动名称。</li>
+          </ol>
+          <h2>3. 列表字段</h2>
+          <ol>
+            <li>活动信息：展示活动名称、活动类型、活动ID。</li>
+            <li>用户信息：展示用户昵称、手机号、用户ID。</li>
+            <li>注册时间：展示到秒。</li>
+            <li>兑换订单：展示订单兑换单号，点击进入兑换订单详情。</li>
+            <li>发放奖励：展示积分值；奖励发放时间展示到秒。</li>
+          </ol>
+          <h2>4. 核心交互</h2>
+          <ol>
+            <li>列表按奖励发放时间倒序排列，默认 10 条/页。</li>
+            <li>导出：点击进入下载列表。</li>
+            <li>兑换订单：点击进入兑换订单详情页。</li>
+          </ol>
+          <h2>5. 状态与校验</h2>
+          <ol>
+            <li>活动筛选未传值时默认展示全部活动。</li>
+            <li>无数据时显示“暂无兑换数据”。</li>
+            <li>仅展示已记录奖励发放时间的数据明细。</li>
+          </ol>
+        </div>
+      </div>
+    </aside>
+
+    <main class="preview-stage">
+      <div class="app-shell">
+        <nav class="topnav">
+          <div class="nav-logo">品牌运营系统</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="nav-tabs">
+            <div class="nav-tab fixed">首页</div>
+            <div class="nav-tab" data-page="order-exchange" onclick="goToOrderExchangeList()" oncontextmenu="openTabContext(event,'order-exchange')">订单兑换 <span class="tab-close" onclick="closeTab(event,'order-exchange')">×</span></div>
+            <div class="nav-tab active" data-page="exchange-data" onclick="activateTab('exchange-data')" oncontextmenu="openTabContext(event,'exchange-data')">兑换数据 <span class="tab-close" onclick="closeTab(event,'exchange-data')">×</span></div>
+          </div>
+          <div class="nav-right">账户名称 ▾</div>
+        </nav>
+
+        <div class="main-wrap">
+          <aside class="sidebar" id="sidebar">
+            <div class="sb-search"><input placeholder="搜索报表" oninput="searchMenu(this.value)" /></div>
+            <div class="sb-empty" id="sbEmpty">暂无匹配报表</div>
+            <div class="m-group" data-group="商品中心">
+              <div class="m1" onmouseenter="showFlyout(event,'goods')" onmouseleave="hideFlyoutLater()" onclick="toggleMenu(this,'menu-goods')">
+                <span class="m1-icon">
+                  <svg viewBox="0 0 24 24"><path d="M3.75 7.5h5l1.8 2.1h9.7v7.9a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2z"></path><path d="M3.75 7.5a2 2 0 0 1 2-2h4.3l1.7 2h6.5a2 2 0 0 1 2 2v.1"></path></svg>
+                </span>
+                <span class="m1-label">商品中心</span>
+                <span class="m1-arrow">›</span>
+              </div>
+              <div class="m2-wrap hidden" id="menu-goods">
+                <div class="m2-item" data-label="商品分类"><span class="m2-item-label">商品分类</span></div>
+                <div class="m2-item" data-label="品牌管理"><span class="m2-item-label">品牌管理</span></div>
+              </div>
+            </div>
+            <div class="m-group" data-group="营销中心">
+              <div class="m1 open active" onmouseenter="showFlyout(event,'marketing')" onmouseleave="hideFlyoutLater()" onclick="toggleMenu(this,'menu-marketing')">
+                <span class="m1-icon">
+                  <svg viewBox="0 0 24 24"><path d="M3.75 7.5h5l1.8 2.1h9.7v7.9a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2z"></path><path d="M3.75 7.5a2 2 0 0 1 2-2h4.3l1.7 2h6.5a2 2 0 0 1 2 2v.1"></path></svg>
+                </span>
+                <span class="m1-label">营销中心</span>
+                <span class="m1-arrow">›</span>
+              </div>
+              <div class="m2-wrap" id="menu-marketing">
+                <div class="m2-item active" data-label="订单兑换" onclick="switchPage('exchange-data', this)"><span class="m2-item-label">订单兑换</span></div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="content">
+            <div class="canvas page-section active" id="exchangeDataPage">
+              <div class="page-title">兑换数据</div>
+              <div class="toolbar">
+                <div class="search-group">
+                  <input class="field input" id="userKeyword" placeholder="请输入用户ID/手机号" style="width:190px" oninput="filterExchangeData()" />
+                  <input class="field input" id="nickKeyword" placeholder="请输入用户昵称" oninput="filterExchangeData()" />
+                  <input class="field date" id="exchangeDateKeyword" placeholder="请选择奖励发放时间" style="width:280px" />
+                  <select class="field select" id="exchangeStatusFilter" onchange="filterExchangeData()">
+                    <option>全部状态</option>
+                    <option>兑换成功</option>
+                  </select>
+                  <select class="field select" id="activityFilter" style="width:220px" onchange="filterExchangeData()">
+                    <option>全部活动</option>
+                    <option>618 店铺订单兑换活动</option>
+                    <option>春季会员订单兑换计划（长期有效）</option>
+                    <option>年货节积分兑换活动</option>
+                  </select>
+                  <button class="icon-btn" title="搜索" onclick="filterExchangeData()">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+                  </button>
+                  <span class="link-btn" onclick="clearExchangeSearch()">清空</span>
+                </div>
+                <div class="op-area">
+                  <button class="btn-secondary" onclick="openJumpModal('下载列表','点击后进入下载列表查看导出任务。')">导出</button>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:22%">活动信息</th>
+                    <th style="width:18%">用户信息</th>
+                    <th style="width:14%">注册时间</th>
+                    <th style="width:18%">兑换订单</th>
+                    <th style="width:10%">发放奖励</th>
+                    <th style="width:18%">奖励发放时间</th>
+                  </tr>
+                </thead>
+                <tbody id="exchangeTbody">
+                  <tr>
+                    <td>
+                      <div class="event-cell">
+                        <span class="event-type">订单金额比例兑换</span>
+                        <span class="event-name">618 店铺订单兑换活动</span>
+                        <span class="event-id">ID：OE202604170001</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dist-user">
+                        <span class="nick">林小九</span>
+                        <span class="meta">手机号：138****1024</span>
+                        <span class="meta">用户ID：U20260418001</span>
+                      </div>
+                    </td>
+                    <td>2026-04-14 09:32:18</td>
+                    <td><span class="table-link" onclick="openOrderDrawer('TB2026041400012234')">TB2026041400012234</span></td>
+                    <td><span class="money">180 积分</span></td>
+                    <td>2026-04-18 10:18:26</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="event-cell">
+                        <span class="event-type">商品数量比例兑换</span>
+                        <span class="event-name">春季会员订单兑换计划（长期有效）</span>
+                        <span class="event-id">ID：OE202604100014</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dist-user">
+                        <span class="nick">Momo</span>
+                        <span class="meta">手机号：136****4408</span>
+                        <span class="meta">用户ID：U20260418018</span>
+                      </div>
+                    </td>
+                    <td>2026-04-12 20:05:46</td>
+                    <td><span class="table-link" onclick="openOrderDrawer('JD2026041200008765')">JD2026041200008765</span></td>
+                    <td><span class="money">300 积分</span></td>
+                    <td>2026-04-18 09:40:12</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="event-cell">
+                        <span class="event-type">订单金额比例兑换</span>
+                        <span class="event-name">年货节积分兑换活动</span>
+                        <span class="event-id">ID：OE202603020021</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dist-user">
+                        <span class="nick">陈晨</span>
+                        <span class="meta">手机号：139****6632</span>
+                        <span class="meta">用户ID：U20260328009</span>
+                      </div>
+                    </td>
+                    <td>2026-03-28 14:16:03</td>
+                    <td><span class="table-link" onclick="openOrderDrawer('TM2026032800456678')">TM2026032800456678</span></td>
+                    <td><span class="money">90 积分</span></td>
+                    <td>2026-04-01 00:00:02</td>
+                  </tr>
+                </tbody>
+                <tbody id="exchangeEmpty" style="display:none"><tr><td colspan="6" style="height:120px;text-align:center;color:#999">暂无兑换数据</td></tr></tbody>
+              </table>
+
+              <div class="footer-bar">
+                <span>共 126 条</span>
+                <span class="page-num">‹</span>
+                <span class="page-num active">1</span>
+                <span class="page-num">2</span>
+                <span class="page-num">3</span>
+                <span class="page-num">›</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="mask" id="mask" onclick="closeOverlay()"></div>
+  <div class="sidebar-flyout" id="sidebarFlyout" onmouseenter="keepFlyout()" onmouseleave="hideFlyout()"></div>
+  <div class="action-menu" id="actionMenu" onmouseenter="keepActionMenu()" onmouseleave="hideActionMenu()"></div>
+  <div class="tab-context-menu" id="tabContextMenu">
+    <div onclick="closeCurrentTab()">关闭当前</div>
+    <div onclick="closeOtherTabs()">关闭其他</div>
+    <div onclick="closeAllTabs()">关闭全部</div>
+  </div>
+  <div class="modal" id="dataModal">
+    <div class="modal-header">
+      <span id="dataModalTitle">下载列表说明</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tip" id="dataModalTip">导出后进入下载列表查看导出任务处理进度和下载结果。</div>
+      <div class="modal-grid">
+        <div class="label">任务名称</div>
+        <div class="value">兑换数据导出任务</div>
+        <div class="label">任务状态</div>
+        <div class="value" id="dataMetricName">处理中</div>
+        <div class="label">导出条件</div>
+        <div class="value" id="dataMetricValue">活动：618 店铺订单兑换活动</div>
+        <div class="label">提交时间</div>
+        <div class="value">2026-04-18 16:02:18</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeOverlay()">关闭</button>
+      <button class="btn-primary" onclick="closeOverlay()">进入下载列表</button>
+    </div>
+  </div>
+  <div class="modal" id="shareModal">
+    <div class="modal-header">
+      <span>推广配置</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="share-box">
+        <div class="share-box-title">活动链接</div>
+        <div class="share-box-code">/pages/order-exchange/index?activityId=OE202604170001</div>
+      </div>
+      <div class="share-box">
+        <div class="share-box-title">活动路径</div>
+        <div class="share-box-code">营销活动 / 订单兑换 / 618 店铺订单兑换活动</div>
+      </div>
+      <div class="share-box">
+        <div class="share-box-title">二维码与海报</div>
+        <div class="share-box-code">支持复制链接、复制路径、下载二维码、配置分享标题与海报文案。</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeOverlay()">取消</button>
+      <button class="btn-primary" onclick="closeOverlay()">复制链接</button>
+    </div>
+  </div>
+  <div class="modal" id="jumpModal">
+    <div class="modal-header">
+      <span id="jumpModalTitle">页面跳转说明</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tip" id="jumpModalTip">进入对应页面继续操作。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeOverlay()">关闭</button>
+      <button class="btn-primary" onclick="closeOverlay()">我知道了</button>
+    </div>
+  </div>
+  <div class="modal" id="deleteModal" style="width:400px;">
+    <div class="modal-header">
+      <span>删除确认</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tip">是否删除？删除后活动不可恢复，请确认当前活动已不再使用。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeOverlay()">取消</button>
+      <button class="btn-primary" onclick="closeOverlay()">确认删除</button>
+    </div>
+  </div>
+  <div class="modal" id="endModal" style="width:400px;">
+    <div class="modal-header">
+      <span>立即结束确认</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tip">活动结束后将停止订单兑换，是否立即结束当前活动？</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeOverlay()">取消</button>
+      <button class="btn-primary" onclick="closeOverlay()">确认结束</button>
+    </div>
+  </div>
+  <aside class="drawer" id="logDrawer">
+    <div class="drawer-header">
+      <span>操作日志</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="drawer-body">
+      <div class="log-item">
+        <div class="log-main">编辑活动配置</div>
+        <div class="log-sub">账号名称A · 2026-04-17 17:26:18</div>
+      </div>
+      <div class="log-item">
+        <div class="log-main">更新可兑店铺范围</div>
+        <div class="log-sub">账号名称A · 2026-04-15 10:08:42</div>
+      </div>
+      <div class="log-item">
+        <div class="log-main">创建订单兑换活动</div>
+        <div class="log-sub">账号名称A · 2026-04-10 09:20:36</div>
+      </div>
+    </div>
+  </aside>
+  <aside class="drawer order-detail-drawer" id="detailDrawer">
+    <div class="drawer-header">
+      <span>订单详情</span>
+      <span class="modal-close" onclick="closeOverlay()">×</span>
+    </div>
+    <div class="drawer-body">
+      <div class="order-meta-grid">
+        <div class="order-meta-item"><span class="label">兑换订单：</span><span id="detailId">TB2026041400012234</span></div>
+        <div class="order-meta-item"><span class="label">贸易方式：</span><span>xxXX</span></div>
+        <div class="order-meta-item"><span class="label">店铺名称：</span><span>xxxx</span></div>
+        <div class="order-meta-item"><span class="label">店铺编码：</span><span>xxxx</span></div>
+        <div class="order-meta-item"><span class="label">创建时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">下单时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">支付时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">出库时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">签收时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">完成时间：</span><span>2026-05-14 14:47:39</span></div>
+        <div class="order-meta-item"><span class="label">订单状态：</span><span>已完成</span></div>
+        <div class="order-meta-item"><span class="label">平台用户ID：</span><span>user_20260514001</span></div>
+      </div>
+
+      <table class="order-goods-table">
+        <thead>
+          <tr>
+            <th style="width:26%">商品</th>
+            <th style="width:10%">成交单价</th>
+            <th style="width:11%">购买数量</th>
+            <th style="width:11%">商品优惠</th>
+            <th style="width:9%">税费</th>
+            <th style="width:9%">运费</th>
+            <th style="width:12%">尾差金额</th>
+            <th style="width:12%">商品总金额</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="goods-name-cell">
+              商品名称要展示全展示全展示全展示全展示全展示全展示全展示全展示全展示全
+              <span class="goods-code">商品编码：2234555</span>
+            </td>
+            <td>￥99.99</td>
+            <td>1</td>
+            <td><div class="discount-lines">活动折扣:￥4.31<br>优惠券:￥9.99</div></td>
+            <td>￥0.00</td>
+            <td>￥99.99</td>
+            <td>￥99.99</td>
+            <td>￥99.99</td>
+          </tr>
+          <tr>
+            <td class="goods-name-cell">
+              商品名称要展示全展示全展示全展示全展示全展示全展示全展示全展示全展示全
+              <span class="goods-code">商品编码：2234555</span>
+            </td>
+            <td>￥99.99</td>
+            <td>1</td>
+            <td><div class="discount-lines">活动折扣:￥4.31<br>优惠券:￥9.99</div></td>
+            <td>￥0.00</td>
+            <td>￥99.99</td>
+            <td>￥99.99</td>
+            <td>￥99.99</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="order-pay-total">
+        <span>订单实付金额：</span>
+        <span class="price">￥0.99</span>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-primary" onclick="closeOverlay()">好的，知道了</button>
+    </div>
+  </aside>
+
+  <script>
+    const flyoutMap = {
+      goods: [
+        { label: '商品分类' },
+        { label: '品牌管理' }
+      ],
+      marketing: [
+        { label: '订单兑换', page: 'exchange-data' }
+      ]
+    };
+    let flyoutTimer = null;
+    let actionMenuTimer = null;
+    let currentActionItems = [];
+    function toggleLogic(){
+      const panel = document.getElementById('logicPanel');
+      const btn = panel.querySelector('.logic-toggle');
+      panel.classList.toggle('expanded');
+      btn.textContent = panel.classList.contains('expanded') ? '收起逻辑' : '展开逻辑';
+    }
+    function toggleSidebar(){
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      hideFlyout();
+      hideActionMenu();
+    }
+    function toggleMenu(el, id){
+      if(document.getElementById('sidebar').classList.contains('collapsed')) return;
+      el.classList.toggle('open');
+      document.getElementById(id).classList.toggle('hidden');
+    }
+    function switchPage(page, el){
+      document.querySelectorAll('.page-section').forEach(node => node.classList.remove('active'));
+      document.querySelectorAll('.m2-item').forEach(node => node.classList.remove('active'));
+      document.querySelectorAll('.m1').forEach(node => node.classList.remove('active'));
+      hideActionMenu();
+      if(page === 'exchange-data'){
+        document.getElementById('exchangeDataPage').classList.add('active');
+        if(el) el.classList.add('active');
+        const parentGroup = el ? el.closest('.m-group') : null;
+        const parentHead = parentGroup ? parentGroup.querySelector('.m1') : null;
+        if(parentHead) parentHead.classList.add('active');
+      }
+      document.querySelectorAll('.nav-tab[data-page]').forEach(tab => tab.classList.remove('active'));
+      const activeTab = document.querySelector(`.nav-tab[data-page="${page}"]`);
+      if(activeTab){
+        activeTab.style.display = 'inline-flex';
+        activeTab.classList.add('active');
+      }
+    }
+    function activateTab(page){
+      const menuItem = document.querySelector(`.m2-item[onclick*="${page}"]`);
+      switchPage(page, menuItem);
+    }
+    function closeTab(event, page){
+      event.stopPropagation();
+      const tab = event.currentTarget.closest('.nav-tab');
+      if(!tab || tab.classList.contains('fixed')) return;
+      tab.style.display = 'none';
+      if(tab.classList.contains('active')){
+        const fallback = document.querySelector('.nav-tab[data-page="exchange-data"]');
+        if(fallback){
+          fallback.style.display = 'inline-flex';
+        }
+        activateTab('exchange-data');
+      }
+    }
+    function openTabContext(event,page){
+      event.preventDefault();
+      const menu = document.getElementById('tabContextMenu');
+      menu.dataset.page = page;
+      menu.style.left = `${event.clientX}px`;
+      menu.style.top = `${event.clientY}px`;
+      menu.classList.add('open');
+    }
+    function closeTabContext(){
+      document.getElementById('tabContextMenu').classList.remove('open');
+    }
+    function closeCurrentTab(){
+      closeTabContext();
+      goToOrderExchangeList();
+    }
+    function closeOtherTabs(){
+      closeTabContext();
+      document.querySelectorAll('.nav-tab[data-page]:not(.active)').forEach(tab => tab.style.display = 'none');
+    }
+    function closeAllTabs(){
+      closeTabContext();
+      goToOrderExchangeList();
+    }
+    function filterExchangeData(){
+      const user = document.getElementById('userKeyword').value.trim();
+      const nick = document.getElementById('nickKeyword').value.trim();
+      const date = document.getElementById('exchangeDateKeyword').value.trim();
+      const status = document.getElementById('exchangeStatusFilter').value;
+      const activity = document.getElementById('activityFilter').value;
+      let visible = 0;
+      document.querySelectorAll('#exchangeTbody tr').forEach(row => {
+        const rowText = row.textContent;
+        const matched = (!user || rowText.includes(user)) && (!nick || rowText.includes(nick)) && (!date || rowText.includes(date)) && (status === '全部状态' || status === '兑换成功') && (activity === '全部活动' || rowText.includes(activity));
+        row.style.display = matched ? '' : 'none';
+        if(matched) visible += 1;
+      });
+      document.getElementById('exchangeEmpty').style.display = visible ? 'none' : '';
+    }
+    function clearExchangeSearch(){
+      document.getElementById('userKeyword').value = '';
+      document.getElementById('nickKeyword').value = '';
+      document.getElementById('exchangeDateKeyword').value = '';
+      document.getElementById('exchangeStatusFilter').value = '全部状态';
+      document.getElementById('activityFilter').value = '全部活动';
+      filterExchangeData();
+    }
+    function initActivityFilterFromQuery(){
+      const activity = new URLSearchParams(location.search).get('activity');
+      if(!activity) return;
+      const select = document.getElementById('activityFilter');
+      const option = [...select.options].find(item => item.value === activity || item.textContent === activity);
+      if(option){
+        select.value = option.value;
+        filterExchangeData();
+      }
+    }
+    function searchMenu(keyword){
+      const q = keyword.trim();
+      const groups = document.querySelectorAll('.m-group');
+      const empty = document.getElementById('sbEmpty');
+      let hasVisible = false;
+      groups.forEach(group => {
+        const items = group.querySelectorAll('.m2-item');
+        let groupVisible = false;
+        items.forEach(item => {
+          const matched = !q || item.dataset.label.includes(q);
+          item.style.display = matched ? 'flex' : 'none';
+          if(matched) groupVisible = true;
+        });
+        group.style.display = groupVisible ? 'block' : 'none';
+        if(groupVisible){
+          hasVisible = true;
+          const head = group.querySelector('.m1');
+          const wrap = group.querySelector('.m2-wrap');
+          head.classList.add('open');
+          wrap.classList.remove('hidden');
+        }
+      });
+      empty.style.display = hasVisible ? 'none' : 'block';
+    }
+    function showFlyout(event, groupKey){
+      const sidebar = document.getElementById('sidebar');
+      if(!sidebar.classList.contains('collapsed')) return;
+      clearTimeout(flyoutTimer);
+      const flyout = document.getElementById('sidebarFlyout');
+      const items = flyoutMap[groupKey] || [];
+      flyout.innerHTML = items.map(item => {
+        const action = item.page ? `activateFlyoutPage('${item.page}')` : 'hideFlyout()';
+        return `<div class="flyout-item" onclick="${action}">${item.label}</div>`;
+      }).join('');
+      const rect = event.currentTarget.getBoundingClientRect();
+      flyout.style.left = `${rect.right + 8}px`;
+      flyout.style.top = `${rect.top}px`;
+      flyout.classList.add('open');
+    }
+    function activateFlyoutPage(page){
+      hideFlyout();
+      activateTab(page);
+    }
+    function keepFlyout(){
+      clearTimeout(flyoutTimer);
+    }
+    function hideFlyoutLater(){
+      clearTimeout(flyoutTimer);
+      flyoutTimer = setTimeout(hideFlyout, 120);
+    }
+    function hideFlyout(){
+      clearTimeout(flyoutTimer);
+      document.getElementById('sidebarFlyout').classList.remove('open');
+    }
+    function openDataModal(type){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('dataModal').classList.add('open');
+      document.getElementById('dataModalTitle').textContent = '下载列表说明';
+      document.getElementById('dataMetricName').textContent = '处理中';
+      document.getElementById('dataMetricValue').textContent = '活动：618 店铺订单兑换活动';
+    }
+    function goToOrderExchangeList(){
+      window.location.href = './订单兑换列表.html';
+    }
+    function openShareModal(){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('shareModal').classList.add('open');
+    }
+    function openJumpModal(title, tip){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('jumpModal').classList.add('open');
+      document.getElementById('jumpModalTitle').textContent = title;
+      document.getElementById('jumpModalTip').textContent = tip;
+    }
+    function openDeleteModal(){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('deleteModal').classList.add('open');
+    }
+    function openEndModal(){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('endModal').classList.add('open');
+    }
+    function openLogDrawer(){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('logDrawer').classList.add('open');
+    }
+    function openOrderDrawer(orderNo){
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('detailDrawer').classList.add('open');
+      document.getElementById('detailId').textContent = orderNo;
+    }
+    function refreshStatsHead(){
+      const now = new Date();
+      const pad = num => String(num).padStart(2, '0');
+      const text = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} 更新`;
+      document.getElementById('statsUpdateTime').textContent = text;
+    }
+    function closeOverlay(){
+      document.getElementById('mask').classList.remove('open');
+      document.querySelectorAll('.modal').forEach(node => node.classList.remove('open'));
+      document.getElementById('logDrawer').classList.remove('open');
+      document.getElementById('detailDrawer').classList.remove('open');
+    }
+    function handleAction(action){
+      if(action === '推广'){
+        openShareModal();
+      }else if(action === '删除'){
+        openDeleteModal();
+      }else if(action === '日志'){
+        openLogDrawer();
+      }else if(action === '立即结束'){
+        openEndModal();
+      }
+      hideActionMenu();
+    }
+    function openActionMenu(event, items){
+      clearTimeout(actionMenuTimer);
+      currentActionItems = items.slice();
+      const menu = document.getElementById('actionMenu');
+      menu.innerHTML = items.map(item => {
+        const danger = /删除|停用|拒绝/.test(item) ? ' danger' : '';
+        return `<div class="action-menu-item${danger}" onclick="handleAction('${item}')">${item}</div>`;
+      }).join('');
+      const rect = event.currentTarget.getBoundingClientRect();
+      menu.style.left = `${rect.left - 10}px`;
+      menu.style.top = `${rect.bottom + 8}px`;
+      menu.classList.add('open');
+    }
+    function keepActionMenu(){
+      clearTimeout(actionMenuTimer);
+    }
+    function hideActionMenuLater(){
+      clearTimeout(actionMenuTimer);
+      actionMenuTimer = setTimeout(hideActionMenu, 120);
+    }
+    function hideActionMenu(){
+      clearTimeout(actionMenuTimer);
+      document.getElementById('actionMenu').classList.remove('open');
+    }
+    document.addEventListener('click', event => {
+      if(!event.target.closest('.more-trigger') && !event.target.closest('#actionMenu')){
+        hideActionMenu();
+      }
+      if(!event.target.closest('#tabContextMenu')){
+        closeTabContext();
+      }
+      if(!event.target.closest('.m1') && !event.target.closest('#sidebarFlyout')){
+        hideFlyout();
+      }
+    });
+    activateTab('exchange-data');
+    initActivityFilterFromQuery();
+  </script>
+</body>
+</html>
