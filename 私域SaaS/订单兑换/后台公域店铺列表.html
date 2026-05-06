@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公域店铺列表</title>
+  <style>
+    :root{--primary:#051D86;--primary-hover:#0a2aa0;--primary-light:#EBF0FF;--text-main:#333;--text-sub:#666;--text-hint:#aaa;--text-error:#f00;--bg-page:#F4F6F9;--bg-white:#fff;--bg-hover:#F0F3FF;--border:#ECECEC;--divider:#F2F2F2;--nav-h:48px;--sidebar-w:160px;--logic-w:820px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;background:#eef2f7;color:var(--text-main)}
+    button,input,select{font:inherit}
+    .workbench{display:flex;min-height:100vh}
+    .logic-panel{width:56px;background:#f7f9fc;border-right:1px solid var(--border);transition:width .22s ease;overflow:hidden;flex:0 0 auto}
+    .logic-panel.expanded{width:var(--logic-w)}
+    .logic-toolbar{height:56px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);background:#fff}
+    .logic-toggle{height:32px;padding:0 12px;border:1px solid var(--border);background:#fff;color:var(--primary);border-radius:4px;cursor:pointer;white-space:nowrap}
+    .logic-paper-wrap{padding:16px}
+    .logic-paper{width:794px;min-height:1123px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:32px 40px;box-shadow:0 4px 14px rgba(19,31,55,.04)}
+    .logic-panel:not(.expanded) .logic-paper-wrap{display:none}
+    .logic-paper h1{margin:0 0 18px;font-size:20px}
+    .logic-paper h2{margin:24px 0 10px;font-size:16px}
+    .logic-paper li{font-size:14px;line-height:1.8;color:#4b5563}
+    .logic-paper ol{margin:0;padding-left:20px}
+    .preview-stage{flex:1;min-width:0;padding:16px}
+    .app-shell{min-height:calc(100vh - 32px);background:var(--bg-page);border:1px solid #e8ecf2;border-radius:14px;overflow:hidden}
+    .topnav{display:flex;align-items:stretch;height:var(--nav-h);background:#fff;border-bottom:1px solid var(--border)}
+    .nav-logo{width:160px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--primary);border-right:1px solid var(--border);flex:0 0 auto}
+    .nav-toggle{width:44px;display:flex;align-items:center;justify-content:center;color:#5d6470;cursor:pointer;flex:0 0 auto}
+    .nav-tabs{display:flex;align-items:stretch;gap:4px;padding:0 12px;flex:1;overflow:auto}
+    .nav-tab{position:relative;display:flex;align-items:center;gap:6px;padding:0 14px;font-size:14px;color:#666;white-space:nowrap;cursor:pointer}
+    .nav-tab.active{color:var(--primary);font-weight:600}
+    .nav-tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--primary)}
+    .tab-close{display:inline;font-size:12px;color:#a0a6b2;cursor:pointer}
+    .nav-tab.fixed .tab-close{display:none!important}
+    .nav-right{display:flex;align-items:center;padding:0 16px;color:#666;border-left:1px solid var(--border);flex:0 0 auto}
+    .main-wrap{display:flex;min-height:calc(100vh - 32px - 48px)}
+    .sidebar{width:var(--sidebar-w);background:#fff;border-right:1px solid var(--border);flex:0 0 auto;padding:12px 0;transition:width .22s ease;overflow:hidden}
+    .sb-search{padding:0 12px 12px}
+    .sb-search input{width:100%;height:30px;border:1px solid var(--border);border-radius:5px;padding:0 10px;font-size:13px;outline:none}
+    .m-group{margin-bottom:2px}
+    .m1{height:40px;padding:0 12px;display:flex;align-items:center;gap:8px;cursor:pointer;color:#333}
+    .m1:hover,.m1.active{background:var(--bg-hover);color:var(--primary)}
+    .m1:hover .m1-icon svg,.m1.active .m1-icon svg{stroke:var(--primary)}
+    .m1-icon svg{width:18px;height:18px;stroke:#999;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+    .m1-label{font-size:14px;flex:1}
+    .m1-arrow{font-size:14px;transform:rotate(90deg)}
+    .m2-wrap{padding:2px 8px 8px}
+    .m2-item{height:32px;padding:0 8px;display:flex;align-items:center;border-radius:4px;color:#666;font-size:12px;cursor:pointer}
+    .m2-item:hover,.m2-item.active{background:var(--primary-light);color:var(--primary)}
+    .m2-item.active{font-weight:600}
+    .sidebar.collapsed{width:44px}
+    .sidebar.collapsed .sb-search,.sidebar.collapsed .m1-label,.sidebar.collapsed .m1-arrow,.sidebar.collapsed .m2-wrap{display:none}
+    .sidebar.collapsed .m1{justify-content:center;padding:0}
+    .content{flex:1;min-width:0;padding:16px}
+    .canvas{min-height:calc(100vh - 32px - 48px - 32px);background:#fff;border:1px solid var(--border);border-radius:12px;padding:0 16px 18px}
+    .page-head{height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--divider);margin:0 -16px;padding:0 18px}
+    .breadcrumb{font-size:15px;color:#333;font-weight:600}
+    .breadcrumb .back{color:var(--primary);cursor:pointer;margin-right:6px}
+    .toolbar{display:flex;justify-content:space-between;gap:16px;padding:16px 0}
+    .search-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .field{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;padding:0 12px;font-size:13px;color:#333;outline:none}
+    .field:focus{border-color:var(--primary)}
+    .input{width:180px}
+    .icon-btn{height:32px;width:20px;border:none;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .icon-btn:hover{opacity:.72}
+    .icon-btn svg{width:16px;height:16px;stroke:#333;fill:none;stroke-width:1.8}
+    .link-btn,.link{color:var(--primary);cursor:pointer;font-size:13px}
+    .btn-primary,.btn-secondary{height:32px;border-radius:4px;padding:0 14px;cursor:pointer;font-size:14px}
+    .btn-primary{background:var(--primary);border:none;color:#fff}
+    .btn-primary:hover{background:var(--primary-hover)}
+    .btn-secondary{background:#fff;border:1px solid var(--border);color:#333}
+    table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0px 1px 0px 1px #EFEDED;border-radius:0}
+    th{height:40px;background:#f7f8fa;color:#333;font-size:13px;text-align:left;font-weight:600;border-bottom:1px solid var(--divider);padding:0 14px}
+    td{height:68px;border-bottom:1px solid var(--divider);padding:10px 14px;font-size:13px;vertical-align:middle}
+    .store-cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .store-line{display:flex;align-items:center;gap:6px;min-width:0}
+    .platform-tag{height:18px;padding:0 4px;border-radius:2px;background:#4f8fd8;color:#fff;font-size:12px;line-height:18px;flex:0 0 auto}
+    .store-name{color:var(--primary);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;font-weight:400}
+    .store-id{font-size:12px;color:#999}
+    .owner-meta{display:flex;flex-direction:column;gap:6px}
+    .owner-meta .time{font-size:12px;color:#7a8291}
+    .action-links{display:flex;align-items:center;gap:12px}
+    .metric-link{color:var(--primary);cursor:pointer;font-weight:400}
+    .action-links .link{font-weight:400}
+    .metric-link:hover{text-decoration:underline}
+    .danger{color:var(--text-error)}
+    .footer-bar{height:52px;display:flex;align-items:center;gap:10px;justify-content:flex-end;color:#666;font-size:13px}
+    .page-num{min-width:28px;height:28px;border:1px solid var(--border);border-radius:4px;display:inline-flex;align-items:center;justify-content:center}
+    .page-num.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .empty-row{height:120px;text-align:center;color:#999}
+    .mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:1000}
+    .mask.open{display:block}
+    .modal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);z-index:1001}
+    .modal.open{display:block}
+    .modal.log-modal{width:860px;max-width:calc(100vw - 80px)}
+    .modal-header{height:56px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:600;border-bottom:1px solid var(--divider)}
+    .modal-close{font-size:24px;color:#999;cursor:pointer}
+    .modal-body{padding:18px 20px;font-size:14px;color:#555;line-height:1.7}
+    .modal-body.log-body{padding:12px 16px 16px;max-height:520px;overflow:auto}
+    .modal-footer{padding:0 20px 20px;display:flex;justify-content:flex-end;gap:10px}
+    .log-table th{height:40px;background:#f7f8fa;color:#333}
+    .log-table td{height:38px;padding:8px 12px}
+    .log-desc{color:#333}
+    .drawer{display:none;position:fixed;right:0;top:0;bottom:0;width:520px;background:#fff;z-index:1002;box-shadow:-8px 0 28px rgba(0,0,0,.12)}
+    .drawer.open{display:block}
+    .drawer-body{padding:20px}
+    .detail-grid{display:grid;grid-template-columns:110px 1fr;gap:14px 12px;font-size:14px}
+    .detail-grid label{color:#666}
+    .tab-context-menu{display:none;position:fixed;z-index:3000;width:132px;background:#fff;border:1px solid #e8ecf0;border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px 0}
+    .tab-context-menu.open{display:block}
+    .tab-context-menu div{height:32px;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#333;cursor:pointer}
+    .tab-context-menu div:hover{background:var(--primary-light);color:var(--primary)}
+  
+    /* 最新 prototype-design 双栏工作台规范：左侧逻辑展开40%，右侧原型60%，默认竖向收起 */
+    .workbench{display:flex;min-height:100vh;width:100%}
+    .logic-panel{width:48px!important;flex:0 0 48px!important;background:#f7f9fc;border-right:1px solid var(--border,#ECECEC);transition:width .22s ease,flex-basis .22s ease;overflow:hidden;cursor:pointer}
+    .logic-panel.expanded{width:40%!important;flex-basis:40%!important;cursor:default}
+    .logic-toolbar{height:100vh!important;width:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-bottom:none!important;background:#fff!important}
+    .logic-panel.expanded .logic-toolbar{height:48px!important;width:auto!important;border-bottom:1px solid var(--border,#ECECEC)!important}
+    .logic-toggle{width:100%!important;height:100%!important;border:none!important;background:transparent!important;color:var(--primary,#051D86)!important;border-radius:0!important;padding:0!important;cursor:pointer!important;white-space:nowrap!important;writing-mode:vertical-rl!important;letter-spacing:2px!important;font-size:13px!important;font-weight:600!important}
+    .logic-panel.expanded .logic-toggle{width:auto!important;height:32px!important;border:1px solid var(--border,#ECECEC)!important;border-radius:4px!important;padding:0 12px!important;writing-mode:horizontal-tb!important;letter-spacing:0!important;background:#fff!important}
+    .logic-paper-wrap{height:calc(100vh - 48px)!important;overflow:auto!important;padding:16px!important}
+    .logic-panel:not(.expanded) .logic-paper-wrap{display:none!important}
+    .logic-paper{width:auto!important;max-width:none!important;min-height:calc(100vh - 84px)!important;background:#fff!important;border:1px solid var(--border,#ECECEC)!important;border-radius:10px!important;padding:28px 32px!important;box-shadow:0 4px 14px rgba(19,31,55,.04)!important}
+    .preview-stage,.preview{flex:1 1 auto!important;min-width:0!important;max-width:none!important}
+    .logic-panel.expanded + .preview-stage,.logic-panel.expanded + .preview{flex:0 0 60%!important;max-width:60%!important;overflow:auto!important}
+
+  
+    .logic-paper h1{margin:0 0 18px!important;font-size:22px!important;line-height:1.45!important;color:#1f2937!important}
+    .logic-paper h2{margin:28px 0 12px!important;font-size:18px!important;line-height:1.5!important;color:#111827!important;border-left:4px solid var(--primary,#051D86)!important;padding-left:10px!important}
+    .logic-paper h3{margin:20px 0 10px!important;font-size:16px!important;line-height:1.5!important;color:#1f2937!important}
+    .logic-paper h4{margin:16px 0 8px!important;font-size:14px!important;line-height:1.5!important;color:#374151!important}
+    .logic-paper p,.logic-paper li,.logic-paper blockquote{font-size:14px!important;line-height:1.85!important;color:#4b5563!important}
+    .logic-paper p{margin:8px 0!important}
+    .logic-paper ul,.logic-paper ol{margin:8px 0 12px!important;padding-left:22px!important}
+    .logic-paper li{margin:4px 0!important}
+    .logic-paper blockquote{margin:10px 0!important;padding:10px 12px!important;background:#f7f9fc!important;border-left:3px solid #d8dfef!important;border-radius:4px!important}
+    .logic-paper hr{border:none!important;border-top:1px solid var(--border,#ECECEC)!important;margin:18px 0!important}
+    .logic-paper code{font-family:Menlo,Consolas,monospace!important;font-size:12px!important;background:#f4f6f9!important;border:1px solid #e5e7eb!important;border-radius:4px!important;padding:1px 5px!important;color:#374151!important}
+    .logic-paper strong{font-weight:700!important;color:#1f2937!important}
+    .logic-paper .prd-index{font-weight:600!important;color:#374151!important}
+
+    .logic-paper .prd-line{margin:6px 0!important;font-size:14px!important;line-height:1.85!important;color:#4b5563!important}
+    .logic-paper .prd-marker{display:inline-block;min-width:22px;font-weight:600;color:#374151!important}
+</style>
+</head>
+<body>
+  <div class="workbench">
+    <aside class="logic-panel" id="logicPanel">
+      <div class="logic-toolbar" onclick="toggleLogic()"><button class="logic-toggle" type="button">展开逻辑</button></div>
+      <div class="logic-paper-wrap">
+        <div class="logic-paper">
+<h1>订单兑换 PC 端 PRD</h1>
+<h2>订单兑换列表</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换</p>
+<hr>
+<h1>流程状态</h1>
+<blockquote>说明：订单兑换活动按活动时间和人工操作自动流转状态。</blockquote>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>待开始</strong>：编辑、复制、删除、活动店铺、推广、日志</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>进行中</strong>：查看详情、复制、立即结束、活动店铺、推广、日志</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>已结束</strong>：查看详情、复制、推广、日志</p>
+<hr>
+<h1>列表逻辑</h1>
+<h2>活动数据</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 兑换用户数：统计当前活动下成功兑换或审核通过后发放奖励的去重用户数，按用户 ID 去重 count，展示在活动数据卡片。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 兑换订单数：统计当前活动下成功兑换或审核通过后发放奖励的订单数，按兑换记录 count。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 数据更新时间：展示活动数据最近统计时间，格式 <code>YYYY.MM.DD HH:mm:ss</code>，点击「刷新」后重新计算当前活动统计。</p>
+<h2>表搜索</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 活动名称：文本输入-模糊匹配，匹配活动名称字段，支持空值查询。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 活动 ID：文本输入-精确匹配，匹配活动 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 活动类型：下拉单选，枚举值为全部、订单金额固定积分、订单金额比例积分、商品数量固定积分、商品数量比例积分。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 活动状态：下拉单选，枚举值为全部、待开始、进行中、已结束。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 活动时间：日期时间范围，匹配活动开始时间和结束时间。</p>
+<blockquote>多字段间搜索关系：AND（同时满足）</blockquote>
+<h2>查询表</h2>
+<p><strong>排序与分页</strong>：默认按创建时间倒序排列，默认 10 条/每页，支持分页切换。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 活动信息（多信息字段）</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.1 活动名称：取活动名称，蓝色常规体展示，点击进入活动详情页；详情页复用订单兑换新增/编辑页，只读不可编辑。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.2 活动 ID：取活动 ID，展示在活动名称下方。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.3 活动类型：取活动类型，标签样式展示。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 活动时间：展示开始时间和结束时间；长期有效活动展示「长期有效」。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 兑换用户：展示兑换用户数，点击进入兑换数据页，并默认按当前活动名称筛选。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 兑换订单：展示兑换订单数。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 活动状态：枚举值说明。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 待开始：橙色状态标签。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 进行中：绿色状态标签。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 已结束：灰色状态标签。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 创建时间：展示创建人和创建时间，时间格式 <code>YYYY-MM-DD HH:mm:ss</code>。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">7.</span> 更新时间：展示更新人和更新时间，时间格式 <code>YYYY-MM-DD HH:mm:ss</code>。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">8.</span> 操作列：按活动状态和兑换维度展示操作。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 待开始：编辑、复制、删除、活动店铺、推广、日志。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 进行中：复制、立即结束、活动店铺、推广、日志。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 已结束：复制、推广、日志。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 活动店铺：仅活动状态为待开始/进行中，且兑换维度为店铺维度或店铺产品组维度时展示。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>兑换审核</strong>：点击按钮，跳转兑换审核列表页，打开独立页签。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>公域店铺</strong>：点击按钮，跳转公域店铺列表页，打开独立页签。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> <strong>订单限制</strong>：点击按钮，跳转订单限制页，打开独立页签。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> <strong>新增</strong>：点击按钮，跳转订单兑换新增页，打开独立页签。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> <strong>活动名称</strong>：点击活动名称，进入订单兑换详情页，页面字段全部只读不可编辑。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> <strong>兑换用户</strong>：点击兑换用户数，进入兑换数据页，并自动带入当前活动名称作为筛选条件。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">7.</span> <strong>删除</strong>：点击删除，展示二次确认弹窗。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 标题：删除</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 内容：是否确认删除</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 确认后删除该活动，刷新列表。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">8.</span> <strong>立即结束</strong>：点击立即结束，展示二次确认弹窗。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 标题：立即结束</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 内容：是否立即结束，结束后用户将不可领取</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 确认后将活动状态更新为已结束，结束时间更新为当前时间。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">9.</span> <strong>活动店铺</strong>：点击后跳转活动店铺页，携带活动 ID、活动名称和兑换维度。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">10.</span> <strong>推广</strong>：点击后打开推广弹窗。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 小程序链接与二维码：展示小程序链接、小程序路径、海报图，支持复制链接、下载小程序码、下载海报。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 小程序分享设置：支持填写分享标题、上传分享图和海报，保存后作为活动推广配置。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">11.</span> <strong>日志</strong>：点击后打开操作日志弹窗，字段包含日志 ID、操作人、操作描述、提示信息、操作时间。</p>
+<hr>
+<h2>订单兑换新增/编辑</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 订单兑换新增/编辑</p>
+<hr>
+<h1>表单逻辑</h1>
+<h2>基本信息</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 活动类型：单选组，必填，枚举值为订单金额固定积分、订单金额比例积分、商品数量固定积分、商品数量比例积分。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 活动名称：文本输入，必填，限制 50 字符内。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 活动时间：日期时间范围，选填，支持长期有效；未勾选长期有效时可选择开始时间和结束时间，精确到秒。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 活动背景图：图片上传，必填，取上传图片作为小程序订单兑换首页背景图，按原图比例等比展示。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 活动规则：多行文本，选填，有配置时小程序背景图右侧展示活动规则入口，点击后弹窗展示完整规则并支持滑动。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 积分抵扣比例：文本输入，选填，用于小程序兑换成功弹窗展示，如 <code>100积分=1元</code>。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">7.</span> 数据播报：开关，选填，开启后小程序首页展示兑换播报。</p>
+<h2>规则设置</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">8.</span> 兑换积分：单选组，必填，枚举值为固定积分、比例积分。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">9.</span> 兑换订单范围：日期时间选择，选填，提示为订单完成开始时间；配置后小程序展示 <code>YYYY.MM.DD HH:mm:ss后完成的订单</code>，未配置不展示。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">10.</span> 兑换维度：单选组，必填，枚举值为统一维度、店铺维度、店铺产品组维度。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">11.</span> 选择店铺：按钮，条件展示。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 11.1 统一维度：不展示选择店铺。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 11.2 店铺维度：展示选择店铺按钮，可选择公域店铺。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 11.3 店铺产品组维度：展示选择店铺按钮，按产品组维度选择，仅启用中的产品组可选择；没有产品组或产品组均禁用的店铺不可选择。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">12.</span> 活动积分：按兑换维度展示。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 12.1 统一维度：展示一行规则表达，格式为 <code>订单满/订单每满/商品满/商品每满 + 门槛值 + 单位 + 可兑 + 积分值 + 积分</code>。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 12.2 店铺维度：展示店铺维度表格，字段为操作、店铺、活动积分；支持批量设置和逐行填写。</p>
+<p class="prd-line" style="padding-left:36px"><span class="prd-marker">-</span> 12.3 店铺产品组维度：展示平铺表格，字段为操作、店铺、产品组、活动积分；不按店铺分组，不展示商品 ID 字段；支持批量设置和逐行填写。</p>
+<h2>推广分享</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">13.</span> 小程序分享标题：文本输入，选填，限制 50 字符内。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">14.</span> 分享图：图片上传，选填，用于微信小程序分享卡片预览。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">15.</span> 海报：图片上传，选填，用于推广弹窗海报展示。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>保存</strong>：点击保存按钮。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.1 校验必填字段，未填写时在字段下方展示错误提示。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.2 校验活动时间，同一个时间段只能创建一个活动，活动开始时间或结束时间不能与已有活动重复，时间范围不能与已有活动重叠。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.3 校验通过后保存到活动列表，新增后返回订单兑换列表，编辑后更新列表和活动店铺数据。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>取消</strong>：点击取消按钮，返回订单兑换列表；如有未保存内容，展示离开确认。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> <strong>选择店铺</strong>：点击打开选择店铺弹窗。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 3.1 店铺维度弹窗字段为店铺、创建时间；店铺展示平台标签、店铺名称、ID。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 3.2 店铺产品组维度弹窗字段为店铺、产品组、创建时间；产品组只展示产品组名称，不展示商品 ID 数量和启用/禁用提示。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 3.3 已选择项置灰勾选不可再次选择。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 3.4 支持全选全部可选择项，确认后最新添加的店铺或产品组显示在前。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> <strong>批量设置</strong>：输入批量门槛和批量积分后点击批量设置，将值写入当前配置表所有可编辑行。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> <strong>删除</strong>：点击表格行删除，删除当前店铺或产品组配置；删除后该项可重新在选择店铺弹窗中选择。</p>
+<hr>
+<h2>活动店铺</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 活动店铺</p>
+<hr>
+<h1>列表逻辑</h1>
+<h2>表搜索</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 店铺名称：文本输入-模糊匹配，匹配店铺名称。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 店铺 ID：文本输入-精确匹配，匹配店铺 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 平台：下拉单选，枚举值为全部、淘宝、天猫、京东、抖音、快手、拼多多、小红书、其他。</p>
+<blockquote>多字段间搜索关系：AND（同时满足）</blockquote>
+<h2>查询表</h2>
+<p><strong>排序与分页</strong>：默认按活动中添加顺序展示，分页展示。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 店铺维度表格字段：</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.1 店铺：展示平台标签、店铺名称、店铺 ID。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.2 活动积分：展示当前店铺积分规则，可编辑门槛值和积分值。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.3 添加时间：展示添加人和添加时间，格式 <code>YYYY-MM-DD HH:mm:ss</code>。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.4 操作：删除。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 店铺产品组维度表格字段：</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 2.1 操作：删除产品组。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 2.2 店铺：展示平台标签、店铺名称、店铺 ID。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 2.3 产品组：展示产品组名称。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 2.4 活动积分：展示当前产品组积分规则，可编辑门槛值和积分值。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 2.5 添加时间：展示添加人和添加时间。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>添加店铺</strong>：点击打开选择店铺弹窗，规则与订单兑换新增/编辑页一致。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>批量设置</strong>：点击后将批量门槛和批量积分写入当前列表全部行。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> <strong>删除</strong>：点击删除后移除当前店铺或产品组配置，页面标记为未保存。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> <strong>保存</strong>：点击保存，将当前活动店铺配置写回订单兑换活动数据；保存成功后 Toast 提示「保存成功，活动店铺已生效」。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> <strong>取消</strong>：点击取消返回订单兑换列表；未保存内容不生效。</p>
+<hr>
+<h2>兑换数据</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 兑换数据</p>
+<hr>
+<h1>列表逻辑</h1>
+<h2>表搜索</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 活动名称：文本输入-模糊匹配，匹配兑换记录所属活动名称。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 订单号：文本输入-精确匹配，匹配兑换订单号。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 活动状态：下拉单选，枚举值为全部、待开始、进行中、已结束。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 兑换时间：日期时间范围，匹配兑换创建时间或积分发放时间。</p>
+<blockquote>多字段间搜索关系：AND（同时满足）</blockquote>
+<h2>查询表</h2>
+<p><strong>排序与分页</strong>：默认按兑换时间倒序排列。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 活动信息：展示活动名称、活动 ID、活动状态。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 兑换用户：展示用户昵称、手机号、用户 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 兑换订单：展示兑换订单号，点击打开订单详情弹窗。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 兑换积分：仅兑换成功记录展示积分值。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 兑换状态：展示兑换成功、审核中、兑换失败。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 兑换时间：展示创建时间或积分发放时间，格式 <code>YYYY-MM-DD HH:mm:ss</code>。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>兑换订单</strong>：点击订单号打开订单详情弹窗。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.1 订单信息字段包含兑换订单、平台用户 ID、订单状态、订单实付金额、贸易模式、店铺编码、店铺名称、出库时间、下单时间、创建时间、支付时间、签收时间、完成时间。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.2 商品信息字段包含商品编码、商品名称、成交单价、购买数量、活动折扣、优惠券、税费、运费、尾差金额、商品总金额。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>订单兑换标签</strong>：点击顶部订单兑换页签返回订单兑换列表。</p>
+<hr>
+<h2>兑换审核</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 兑换审核</p>
+<hr>
+<h1>流程状态</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>待审核</strong>：审核</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>通过</strong>：查看</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">-</span> <strong>驳回</strong>：查看</p>
+<hr>
+<h1>列表逻辑</h1>
+<h2>表搜索</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 用户信息：文本输入-模糊匹配，匹配用户昵称、手机号或用户 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 活动名称：文本输入-模糊匹配，匹配活动名称。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 订单号：文本输入-精确匹配，匹配提交的兑换订单号。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 审核状态：下拉单选，枚举值为全部、待审核、通过、驳回。</p>
+<h2>查询表</h2>
+<p><strong>排序与分页</strong>：默认按提交时间倒序排列。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 用户信息：展示昵称、手机号、用户 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 活动信息：展示活动名称、活动 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 提交信息：展示下单平台、店铺名称、截图、补充说明。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 审核状态：展示顺序为状态、积分、审核意见。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 待审核：状态展示待审核。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 通过：状态展示通过，展示兑换积分。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 驳回：状态展示兑换失败，展示审核意见。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 提交时间：格式 <code>YYYY-MM-DD HH:mm:ss</code>。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 操作：待审核展示审核，已审核展示查看。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>审核</strong>：点击打开审核弹窗。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.1 审核信息字段：审核结果、兑换积分、审核意见。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.2 提交信息字段：下单平台、店铺名称、截图、补充说明、用户信息。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.3 审核通过后，将对应兑换记录更新为兑换成功并发放积分。</p>
+<p class="prd-line" style="padding-left:18px"><span class="prd-marker">-</span> 1.4 审核驳回后，将对应兑换记录更新为兑换失败并记录审核意见。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>查看</strong>：点击打开只读审核详情弹窗。</p>
+<hr>
+<h2>公域店铺</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 公域店铺</p>
+<hr>
+<h1>列表逻辑</h1>
+<h2>表搜索</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 店铺名称：文本输入-模糊匹配，匹配店铺名称。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 店铺 ID：文本输入-精确匹配，匹配店铺 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 平台：下拉单选，枚举值为全部、淘宝、天猫、京东、抖音、快手、拼多多、小红书、其他。</p>
+<h2>查询表</h2>
+<p><strong>排序与分页</strong>：默认按创建时间倒序排列。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 店铺：展示平台标签、店铺名称、店铺 ID。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 产品组：展示产品组数/商品 ID 数，格式如 <code>3/20</code>，点击进入店铺详情。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 创建时间：展示创建人和创建时间。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 更新时间：展示更新人和更新时间。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 状态：开关样式，启用/禁用。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 操作：编辑、日志。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>新增</strong>：点击跳转公域店铺新增页。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>编辑</strong>：点击进入公域店铺编辑页，回填店铺基础信息和产品组配置。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> <strong>产品组</strong>：点击产品组字段进入店铺详情，查看产品组、商品 ID、默认积分。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> <strong>状态开关</strong>：点击切换启用/禁用，记录操作日志。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> <strong>日志</strong>：打开操作日志弹窗，字段为日志 ID、操作人、操作描述、提示信息、操作时间。</p>
+<hr>
+<h2>公域店铺新增/编辑</h2>
+<h1>页面路径</h1>
+<p>营销中心 - 订单兑换 - 公域店铺 - 店铺新建/编辑</p>
+<hr>
+<h1>表单逻辑</h1>
+<h2>基础信息</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> 电商平台：单选组，必填，枚举值为淘宝、天猫、京东、抖音、快手、拼多多、小红书、其他。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> 店铺名称：文本输入，必填，限制 50 字符内。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> 店铺 ID：文本输入，必填，同平台下不可重复。</p>
+<h2>产品组配置</h2>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> 产品组名称：文本输入，必填。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> 商品 ID：多行文本，必填，多个商品 ID 支持换行输入；同一店铺下同一商品 ID 不可归属多个产品组。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">6.</span> 默认积分：数字输入，选填，正整数，用于订单兑换活动按店铺-产品组维度配置时作为默认积分值。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">7.</span> 产品组状态：开关，默认启用，可在编辑页切换启用/禁用。</p>
+<hr>
+<h1>列表交互</h1>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">1.</span> <strong>新增产品组</strong>：点击打开产品组弹窗，填写产品组名称、商品 ID、默认积分。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">2.</span> <strong>编辑产品组</strong>：点击编辑回填产品组数据。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">3.</span> <strong>删除产品组</strong>：点击删除移除产品组；若已被活动引用，需提示不可删除或待确认处理。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">4.</span> <strong>保存</strong>：校验通过后保存店铺及产品组数据，返回公域店铺列表。</p>
+<p class="prd-line" style="padding-left:0px"><span class="prd-marker">5.</span> <strong>取消</strong>：返回公域店铺列表，未保存内容不生效。</p>
+        </div>
+      </div>
+    </aside>
+    <main class="preview-stage">
+      <div class="app-shell">
+        <nav class="topnav">
+          <div class="nav-logo">品牌运营系统</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="nav-tabs">
+            <div class="nav-tab fixed">首页</div>
+            <div class="nav-tab" data-page="order-exchange" onclick="goOrderList()" oncontextmenu="openTabContext(event,'order-exchange')">订单兑换 <span class="tab-close" onclick="closeOrderTab(event)">×</span></div>
+            <div class="nav-tab active" data-page="public-stores" oncontextmenu="openTabContext(event,'public-stores')">公域店铺 <span class="tab-close" onclick="closeCurrentTab(event)">×</span></div>
+          </div>
+          <div class="nav-right">账户名称 ▾</div>
+        </nav>
+        <div class="main-wrap">
+          <aside class="sidebar" id="sidebar">
+            <div class="sb-search"><input placeholder="搜索报表" /></div>
+            <div class="m-group">
+              <div class="m1 open active">
+                <span class="m1-icon"><svg viewBox="0 0 24 24"><path d="M3.75 7.5h5l1.8 2.1h9.7v7.9a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2z"></path><path d="M3.75 7.5a2 2 0 0 1 2-2h4.3l1.7 2h6.5a2 2 0 0 1 2 2v.1"></path></svg></span>
+                <span class="m1-label">营销中心</span><span class="m1-arrow">›</span>
+              </div>
+              <div class="m2-wrap"><div class="m2-item active">订单兑换</div></div>
+            </div>
+          </aside>
+          <section class="content">
+            <div class="canvas">
+              <div class="page-head">
+                <div class="breadcrumb"><span class="back" onclick="goOrderList()">‹ 订单兑换</span> / 公域店铺</div>
+              </div>
+              <div class="toolbar">
+                <div class="search-group">
+                  <input class="field input" id="storeNameKeyword" placeholder="请输入店铺名称" oninput="filterStores()" />
+                  <input class="field input" id="storeIdKeyword" placeholder="请输入店铺 ID" oninput="filterStores()" />
+                  <button class="icon-btn" title="搜索" onclick="filterStores()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg></button>
+                  <span class="link-btn" onclick="clearSearch()">清空</span>
+                </div>
+                <button class="btn-primary" onclick="goStoreForm('create')">⊕ 新增</button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:20%">店铺名称</th>
+                    <th style="width:14%">产品组</th>
+                    <th style="width:22%">创建时间</th>
+                    <th style="width:22%">更新时间</th>
+                    <th style="width:22%">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="storeTbody"></tbody>
+              </table>
+              <div class="footer-bar"><span id="totalText">共 0 条</span><span class="page-num">‹</span><span class="page-num active">1</span><span class="page-num">›</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="mask" id="mask" onclick="closeOverlay()"></div>
+  <div class="tab-context-menu" id="tabContextMenu">
+    <div onclick="closeCurrentTab()">关闭当前</div>
+    <div onclick="closeOtherTabs()">关闭其他</div>
+    <div onclick="closeAllTabs()">关闭全部</div>
+  </div>
+  <div class="modal" id="deleteModal">
+    <div class="modal-header"><span>删除确认</span><span class="modal-close" onclick="closeOverlay()">×</span></div>
+    <div class="modal-body">是否删除？删除后该店铺将不可用于后续订单兑换规则选择。</div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="closeOverlay()">取消</button><button class="btn-primary" onclick="confirmDelete()">确认</button></div>
+  </div>
+  <div class="modal log-modal" id="logModal">
+    <div class="modal-header"><span>操作日志</span><span class="modal-close" onclick="closeOverlay()">×</span></div>
+    <div class="modal-body log-body">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th style="width:10%">日志ID</th>
+            <th style="width:14%">操作人</th>
+            <th style="width:38%">操作描述</th>
+            <th style="width:18%">提示信息</th>
+            <th style="width:20%">操作时间</th>
+          </tr>
+        </thead>
+        <tbody id="logContent"></tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="drawer" id="detailDrawer">
+    <div class="modal-header"><span>店铺详情</span><span class="modal-close" onclick="closeOverlay()">×</span></div>
+    <div class="drawer-body"><div class="detail-grid" id="detailGrid"></div></div>
+  </aside>
+
+  <script>
+    const storageKey='yo_public_stores_v2';
+    const defaultStores=[
+      {id:'TM278035',platform:'天猫',name:'天猫官方旗舰店',creator:'运营管理员A',createdAt:'2026-04-17 10:20:33',updater:'运营管理员A',updatedAt:'2026-04-17 10:31:16',productGroups:[
+        {name:'澳白组',ids:['TM-AOB-001','TM-AOB-002','TM-AOB-003'],points:50,status:'启用'},
+        {name:'德白英白组',ids:['TM-DEB-001','TM-YB-002'],points:100,status:'启用'},
+        {name:'纽康特组',ids:['TM-NKT-001'],points:100,status:'启用'}
+      ]},
+      {id:'JD278036',platform:'京东',name:'京东自营店铺',creator:'账号名称B',createdAt:'2026-04-12 09:12:03',updater:'账号名称C',updatedAt:'2026-04-16 18:22:36',productGroups:[
+        {name:'纽康特组',ids:['JD-NKT-001','JD-NKT-002'],points:40,status:'启用'},
+        {name:'澳版小安素组',ids:['JD-AXS-001'],points:60,status:'禁用'}
+      ]},
+      {id:'DY278037',platform:'抖音',name:'抖音品牌店',creator:'账号名称D',createdAt:'2026-04-10 14:26:11',updater:'账号名称D',updatedAt:'2026-04-15 09:06:08',productGroups:[]}
+    ];
+    let stores=loadStores();
+    let deleteTarget='';
+    function loadStores(){
+      const saved=localStorage.getItem(storageKey);
+      if(saved){
+        try{return JSON.parse(saved)}catch(e){return defaultStores}
+      }
+      localStorage.setItem(storageKey,JSON.stringify(defaultStores));
+      return defaultStores;
+    }
+    function persistStores(){localStorage.setItem(storageKey,JSON.stringify(stores))}
+    function groupStats(store){
+      const groups=store.productGroups||[];
+      const ids=new Set(groups.flatMap(group=>group.ids||[]));
+      return {groupCount:groups.length,productIdCount:ids.size};
+    }
+    function toggleLogic(){const panel=document.getElementById('logicPanel');const btn=panel.querySelector('.logic-toggle');panel.classList.toggle('expanded');btn.textContent=panel.classList.contains('expanded')?'收起逻辑':'展开逻辑'}
+    function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
+    function renderStores(list=stores){
+      const tbody=document.getElementById('storeTbody');
+      if(!list.length){tbody.innerHTML='<tr><td class="empty-row" colspan="5">暂无数据</td></tr>'}
+      else{tbody.innerHTML=list.map(store=>{const stats=groupStats(store);return `<tr><td><div class="store-cell"><div class="store-line"><span class="platform-tag">${store.platform}</span><span class="store-name" onclick="goStoreForm('detail','${store.id}')">${store.name}</span></div><div class="store-id">ID：${store.id}</div></div></td><td><span class="metric-link" onclick="goStoreForm('detail','${store.id}','groups')">${stats.groupCount}/${stats.productIdCount}</span></td><td><div class="owner-meta"><span>${store.creator}</span><span class="time">${store.createdAt}</span></div></td><td><div class="owner-meta"><span>${store.updater}</span><span class="time">${store.updatedAt}</span></div></td><td><div class="action-links"><span class="link" onclick="goStoreForm('edit','${store.id}')">编辑</span><span class="link danger" onclick="openDelete('${store.id}')">删除</span><span class="link" onclick="openLog('${store.id}')">日志</span></div></td></tr>`}).join('')}
+      document.getElementById('totalText').textContent=`共 ${list.length} 条`;
+    }
+    function filterStores(){
+      const name=document.getElementById('storeNameKeyword').value.trim();
+      const id=document.getElementById('storeIdKeyword').value.trim();
+      const list=stores.filter(store=>(!name||store.name.includes(name))&&(!id||store.id===id));
+      renderStores(list);
+    }
+    function clearSearch(){document.getElementById('storeNameKeyword').value='';document.getElementById('storeIdKeyword').value='';renderStores()}
+    function openDelete(id){deleteTarget=id;document.getElementById('mask').classList.add('open');document.getElementById('deleteModal').classList.add('open')}
+    function confirmDelete(){stores=stores.filter(store=>store.id!==deleteTarget);persistStores();closeOverlay();filterStores()}
+    function openLog(id){
+      const store=stores.find(item=>item.id===id);
+      const logs=[
+        {logId:'100176',operator:'cc',desc:`店铺【${store.name}】产品组状态由【禁用】改为【启用】`,tip:'-',time:'2026-04-23 11:10:05'},
+        {logId:'100173',operator:'cc',desc:`店铺【${store.name}】产品组状态由【启用】改为【禁用】`,tip:'-',time:'2026-04-23 11:08:30'},
+        {logId:'100172',operator:'cc',desc:`店铺【${store.name}】编辑产品组商品ID`,tip:'-',time:'2026-04-23 11:08:24'},
+        {logId:'100169',operator:'cc',desc:`状态由【启用】改为【禁用】`,tip:'-',time:'2026-04-23 11:08:18'},
+        {logId:'100168',operator:'cc',desc:`状态由【禁用】改为【启用】`,tip:'-',time:'2026-04-23 11:05:54'},
+        {logId:'100165',operator:'cc',desc:`更新店铺基础信息`,tip:'-',time:'2026-04-23 11:05:32'},
+        {logId:'100163',operator:'cc',desc:`新增产品组`,tip:'-',time:'2026-04-23 10:50:34'},
+        {logId:'100160',operator:'cc',desc:`创建公域店铺`,tip:'-',time:'2026-04-23 10:50:27'}
+      ];
+      document.getElementById('logContent').innerHTML=logs.map(log=>`<tr><td>${log.logId}</td><td>${log.operator}</td><td class="log-desc">${log.desc}</td><td>${log.tip}</td><td>${log.time}</td></tr>`).join('');
+      document.getElementById('mask').classList.add('open');
+      document.getElementById('logModal').classList.add('open');
+    }
+    function openDetail(id){const store=stores.find(item=>item.id===id);const stats=groupStats(store);document.getElementById('detailGrid').innerHTML=`<label>电商平台</label><div>${store.platform}</div><label>店铺名称</label><div>${store.name}</div><label>店铺ID</label><div>${store.id}</div><label>产品组</label><div>${stats.groupCount}/${stats.productIdCount}</div><label>创建时间</label><div>${store.creator} ${store.createdAt}</div><label>更新时间</label><div>${store.updater} ${store.updatedAt}</div>`;document.getElementById('mask').classList.add('open');document.getElementById('detailDrawer').classList.add('open')}
+    function closeOverlay(){document.getElementById('mask').classList.remove('open');document.querySelectorAll('.modal,.drawer').forEach(node=>node.classList.remove('open'))}
+    function openTabContext(event,page){event.preventDefault();const menu=document.getElementById('tabContextMenu');menu.dataset.page=page||'';menu.style.left=`${event.clientX}px`;menu.style.top=`${event.clientY}px`;menu.classList.add('open')}
+    function closeTabContext(){document.getElementById('tabContextMenu').classList.remove('open')}
+    function closeCurrentTab(event){if(event)event.stopPropagation();closeTabContext();goOrderList()}
+    function closeOrderTab(event){event.stopPropagation();event.currentTarget.closest('.nav-tab').style.display='none'}
+    function closeOtherTabs(){closeTabContext();document.querySelectorAll('.nav-tab[data-page]:not(.active)').forEach(tab=>tab.style.display='none')}
+    function closeAllTabs(){closeTabContext();goOrderList()}
+    document.addEventListener('click',event=>{if(!event.target.closest('#tabContextMenu'))closeTabContext()});
+    function goStoreForm(mode,id='',section=''){window.location.href=`./公域店铺新增.html?mode=${mode}${id?`&id=${id}`:''}${section?`&section=${section}`:''}`}
+    function goOrderList(){window.location.href='./订单兑换列表.html'}
+    const workbenchTabsKey='yo_order_exchange_open_tabs_v2';
+    const workbenchTabDefs={'order-exchange':{label:'订单兑换',url:'./订单兑换列表.html'},'exchange-data':{label:'兑换数据',url:'./兑换数据.html'},'exchange-audit':{label:'兑换审核',url:'./兑换审核.html'},'public-stores':{label:'公域店铺',url:'./公域店铺列表.html'},'order-limit':{label:'订单限制',url:'./订单限制.html'},'store-form':{label:'店铺新建',url:'./公域店铺新增.html'},'order-form':{label:'订单兑换新增',url:'./订单兑换新增.html'},'activity-store':{label:'活动店铺',url:'./活动店铺.html'}};
+    let currentWorkbenchTab='public-stores';
+    function getWorkbenchTabs(){try{return JSON.parse(localStorage.getItem(workbenchTabsKey)||'[]')}catch(e){return []}}
+    function saveWorkbenchTabs(tabs){localStorage.setItem(workbenchTabsKey,JSON.stringify(tabs))}
+    function initWorkbenchTabs(current,label){currentWorkbenchTab=current;const tabs=getWorkbenchTabs().filter(id=>workbenchTabDefs[id]);if(!tabs.includes(current))tabs.push(current);if(label&&workbenchTabDefs[current])workbenchTabDefs[current].label=label;saveWorkbenchTabs(tabs);renderWorkbenchTabs()}
+    function renderWorkbenchTabs(){const box=document.querySelector('.nav-tabs');if(!box)return;const tabs=getWorkbenchTabs().filter(id=>workbenchTabDefs[id]);box.innerHTML=`<div class="nav-tab fixed">首页</div>`+tabs.map(id=>`<div class="nav-tab ${id===currentWorkbenchTab?'active':''}" data-page="${id}" onclick="goWorkbenchTab('${id}')" oncontextmenu="openTabContext(event,'${id}')">${workbenchTabDefs[id].label} <span class="tab-close" onclick="closeTab(event,'${id}')">×</span></div>`).join('')}
+    function goWorkbenchTab(id){const def=workbenchTabDefs[id];if(def)window.location.href=def.url}
+    function closeTab(event,page){if(event)event.stopPropagation();let tabs=getWorkbenchTabs().filter(id=>id!==page);saveWorkbenchTabs(tabs);if(page===currentWorkbenchTab){const next=tabs[tabs.length-1]||'order-exchange';goWorkbenchTab(next)}else renderWorkbenchTabs()}
+    function closeCurrentTab(event){if(event)event.stopPropagation();closeTabContext();closeTab(null,document.getElementById('tabContextMenu').dataset.page||currentWorkbenchTab)}
+    function closeOtherTabs(){closeTabContext();saveWorkbenchTabs([currentWorkbenchTab]);renderWorkbenchTabs()}
+    function closeAllTabs(){closeTabContext();saveWorkbenchTabs(['order-exchange']);goOrderList()}
+    renderStores();
+    initWorkbenchTabs('public-stores','公域店铺');
+  </script>
+</body>
+</html>
