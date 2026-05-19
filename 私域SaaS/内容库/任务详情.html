@@ -105,7 +105,7 @@
           </section>
         </div>
       </div>
-      <div class="bottom"><button class="primary" onclick="mockMaterialFail()">解锁任务</button></div>
+      <div class="bottom"><button class="primary" onclick="toast('已解锁任务')">解锁任务</button></div>
       <div class="dialog-mask" id="materialDialog" onclick="closeMaterialDialog(event)">
         <div class="dialog">
           <div class="dialog-title">温馨提示</div>
@@ -118,8 +118,7 @@
   <div class="toast" id="toast"></div>
   <script>
     const img='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#eef3ff"/><circle cx="100" cy="92" r="50" fill="#ff6b8a"/><text x="100" y="166" text-anchor="middle" font-size="22" fill="#051D86">产品图</text></svg>');
-    let materialState='success';
-    let retryCount=0;
+    let materialState='fail';
     function renderMaterial(){
       const el=document.getElementById('materialArea');
       if(materialState==='success'){
@@ -129,12 +128,10 @@
           <div class="material-row" style="display:block"><div class="material-label">发帖配图/视频</div><div class="grid">${Array.from({length:8},()=>`<img src="${img}">`).join('')}</div><div class="download-line" onclick="toast('素材已开始下载')">一键下载</div></div>
         </div>`;
       }else{
-        el.innerHTML=`<div class="retry-box"><button class="retry-btn" onclick="retryMaterial()">点击重新获取素材</button><div class="retry-hint">素材暂未获取成功，请稍后重试</div></div>`;
+        el.innerHTML=`<div class="retry-box"><button class="retry-btn" onclick="retryMaterial()">点击获取素材</button><div class="retry-hint">素材暂未获取成功，请点击获取素材</div></div>`;
       }
     }
     function retryMaterial(){
-      retryCount+=1;
-      if(retryCount===1){showMaterialDialog();return}
       materialState='success';
       renderMaterial();
       toast('素材获取成功');
@@ -142,7 +139,6 @@
     function showMaterialDialog(){document.getElementById('materialDialog').style.display='flex'}
     function hideMaterialDialog(){document.getElementById('materialDialog').style.display='none'}
     function closeMaterialDialog(e){if(e.target.id==='materialDialog')hideMaterialDialog()}
-    function mockMaterialFail(){materialState='fail';retryCount=0;renderMaterial();toast('已模拟素材获取失败')}
     renderMaterial();
     submitImgs.innerHTML=Array.from({length:5},()=>`<img src="${img}">`).join('');
     function toggleDesc(){const desc=document.getElementById('taskDesc');const btn=document.getElementById('descToggle');const opened=desc.classList.toggle('expanded');btn.textContent=opened?'收起':'查看全部'}
