@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商品管理-批量修改</title>
+  <style>
+    :root{
+      --primary:#051D86;--primary-hover:#3347a8;--primary-light:#EBF0FF;
+      --text-title:#17233d;--text-main:#515a6e;--text-sub:#808695;--text-hint:#c5c8ce;--error:#ed4014;--warning:#ff9900;--success:#19be6b;
+      --bg-page:#f5f7f9;--bg-white:#fff;--bg-head:#f8f8f9;--bg-hover:#ebf7ff;--border:#dcdee2;--divider:#e8eaec;
+      font-family:"PingFang SC","Helvetica Neue","Microsoft YaHei",Arial,sans-serif;
+    }
+    *{box-sizing:border-box}body{margin:0;color:var(--text-main);background:var(--bg-page);font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}
+    .workbench{height:100vh;display:flex;overflow:hidden}.logic-toggle{width:48px;background:#fff;border-right:1px solid #ececec;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:600;writing-mode:vertical-rl;letter-spacing:4px;cursor:pointer}.logic-panel{display:none;width:40%;min-width:420px;background:#fff;border-right:1px solid #ececec;overflow:auto;padding:22px 26px}.logic-panel.show{display:block}.logic-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px}.logic-head h2{margin:0;color:#17233d;font-size:18px}.logic-actions{display:flex;align-items:center;gap:10px;white-space:nowrap}.logic-upload,.logic-close{border:0;background:transparent;color:var(--primary);font-size:13px;cursor:pointer;padding:0}.logic-panel h3{font-size:15px;color:#17233d;border-left:3px solid var(--primary);padding-left:10px;margin:22px 0 12px}.logic-panel p,.logic-panel li{font-size:13px;line-height:1.8;color:#515a6e}.logic-panel ul,.logic-panel ol{padding-left:18px;margin:0}.logic-source{font-size:12px;color:#8a93a3;background:#f7f8fb;border:1px solid #ececec;border-radius:4px;padding:8px 10px;margin:0 0 16px}.logic-doc h1{font-size:18px;color:#17233d;margin:0 0 18px}.logic-doc h2{font-size:16px;color:#17233d;margin:24px 0 12px}.logic-doc h2:first-child{margin-top:0}.logic-doc h3{font-size:15px;color:#17233d;border-left:3px solid var(--primary);padding-left:10px;margin:18px 0 10px}.logic-doc h4{font-size:14px;color:#333;margin:14px 0 8px}.logic-doc code{background:#f5f7fa;border:1px solid #ececec;border-radius:3px;padding:1px 4px;font-family:Menlo,Consolas,monospace;font-size:12px}.logic-doc table{margin:10px 0 16px}.logic-doc th,.logic-doc td{height:auto;padding:8px 10px}
+    .prototype{flex:1;min-width:960px;overflow:hidden}.app{height:100%;display:grid;grid-template-columns:180px 1fr;grid-template-rows:48px 1fr}.sidebar{grid-row:1/3;background:#fff;border-right:1px solid #ececec;overflow:auto}.logo{height:48px;display:flex;align-items:center;padding-left:32px;color:var(--primary);font-size:20px;font-weight:800;border-bottom:1px solid #ececec}.menu-search{padding:18px 14px 12px}.menu-search input{width:100%;height:32px;border:0;background:#f5f5f5;border-radius:16px;padding:0 12px;color:#666;outline:none}.menu{padding:0 14px 18px}.m1{height:40px;display:flex;align-items:center;gap:8px;border-radius:4px;color:#333}.m1.active,.m1:hover{color:var(--primary);background:#f0f3ff}.m1 .ico{width:16px;color:#999}.m1 .arr{margin-left:auto;color:#aaa}.m2-wrap{padding:4px 0 8px 24px}.m2{height:32px;line-height:32px;color:#666;font-size:13px;cursor:pointer}.m2.active,.m2:hover{color:var(--primary);font-weight:600}
+    .topbar{grid-column:2;background:#fff;border-bottom:1px solid #ececec;display:flex;align-items:center;min-width:0}.toggle{width:44px;text-align:center;color:#666;border-right:1px solid #ececec}.tabs{display:flex;height:48px;align-items:center;overflow:auto;flex:1}.tab{height:48px;display:flex;align-items:center;padding:0 16px;color:#666;border-right:1px solid #f1f1f1;white-space:nowrap;position:relative}.tab.active{color:var(--primary);font-weight:600}.tab.active:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--primary)}.tab .x{margin-left:8px;color:#8a93a3}.top-actions{display:flex;align-items:center;gap:18px;padding:0 18px;color:#666}.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#2f5eff,#dbe6ff);border:2px solid var(--primary)}
+    .main{grid-column:2;overflow:auto;background:#fff;padding:28px}.page-title{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}.page-title h1{font-size:16px;margin:0;color:#17233d}.tabs-line{display:flex;gap:30px;border-bottom:1px solid #ececec;margin-bottom:18px}.tabs-line div{height:36px;line-height:36px;color:#666;cursor:pointer;position:relative}.tabs-line .active{color:var(--primary);font-weight:600}.tabs-line .active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--primary)}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.field{display:flex;align-items:center;gap:8px;color:#666}.input,.select{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#515a6e;padding:0 10px;outline:none}.input{width:210px}.select{width:170px}.input:hover,.select:hover,.input:focus,.select:focus{border-color:var(--primary)}.icon-search{width:28px;height:32px;border:0;background:transparent;font-size:18px;color:#333;display:flex;align-items:center;justify-content:center}.more-btn,.btn{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#515a6e;padding:0 15px}.btn:hover,.more-btn:hover{color:var(--primary);border-color:var(--primary)}.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary-hover)}.btn.danger{color:var(--error);border-color:#ffd0c7}.btn.small{height:28px;padding:0 10px}.clear{border:0;background:transparent;color:var(--primary)}.more-row{display:none;margin:-8px 0 18px}.more-row.show{display:flex}
+    .table-wrap{background:#fff;box-shadow:0 1px 0 1px #efeded;overflow:auto}table{width:100%;border-collapse:collapse}th{height:40px;background:#ececec;color:#666;font-size:13px;font-weight:600;text-align:left;padding:0 14px;white-space:nowrap}td{height:68px;border-bottom:1px solid var(--divider);padding:10px 14px;font-size:13px;vertical-align:middle}tr:hover td{background:#f9fbff}tr.selected td{background:#ebf0ff}.link{color:var(--primary);cursor:pointer}.sub{font-size:12px;color:#8a93a3;margin-top:5px;line-height:1.45}.tag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:22px;padding:0 6px;border-radius:3px;font-size:13px}.tag-green{color:#14c45a;background:#e8fff0}.tag-gray{color:#999;background:#f5f5f5}.op{color:var(--primary);margin-right:8px;cursor:pointer;white-space:nowrap}.op.danger{color:#f00}.goods{display:flex;align-items:center;gap:12px}.pic{width:56px;height:56px;border-radius:4px;border:1px solid #e8eaec;background:linear-gradient(135deg,#eef3ff,#fff3e5);display:flex;align-items:center;justify-content:center;color:#8a93a3;font-size:12px;flex:none}.pager{height:48px;border-top:1px solid #ececec;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#666}.batch-left{display:flex;align-items:center;gap:10px}.page-right{display:flex;align-items:center;gap:14px}.page-num{display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:4px}.page-num.active{background:var(--primary);color:#fff}
+    .ck{position:relative;width:16px;height:16px;display:inline-block;vertical-align:middle}.ck input{opacity:0;width:16px;height:16px;margin:0}.ck span{position:absolute;inset:0;border:1px solid #c9d0e0;border-radius:3px;background:#fff}.ck input:checked+span{background:var(--primary);border-color:var(--primary)}.ck input:checked+span:after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}.ck.indeterminate span{background:var(--primary);border-color:var(--primary)}.ck.indeterminate span:after{content:"";position:absolute;left:3px;right:3px;top:7px;height:2px;background:#fff}
+    .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;z-index:1000}.modal-mask.show{display:flex}.modal{background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);display:flex;flex-direction:column;max-height:88vh}.modal-xl{width:920px}.modal-sm{width:396px}.modal-hd{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid #ececec;font-size:16px;color:#17233d;font-weight:600}.close{font-size:22px;color:#999;cursor:pointer}.modal-bd{padding:18px 22px;overflow:auto}.modal-ft{padding:12px 18px;border-top:1px solid #ececec;display:flex;justify-content:flex-end;gap:10px}.alert{border:1px solid #c8d4f8;background:#ebf0ff;color:var(--primary);border-radius:6px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:16px}.section{border:1px solid #ececec;border-radius:6px;padding:18px 20px;margin-bottom:18px}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.section h2,.section-head h2{font-size:15px;color:#17233d;margin:0;border-left:3px solid var(--primary);padding-left:10px}.form-row{display:grid;grid-template-columns:126px minmax(0,1fr);gap:12px;margin-bottom:14px;align-items:flex-start}.form-row label{line-height:32px;text-align:right;color:#515a6e}.hint{font-size:12px;color:#999;margin-top:6px;line-height:1.5}.import-actions{display:grid;grid-template-columns:max-content max-content 96px;gap:0 12px;align-items:start}.file-input{position:absolute;opacity:0;width:1px;height:1px}.link-btn,.import-actions .file-pick{height:32px;line-height:32px;border:0;background:transparent;color:var(--primary);padding:0;display:inline-flex;align-items:center;text-align:left;cursor:pointer}.file-name{grid-column:2;max-width:240px;min-height:18px;color:#515a6e;font-size:13px;line-height:18px;white-space:normal;word-break:break-all}.radio-line{display:flex;gap:28px;height:32px;align-items:center}.radio-line input{accent-color:var(--primary)}.status-ok{color:#14c45a}.status-error{color:#ed4014}.preview-box{border:1px solid #ececec;background:#fafafa;border-radius:4px;padding:10px 12px;font-size:12px;color:#666;line-height:1.7}.preview-table{max-height:260px;overflow:auto;border:1px solid #ececec}.preview-table td,.preview-table th{height:38px}.confirm-body{padding:20px 22px 14px}.confirm-title{display:flex;align-items:center;gap:10px;font-weight:600;color:#333}.warn-icon{width:20px;height:20px;border-radius:50%;background:#ff9900;color:#fff;display:inline-flex;align-items:center;justify-content:center}.confirm-desc{margin:10px 0 0 30px;font-size:13px;color:#666;line-height:22px}.toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #b7eb8f;color:#135200;border-radius:6px;padding:10px 14px;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,.08);display:none}
+  </style>
+</head>
+<body>
+<div class="workbench">
+  <aside class="logic-toggle" id="logicToggle" onclick="toggleLogic()">展开逻辑</aside>
+  <aside class="logic-panel" id="logicPanel">
+    <div class="logic-head"><h2>商品管理-批量修改功能需求</h2><div class="logic-actions"><label class="logic-upload" for="logicDocFile">同步本地文档</label><input class="file-input" id="logicDocFile" type="file" accept=".md,.markdown,.txt" onchange="syncLogicDoc(event)"><button class="logic-close" onclick="toggleLogic()">收起逻辑</button></div></div>
+    <div class="logic-source" id="logicSource">来源：本地文档 /Users/dapiaoliang/Documents/AI Design/私域SaaS/商品管理/商品管理-导入修改-prd.md</div>
+    <div class="logic-doc" id="logicDoc">
+      <h2>1. 需求背景</h2>
+      <p>商品初始化创建后，缺少后台 SPU、属性名称、品牌、后台分类、发货仓、运费模板、规格数量、成本价、售价、重量、限购等信息。运营如果逐个进入商品编辑页处理，操作成本高，且容易出现漏改、错改。</p>
+      <p>因此需要在商品管理列表增加「导入修改」能力，通过文件导入方式按商品 ID 批量更新不同商品的不同字段。</p>
+
+      <h2>2.目标结果</h2>
+      <ul>
+        <li>支持运营通过导入文件批量修改商品信息。</li>
+        <li>支持不同商品配置不同 SPU、品牌、分类、规格和价格。</li>
+        <li>支持导入前校验、失败数据前置展示、失败列表下载。</li>
+        <li>导入表中字段未填写时视为不更新，避免覆盖原商品已有数据。</li>
+      </ul>
+
+      <h2>3.本期范围</h2>
+      <ul>
+        <li>商品管理列表增加「导入修改」入口。</li>
+        <li>导入修改弹窗支持选择导入内容：基础信息、价格信息。</li>
+        <li>支持下载导入模板、选择导入文件、点击校验、查看导入预览、下载失败列表、确认修改。</li>
+        <li>基础信息支持按商品 ID 修改：后台 SPU、属性名称、品牌、后台分类、发货仓、运费模板。</li>
+        <li>价格信息支持按商品 ID 修改：规格数量、成本价、售价、重量、限购。</li>
+        <li>价格信息支持同一商品 ID 多行导入，一行代表一个规格数量。</li>
+      </ul>
+
+      <h2>4.本期不做</h2>
+      <ul>
+        <li>不做导入历史记录页。商品操作日志记录到每个商品上。</li>
+      </ul>
+
+      <h2>2. 目标端</h2>
+      <p>PC 管理后台。</p>
+
+      <h3>2.2 使用角色</h3>
+      <ul>
+        <li>商家：在商品管理列表发起导入修改，上传文件并确认修改。</li>
+      </ul>
+
+      <h2>3. 关键业务规则</h2>
+
+      <h3>唯一性 / 并发性</h3>
+      <ul>
+        <li>导入修改按商品 ID 匹配商品。</li>
+        <li>同一商品 ID 在价格信息导入中允许出现多行。</li>
+      </ul>
+
+      <h3>字段语义 + 边界值</h3>
+      <h4>导入内容</h4>
+      <ul>
+        <li>单选项，必选。</li>
+        <li>可选值：基础信息、价格信息。</li>
+        <li>默认值：基础信息。</li>
+        <li>选择基础信息时，导入表必须使用基础信息模板。</li>
+        <li>选择价格信息时，导入表必须使用价格信息模板。</li>
+      </ul>
+
+      <h4>基础信息模板字段</h4>
+      <ul>
+        <li>商品ID：必填，系统内必须存在。</li>
+        <li>后台SPU：选填，系统内必须存在。</li>
+        <li>属性名称：选填，系统内必须存在。</li>
+        <li>品牌：选填，系统内必须存在。</li>
+        <li>后台分类：选填，系统内必须存在。</li>
+        <li>发货仓：选填，系统内必须存在。</li>
+        <li>运费模板：选填，系统内必须存在。</li>
+      </ul>
+
+      <h4>价格信息模板字段</h4>
+      <ul>
+        <li>商品ID：必填，系统内必须存在。</li>
+        <li>规格数量：必填，只能填写正整数。</li>
+        <li>成本价：选填，填写时必须为正数，最多 2 位小数。</li>
+        <li>售价：选填，填写时必须为正数，最多 2 位小数。</li>
+        <li>重量：选填，填写时必须为正数，最多 2 位小数。</li>
+        <li>限购：选填，填写时只能填写正整数。</li>
+      </ul>
+
+      <h3>4.3 计算规则</h3>
+      <h4>价格信息规格更新</h4>
+      <ul>
+        <li>导入后的规格数量集合作为该商品更新后的规格集合。</li>
+        <li>原商品规格数量有 1、2、3、4，导入为 1、2、4 时，规格 3 删除。</li>
+        <li>原商品规格数量有 1、2，导入为 1、2、3、4 时，规格 3、4 新增。</li>
+        <li>导入表中某字段未填写时，该字段不更新。</li>
+      </ul>
+
+      <h3>4.4 关键联动逻辑</h3>
+      <h4>导入内容与模板联动</h4>
+      <ul>
+        <li>选择基础信息后，下载模板为基础信息模板。</li>
+        <li>选择价格信息后，下载模板为价格信息模板。</li>
+        <li>上传文件表头与导入内容不一致时，点击校验提示「请选择正确的导入修改表」。</li>
+      </ul>
+
+      <h4>基础信息字段互斥</h4>
+      <ul>
+        <li>填写后台 SPU 或属性名称时，不可填写品牌、后台分类。</li>
+        <li>填写品牌或后台分类时，不可填写后台 SPU、属性名称。</li>
+        <li>填写属性名称时，必须填写后台 SPU。</li>
+        <li>属性名称必须属于所填写后台 SPU 关联的属性名称。</li>
+      </ul>
+
+      <h4>导入预览展示</h4>
+      <ul>
+        <li>未上传文件时，导入预览提示「请先上传导入文件，然后点击校验。」。</li>
+        <li>点击校验后展示导入预览表格。</li>
+        <li>校验失败的数据展示在前，校验通过的数据展示在后。</li>
+        <li>存在失败数据时，在导入预览标题右侧展示「下载失败列表」。</li>
+      </ul>
+
+      <h4>确认修改</h4>
+      <ul>
+        <li>未点击校验时，不允许确认修改。</li>
+        <li>存在失败数据时，不允许确认修改。</li>
+        <li>全部校验通过后，点击「确认修改」弹出二次确认。</li>
+        <li>二次确认通过后执行数据更新。</li>
+      </ul>
+
+      <h3>4.5 异常处理规则</h3>
+      <ul>
+        <li>未上传文件点击校验：提示请先上传导入文件。</li>
+        <li>导入表与导入内容不一致：Toast 提示「请选择正确的导入修改表」。</li>
+        <li>商品 ID 为空：该行校验失败。</li>
+        <li>商品 ID 不存在：该行校验失败，失败原因展示「商品不存在」。</li>
+        <li>基础信息字段互斥冲突：该行校验失败，失败原因展示字段冲突原因。</li>
+        <li>属性名称与后台 SPU 不匹配：该行校验失败，失败原因展示属性不属于该 SPU。</li>
+        <li>规格数量为空或非正整数：该行校验失败，失败原因展示「规格数量必填」或「规格数量只能填写正整数」。</li>
+        <li>成本价、售价、重量格式错误：该行校验失败，失败原因展示「需填写正数且最多 2 位小数」。</li>
+        <li>限购格式错误：该行校验失败，失败原因展示「限购只能填写正整数」。</li>
+        <li>存在失败数据时点击确认修改：提示存在失败数据时不可确认修改。</li>
+      </ul>
+
+      <h2>5. 导出 / 下载</h2>
+      <ul>
+        <li>下载模板：按当前选择的导入内容下载对应 CSV 模板。</li>
+        <li>下载失败列表：仅在存在失败数据时展示，下载内容包含原导入字段与失败原因。</li>
+        <li>基础信息模板：<code>商品导入修改-基础信息.csv</code></li>
+        <li>价格信息模板：<code>商品导入修改-价格信息.csv</code></li>
+        <li>失败列表：<code>商品导入修改-失败列表.csv</code></li>
+      </ul>
+    </div>
+  </aside>
+  <section class="prototype">
+    <div class="app">
+      <aside class="sidebar">
+        <div class="logo">私域运营平台</div>
+        <div class="menu-search"><input id="menuSearch" placeholder="搜索关键字" oninput="filterMenu()"></div>
+        <div class="menu">
+          <div class="m1"><span class="ico">⌂</span><span>首页</span></div>
+          <div class="m1"><span class="ico">□</span><span>商城装修</span><span class="arr">⌄</span></div>
+          <div class="m1"><span class="ico">□</span><span>用户中心</span><span class="arr">⌄</span></div>
+          <div class="m1 active"><span class="ico">□</span><span>商品中心</span><span class="arr">⌃</span></div>
+          <div class="m2-wrap">
+            <div class="m2 active">商品管理</div><div class="m2">品牌管理</div><div class="m2">分类管理</div><div class="m2">SPU</div><div class="m2">商品属性</div><div class="m2">商品API</div><div class="m2">商品服务</div><div class="m2">运费模板</div><div class="m2">供应商管理</div>
+          </div>
+          <div class="m1"><span class="ico">□</span><span>订单中心</span><span class="arr">⌄</span></div>
+          <div class="m1"><span class="ico">□</span><span>积分中心</span><span class="arr">⌄</span></div>
+          <div class="m1"><span class="ico">□</span><span>营销中心</span><span class="arr">⌄</span></div>
+        </div>
+      </aside>
+      <header class="topbar">
+        <div class="toggle">☰</div>
+        <div class="tabs"><div class="tab">⌂ 首页</div><div class="tab active">商品列表 <span class="x">×</span></div></div>
+        <div class="top-actions"><span>⇩</span><span class="avatar"></span><span>⌄</span></div>
+      </header>
+      <main class="main">
+        <div class="page-title"><h1>商品列表</h1><button class="btn">+ 已删除商品</button></div>
+        <div class="tabs-line"><div class="active">全部商品</div><div>已上架</div><div>已下架</div></div>
+        <div class="toolbar">
+          <div class="filters">
+            <div class="field">商品名称：<input class="input" id="filterName" placeholder="请输入商品名称"></div>
+            <div class="field">商品类型：<select class="select" id="filterType"><option value="">全部</option><option>普通商品</option><option>API对接</option></select></div>
+            <div class="field">商品品牌：<select class="select" id="filterBrand"><option value="">请选择</option><option>宫中秘策</option><option>韩国LG</option><option>一页</option></select></div>
+            <div class="field">所属SPU：<select class="select" id="filterSpu"><option value="">请选择</option><option>SPU-BABY-001</option><option>SPU-WASH-002</option><option>SPU-TRAVEL-003</option></select></div>
+            <button class="icon-search" onclick="renderGoods()">⌕</button><button class="more-btn" id="moreBtn" onclick="toggleMore()">更多搜索⌄</button><button class="clear" onclick="clearFilters()">清空</button>
+          </div>
+          <div><button class="btn" onclick="openBatch()">导入修改</button><button class="btn" style="margin-left:8px">导出</button><button class="btn primary" style="margin-left:8px">⊕ 新增</button></div>
+        </div>
+        <div class="filters more-row" id="moreSearch">
+          <div class="field">商品ID：<input class="input" id="filterId" placeholder="请输入商品ID"></div>
+          <div class="field">API商品编码：<input class="input" id="filterApiCode" placeholder="请输入API商品编码"></div>
+          <div class="field">商品分类：<select class="select" id="filterCategory"><option value="">全部</option><option>母婴洗护</option><option>婴童出行</option><option>身体护理</option></select></div>
+          <div class="field">创建方式：<select class="select" id="filterSource"><option value="">请选择</option><option>自建</option><option>API对接</option></select></div>
+          <div class="field">上下架：<select class="select" id="filterStatus"><option value="">全部</option><option>已上架</option><option>已下架</option></select></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:44px"><label class="ck" id="allBox"><input type="checkbox" id="checkAll" onchange="toggleAll()"><span></span></label></th><th style="width:22%">商品名称</th><th>SPU</th><th>品牌</th><th>分类</th><th>商品来源</th><th>发货仓</th><th>售价</th><th>API商品编码</th><th>访问量</th><th>销量</th><th>虚拟销量</th><th>操作</th></tr></thead>
+            <tbody id="goodsBody"></tbody>
+          </table>
+          <div class="pager">
+            <div class="batch-left"><label class="ck"><input type="checkbox" id="bottomAll" onchange="toggleAll(true)"><span></span></label><span>已选 <b id="selectedCount">0</b> 条</span><button class="btn small">上架</button><button class="btn small">下架</button><button class="btn small">同步商详</button><button class="btn small" onclick="openBatch()">批量修改</button><button class="btn small danger">删除</button></div>
+            <div class="page-right"><span>共 <span id="totalCount">0</span> 条</span><span class="page-num active">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>…</span><span>28</span><span>›</span><select class="select" style="width:98px"><option>20 条/页</option></select></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+</div>
+
+<div class="modal-mask" id="batchModal">
+  <div class="modal modal-xl">
+    <div class="modal-hd"><span>导入修改</span><span class="close" onclick="closeModal('batchModal')">×</span></div>
+    <div class="modal-bd">
+      <div class="alert">按商品ID导入修改，导入表的字段未填写视为不更新。</div>
+      <div class="section">
+        <div class="section-head"><h2>导入文件</h2></div>
+        <div class="form-row"><label>导入内容</label><div class="radio-line"><label><input type="radio" name="importMode" value="base" checked onchange="changeImportMode()"> 基础信息</label><label><input type="radio" name="importMode" value="price" onchange="changeImportMode()"> 价格信息</label></div></div>
+        <div class="form-row"><label>导入模板</label><div class="import-actions"><button class="link-btn" onclick="downloadTemplate()">下载模板</button><label class="file-pick" for="importFile">选择文件</label><button class="btn primary" onclick="parseImport()">点击校验</button><span class="file-name" id="fileName"></span><input class="file-input" id="importFile" type="file" accept=".csv,.txt" onchange="readImportFile(event)"></div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>导入预览</h2><button class="link-btn" id="downloadFailedBtn" style="display:none" onclick="downloadFailedList()">下载失败列表</button></div>
+        <div class="preview-box" id="importSummary">请先上传导入文件，然后点击校验。</div>
+        <div class="preview-table" style="margin-top:12px"><table><thead><tr><th>商品ID</th><th>商品名称</th><th>基础信息变更</th><th>规格/价格变更</th><th>校验结果</th></tr></thead><tbody id="importPreviewBody"><tr><td colspan="5" style="text-align:center;color:#999">暂无导入数据</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn" onclick="closeModal('batchModal')">取消</button><button class="btn primary" onclick="validateBatch()">确认修改</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="confirmModal"><div class="modal modal-sm"><div class="confirm-body"><div class="confirm-title"><span class="warn-icon">!</span><span>导入修改</span></div><div class="confirm-desc" id="confirmDesc">是否确认按导入文件修改商品？</div></div><div class="modal-ft"><button class="btn" onclick="closeModal('confirmModal')">取消</button><button class="btn primary" onclick="applyBatch()">确定</button></div></div></div>
+<div class="modal-mask" id="logModal"><div class="modal modal-xl"><div class="modal-hd"><span>操作日志</span><span class="close" onclick="closeModal('logModal')">×</span></div><div class="modal-bd"><table><thead><tr><th>日志ID</th><th>操作人</th><th>操作描述</th><th>提示信息</th><th>操作时间</th></tr></thead><tbody id="logBody"></tbody></table></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const spuAttrs={"SPU-BABY-001":["香型","容量","适用年龄"],"SPU-WASH-002":["香型","规格","功效"],"SPU-TRAVEL-003":["颜色","尺寸","承重"]};
+let goods=[
+  {id:"103446",name:"一页婴童泡泡洗发沐浴露 无香型 300g",type:"普通商品",spu:"SPU-WASH-002",attr:"香型",brand:"一页",category:"母婴洗护",source:"自建",warehouse:"华东仓",freight:"包邮模板",apiCode:"-",visits:20,sales:0,virtualSales:0,status:"已上架",price:59,cost:32,weight:0.3,limit:2,specs:["1"],selected:false},
+  {id:"103445",name:"宫中秘策儿童润护洗发水 300ml",type:"普通商品",spu:"-",attr:"-",brand:"-",category:"-",source:"API对接",warehouse:"API对接仓",freight:"按重量计费",apiCode:"540046",visits:300,sales:0,virtualSales:0,status:"已上架",price:0,cost:0,weight:0.4,limit:"",specs:["1","2"],selected:false},
+  {id:"103444",name:"宫中秘策肤律倍贝宝宝润肤乳液 250ml",type:"API对接",spu:"-",attr:"-",brand:"宫中秘策",category:"-",source:"API对接",warehouse:"API对接仓",freight:"包邮模板",apiCode:"540046",visits:150,sales:0,virtualSales:0,status:"已上架",price:0,cost:0,weight:0.25,limit:"",specs:["1","2","3","4"],selected:false},
+  {id:"103443",name:"韩国我珂爱婴幼儿洁面洗发沐浴多合一 粉色安巴 400ml",type:"API对接",spu:"-",attr:"-",brand:"韩国LG",category:"身体护理",source:"API对接",warehouse:"华南仓",freight:"按重量计费",apiCode:"510651",visits:3000,sales:0,virtualSales:0,status:"已上架",price:0,cost:0,weight:0.4,limit:"",specs:["1"],selected:false},
+  {id:"103441",name:"韩国LG 安宝笛 ONTHEBODY 紫色浪漫邂逅丝绒香水身体乳 400ml",type:"API对接",spu:"-",attr:"-",brand:"韩国LG",category:"身体护理",source:"API对接",warehouse:"华南仓",freight:"按重量计费",apiCode:"G007368",visits:300,sales:0,virtualSales:0,status:"已上架",price:0,cost:0,weight:0.4,limit:"",specs:["1","2"],selected:false},
+  {id:"103440",name:"韩国LG安宝笛 快乐微风身体乳 400ml",type:"API对接",spu:"-",attr:"-",brand:"韩国LG",category:"身体护理",source:"API对接",warehouse:"华南仓",freight:"按重量计费",apiCode:"G007366",visits:36,sales:0,virtualSales:0,status:"已下架",price:0,cost:0,weight:0.4,limit:"",specs:["1"],selected:false}
+];
+let filtered=[...goods], importRows=[], logs=[["L20260529001","系统","初始化导入商品","商品缺少SPU、品牌、分类等信息","2026-05-29 10:00:00"]];
+function $(id){return document.getElementById(id)}
+function importMode(){return document.querySelector('input[name="importMode"]:checked')?.value||"base"}
+function importHeader(){
+  return importMode()==="base"
+    ?"商品ID,后台SPU,属性名称,品牌,后台分类,发货仓,运费模板"
+    :"商品ID,规格数量,成本价,售价,重量,限购";
+}
+function isPositiveInt(v){return /^[1-9]\d*$/.test(String(v||"").trim())}
+function isPositiveDecimal2(v){return /^(?:[1-9]\d*|0)(?:\.\d{1,2})?$/.test(String(v||"").trim())&&Number(v)>0}
+function toggleLogic(){const p=$("logicPanel"),t=$("logicToggle");p.classList.toggle("show");t.style.display=p.classList.contains("show")?"none":"flex"}
+function escapeHtml(text){return String(text??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function inlineMarkdown(text){return escapeHtml(text).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}
+function renderMarkdown(md){
+  const lines=String(md||"").replace(/\r/g,"").split("\n");
+  let html="",list=null,table=[];
+  const closeList=()=>{if(list){html+=`</${list}>`;list=null}};
+  const flushTable=()=>{if(!table.length)return;const rows=table.filter(line=>!/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line));if(rows.length){html+="<table>";rows.forEach((line,i)=>{const cells=line.replace(/^\||\|$/g,"").split("|").map(c=>inlineMarkdown(c.trim()));html+=`<tr>${cells.map(c=>i?`<td>${c}</td>`:`<th>${c}</th>`).join("")}</tr>`});html+="</table>"}table=[]};
+  lines.forEach(raw=>{
+    const line=raw.trimEnd();
+    if(line.startsWith("|")&&line.endsWith("|")){closeList();table.push(line);return}
+    flushTable();
+    if(!line.trim()){closeList();return}
+    const head=line.match(/^(#{1,6})\s+(.+)$/);
+    if(head){closeList();const level=Math.min(Number(head[1].length),4);html+=`<h${level}>${inlineMarkdown(head[2])}</h${level}>`;return}
+    const bullet=line.match(/^\s*[-*]\s+(.+)$/);
+    if(bullet){if(list!=="ul"){closeList();list="ul";html+="<ul>"}html+=`<li>${inlineMarkdown(bullet[1])}</li>`;return}
+    const ordered=line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if(ordered){if(list!=="ol"){closeList();list="ol";html+="<ol>"}html+=`<li>${inlineMarkdown(ordered[1])}</li>`;return}
+    closeList();
+    html+=`<p>${inlineMarkdown(line)}</p>`;
+  });
+  flushTable();closeList();
+  return html;
+}
+function syncLogicDoc(event){
+  const file=event.target.files?.[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    $("logicDoc").innerHTML=renderMarkdown(e.target.result);
+    $("logicSource").textContent=`来源：手动同步本地文档 ${file.name}`;
+    toast("左侧逻辑已同步");
+  };
+  reader.readAsText(file,"utf-8");
+}
+function filterMenu(){const kw=$("menuSearch").value.trim();document.querySelectorAll(".m2").forEach(el=>el.style.display=!kw||el.textContent.includes(kw)?"block":"none")}
+function toggleMore(){const show=$("moreSearch").classList.toggle("show");$("moreBtn").textContent=show?"收起搜索⌃":"更多搜索⌄"}
+function renderGoods(){
+  const name=$("filterName").value.trim(),type=$("filterType").value,brand=$("filterBrand").value,spu=$("filterSpu").value,id=$("filterId").value.trim(),apiCode=$("filterApiCode").value.trim(),cat=$("filterCategory").value,source=$("filterSource").value,status=$("filterStatus").value;
+  filtered=goods.filter(g=>(!name||g.name.includes(name))&&(!type||g.type===type)&&(!brand||g.brand===brand)&&(!spu||g.spu===spu)&&(!id||g.id.includes(id))&&(!apiCode||(g.apiCode||"").includes(apiCode))&&(!cat||g.category===cat)&&(!source||g.source===source)&&(!status||g.status===status));
+  $("goodsBody").innerHTML=filtered.map(g=>`<tr class="${g.selected?'selected':''}"><td><label class="ck"><input type="checkbox" ${g.selected?'checked':''} onchange="toggleRow('${g.id}',this.checked)"><span></span></label></td><td><div class="goods"><div class="pic">商品图</div><div><div class="link">${g.name}</div><div class="sub">ID：${g.id}</div></div></div></td><td>${g.spu}</td><td>${g.brand}</td><td>${g.category}</td><td>${g.source}</td><td>${g.warehouse}</td><td>￥${g.price}</td><td>${g.apiCode||"-"}</td><td>${g.visits}</td><td>${g.sales}</td><td>${g.virtualSales}</td><td><span class="op">编辑</span><span class="op">预览</span><span class="op" onclick="openModal('logModal')">日志</span></td></tr>`).join("");
+  $("totalCount").textContent=filtered.length;updateSelectedUI();
+}
+function updateSelectedUI(){
+  const selected=goods.filter(g=>g.selected), visibleSelected=filtered.filter(g=>g.selected).length;
+  $("selectedCount").textContent=selected.length;
+  const all=filtered.length&&visibleSelected===filtered.length, some=visibleSelected>0&&!all;
+  [["checkAll","allBox"],["bottomAll",null]].forEach(([input,wrap])=>{const el=$(input);el.checked=!!all;if(wrap)$(wrap).classList.toggle("indeterminate",some)});
+  renderImportPreview();
+}
+function toggleAll(fromBottom){const checked=$(fromBottom?"bottomAll":"checkAll").checked;filtered.forEach(g=>g.selected=checked);renderGoods()}
+function toggleRow(id,checked){goods.find(g=>g.id===id).selected=checked;renderGoods()}
+function clearFilters(){["filterName","filterId","filterApiCode"].forEach(id=>$(id).value="");["filterType","filterBrand","filterSpu","filterCategory","filterSource","filterStatus"].forEach(id=>$(id).value="");renderGoods()}
+function openBatch(){resetBatch();openModal("batchModal")}
+function resetBatch(){window.__importText="";window.__importFileName="";if($("importFile"))$("importFile").value="";if($("fileName"))$("fileName").textContent="";importRows=[];renderImportPreview();changeImportMode(false)}
+function changeImportMode(clear=true){
+  if(clear){window.__importText="";importRows=[];renderImportPreview()}
+}
+function csvEscape(v){return String(v??"").includes(",")?`"${String(v).replaceAll('"','""')}"`:String(v??"")}
+function downloadTemplate(){
+  const demo=importMode()==="base"
+    ?`${importHeader()}\n103445,SPU-BABY-001,容量,,,华东仓,包邮模板`
+    :`${importHeader()}\n103445,1,35,69,0.45,2\n103445,2,36,79,0.46,2\n103445,4,38,89,0.48,2`;
+  const blob=new Blob([demo],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`商品导入修改-${importMode()==="base"?"基础信息":"价格信息"}.csv`;a.click();URL.revokeObjectURL(a.href);
+  importRows=[];renderImportPreview();toast(`${importMode()==="base"?"基础信息":"价格信息"}模板已下载`);
+}
+function readImportFile(event){
+  const file=event.target.files?.[0];if(!file)return;
+  window.__importFileName=file.name;$("fileName").textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{window.__importText=e.target.result;parseImport()};
+  reader.readAsText(file,"utf-8");
+}
+function splitCsvLine(line){
+  const cells=[];let cur="",quoted=false;
+  for(let i=0;i<line.length;i++){const ch=line[i],next=line[i+1];if(ch==='"'&&quoted&&next==='"'){cur+='"';i++;continue}if(ch==='"'){quoted=!quoted;continue}if(ch===','&&!quoted){cells.push(cur.trim());cur="";continue}cur+=ch}
+  cells.push(cur.trim());return cells;
+}
+function normalizeRow(cells,index){
+  const keys=importMode()==="base"?["id","spu","attr","brand","category","warehouse","freight"]:["id","specs","cost","price","weight","limit"];
+  const row={line:index+1,raw:cells,errors:[]};keys.forEach((k,i)=>row[k]=(cells[i]||"").trim());
+  ["spu","attr","brand","category","warehouse","freight","specs","cost","price","weight","limit"].forEach(k=>row[k]=row[k]||"");
+  row.specList=row.specs?[row.specs]:[];
+  return row;
+}
+function validateImportRow(row){
+  const g=goods.find(item=>item.id===row.id);
+  if(!row.id)row.errors.push("缺少商品ID");
+  if(!g)row.errors.push("商品不存在");
+  if((row.spu||row.attr)&&(row.brand||row.category))row.errors.push("SPU/属性名称 与 品牌/分类不可同时填写");
+  if(row.attr&&(!row.spu||!spuAttrs[row.spu]?.includes(row.attr)))row.errors.push("属性名称不属于本行SPU");
+  if(importMode()==="price"){
+    if(!row.specs)row.errors.push("规格数量必填");
+    else if(!isPositiveInt(row.specs))row.errors.push("规格数量只能填写正整数");
+    if(row.limit&&!isPositiveInt(row.limit))row.errors.push("限购只能填写正整数");
+    [["cost","成本价"],["price","售价"],["weight","重量"]].forEach(([k,label])=>{if(row[k]&&!isPositiveDecimal2(row[k]))row.errors.push(`${label}需填写正数，最多2位小数`)});
+  }
+  row.goods=g;return row;
+}
+function parseImport(){
+  const text=(window.__importText||"").trim();if(!text){toast("请先上传导入文件");return}
+  const lines=text.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+  const header=lines[0]||"", expected=importHeader();
+  if(header.includes("商品ID")&&header.replace(/\s/g,"")!==expected.replace(/\s/g,"")){toast("请选择正确的导入修改表");importRows=[];renderImportPreview();return}
+  const body=header.includes("商品ID")?lines.slice(1):lines;
+  importRows=body.map((line,i)=>validateImportRow(normalizeRow(splitCsvLine(line),i)));
+  renderImportPreview();
+}
+function renderImportPreview(){
+  if(!$("importPreviewBody"))return;
+  if(!importRows.length){$("importSummary").textContent="请先上传导入文件，然后点击校验。";$("downloadFailedBtn").style.display="none";$("importPreviewBody").innerHTML='<tr><td colspan="5" style="text-align:center;color:#999">暂无导入数据</td></tr>';return}
+  const ok=importRows.filter(r=>!r.errors.length).length, fail=importRows.length-ok;
+  $("importSummary").innerHTML=`共解析 ${importRows.length} 行，<span class="status-ok">可更新 ${ok} 行</span>，<span class="status-error">失败 ${fail} 行</span>。存在失败行时不可确认修改。`;
+  $("downloadFailedBtn").style.display=fail?"inline-flex":"none";
+  const displayRows=[...importRows].sort((a,b)=>Number(!a.errors.length)-Number(!b.errors.length));
+  $("importPreviewBody").innerHTML=displayRows.map(r=>{
+    const base=importMode()==="base"?([r.spu&&`SPU：${r.spu}`,r.attr&&`属性：${r.attr}`,r.brand&&`品牌：${r.brand}`,r.category&&`分类：${r.category}`,r.warehouse&&`仓：${r.warehouse}`,r.freight&&`运费：${r.freight}`].filter(Boolean).join("<br>")||"不更新"):"-";
+    const spec=importMode()==="price"?([r.specList.length&&`规格：${r.specList.join("、")}`,r.cost&&`成本价：${r.cost}`,r.price&&`售价：${r.price}`,r.weight&&`重量：${r.weight}`,r.limit&&`限购：${r.limit}`].filter(Boolean).join("<br>")||"不更新"):"-";
+    return `<tr><td>${r.id||"-"}</td><td>${r.goods?.name||"-"}</td><td>${base}</td><td>${spec}</td><td class="${r.errors.length?'status-error':'status-ok'}">${r.errors.length?r.errors.join("；"):"通过"}</td></tr>`;
+  }).join("");
+}
+function downloadFailedList(){
+  const failed=importRows.filter(r=>r.errors.length);
+  if(!failed.length){toast("暂无失败列表");return}
+  const header=`${importHeader()},失败原因`;
+  const lines=failed.map(r=>`${r.raw.map(csvEscape).join(",")},${csvEscape(r.errors.join("；"))}`);
+  const blob=new Blob([[header,...lines].join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`商品导入修改-失败列表.csv`;a.click();URL.revokeObjectURL(a.href);
+  toast("失败列表已下载");
+}
+function validateBatch(){
+  if(!importRows.length){toast("请先解析导入文件");return}
+  const fail=importRows.filter(r=>r.errors.length).length;if(fail){toast("存在校验失败行，请修正后再确认");return}
+  $("confirmDesc").textContent=`是否确认按导入文件修改 ${importRows.length} 个商品？`;openModal("confirmModal");
+}
+function applyBatch(){
+  if(importMode()==="price"){
+    const grouped={};
+    importRows.forEach(r=>{(grouped[r.id]||(grouped[r.id]=[])).push(r)});
+    Object.values(grouped).forEach(rows=>{
+      const g=rows[0].goods;
+      g.specs=[...new Set(rows.map(r=>r.specs))];
+      const last=[...rows].reverse().find(r=>r.cost||r.price||r.weight||r.limit);
+      if(last?.cost)g.cost=Number(last.cost);if(last?.price)g.price=Number(last.price);if(last?.weight)g.weight=Number(last.weight);if(last?.limit)g.limit=last.limit;
+    });
+  }else{
+    importRows.forEach(r=>{const g=r.goods;if(r.spu)g.spu=r.spu;if(r.attr)g.attr=r.attr;if(r.brand)g.brand=r.brand;if(r.category)g.category=r.category;if(r.warehouse)g.warehouse=r.warehouse;if(r.freight)g.freight=r.freight});
+  }
+  logs.unshift([`L${Date.now().toString().slice(-10)}`,"xzj",`导入修改${importMode()==="base"?"基础信息":"价格信息"} ${importRows.length} 个商品`,"按商品ID逐行更新，不同商品可不同配置","2026-05-29 16:30:00"]);
+  closeModal("confirmModal");closeModal("batchModal");renderGoods();renderLog();toast("导入批量修改成功");
+}
+function renderLog(){$("logBody").innerHTML=logs.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td><td>${l[2]}</td><td>${l[3]}</td><td>${l[4]}</td></tr>`).join("")}
+function openModal(id){$(id).classList.add("show")}function closeModal(id){$(id).classList.remove("show")}
+function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(t.timer);t.timer=setTimeout(()=>t.style.display="none",2000)}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".modal-mask.show").forEach(m=>m.classList.remove("show"))});
+document.querySelectorAll(".modal-mask").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
+renderGoods();renderLog();
+</script>
+</body>
+</html>
