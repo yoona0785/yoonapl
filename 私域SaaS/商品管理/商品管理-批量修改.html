@@ -72,7 +72,7 @@
         <li>同一商品 ID 在价格信息导入中允许出现多行。</li>
       </ul>
 
-      <h3>字段语义 + 边界值</h3>
+      <h3>字段定义</h3>
       <h4>导入内容</h4>
       <ul>
         <li>单选项，必选。</li>
@@ -299,11 +299,21 @@ function syncLogicDoc(event){
   const file=event.target.files?.[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    $("logicDoc").innerHTML=renderMarkdown(e.target.result);
+    const content=e.target.result;
+    $("logicDoc").innerHTML=renderMarkdown(content);
     $("logicSource").textContent=`来源：手动同步本地文档 ${file.name}`;
+    localStorage.setItem("goodsBatchLogicDocContentV2",content);
+    localStorage.setItem("goodsBatchLogicDocNameV2",file.name);
     toast("左侧逻辑已同步");
   };
   reader.readAsText(file,"utf-8");
+}
+function loadSyncedLogicDoc(){
+  const content=localStorage.getItem("goodsBatchLogicDocContentV2");
+  if(!content)return;
+  const name=localStorage.getItem("goodsBatchLogicDocNameV2")||"上次同步文档";
+  $("logicDoc").innerHTML=renderMarkdown(content);
+  $("logicSource").textContent=`来源：本地缓存 ${name}`;
 }
 function filterMenu(){const kw=$("menuSearch").value.trim();document.querySelectorAll(".m2").forEach(el=>el.style.display=!kw||el.textContent.includes(kw)?"block":"none")}
 function toggleMore(){const show=$("moreSearch").classList.toggle("show");$("moreBtn").textContent=show?"收起搜索⌃":"更多搜索⌄"}
@@ -427,7 +437,7 @@ function openModal(id){$(id).classList.add("show")}function closeModal(id){$(id)
 function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(t.timer);t.timer=setTimeout(()=>t.style.display="none",2000)}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".modal-mask.show").forEach(m=>m.classList.remove("show"))});
 document.querySelectorAll(".modal-mask").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
-renderGoods();renderLog();
+loadSyncedLogicDoc();renderGoods();renderLog();
 </script>
 </body>
 </html>
