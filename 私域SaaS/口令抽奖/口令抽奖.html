@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>九宫格口令抽奖原型</title>
+  <style>
+    :root {
+      --primary: #051D86;
+      --primary-hover: #3347a8;
+      --primary-light: #EBF0FF;
+      --text-title: #17233d;
+      --text-main: #515a6e;
+      --text-sub: #666;
+      --text-hint: #AAAAAA;
+      --border: #ECECEC;
+      --border-inner: #e8eaec;
+      --divider: #F2F2F2;
+      --bg-page: #F4F6F9;
+      --bg-white: #FFFFFF;
+      --success: #19be6b;
+      --warning: #ff9900;
+      --error: #ed4014;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text-main);
+      background: var(--bg-page);
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .workbench {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      overflow: hidden;
+    }
+    .workbench.logic-open { grid-template-columns: 40% 60%; }
+    .logic-rail {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: 2px;
+      writing-mode: vertical-rl;
+      cursor: pointer;
+    }
+    .logic-panel { display: none; min-width: 0; background: #fff; border-right: 1px solid var(--border); }
+    .logic-open .logic-rail { display: none; }
+    .logic-open .logic-panel { display: flex; flex-direction: column; }
+    .logic-head {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logic-title { font-size: 16px; font-weight: 700; color: var(--text-title); }
+    .logic-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+    .logic-actions button, .logic-actions label { border: 0; background: transparent; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0; }
+    .logic-source {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      background: #f8fbff;
+      border-bottom: 1px solid #edf2ff;
+      color: #70809a;
+      font-size: 12px;
+    }
+    .logic-doc { flex: 1; overflow: auto; padding: 20px 24px 40px; line-height: 1.72; }
+    .logic-doc h1 { margin: 0 0 16px; font-size: 20px; color: var(--text-title); }
+    .logic-doc h2 { margin: 24px 0 10px; padding-left: 10px; border-left: 3px solid var(--primary); font-size: 17px; color: var(--text-title); }
+    .logic-doc h3 { margin: 18px 0 8px; font-size: 15px; color: #344054; }
+    .logic-doc p { margin: 6px 0; }
+    .logic-doc ul, .logic-doc ol { margin: 6px 0 12px 22px; padding: 0; }
+    .logic-doc li { margin: 4px 0; }
+    .logic-doc code { padding: 1px 4px; border-radius: 3px; background: #f2f4f7; }
+    .logic-doc blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid #b8c7ff; background: #f8fbff; color: #667085; }
+    .stage { min-width: 0; overflow: hidden; }
+    .admin {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      grid-template-rows: 48px 1fr;
+      overflow: hidden;
+      background: var(--bg-page);
+    }
+    .sider { grid-row: 1 / 3; background: #fff; border-right: 1px solid var(--border); overflow: auto; }
+    .logo { height: 48px; display: flex; align-items: center; padding-left: 18px; color: var(--primary); font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--border); }
+    .menu-search { padding: 12px; }
+    .menu-search input { width: 100%; height: 30px; border: 1px solid var(--border); border-radius: 5px; padding: 0 9px; outline: none; font-size: 12px; }
+    .menu-group { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; color: #333; cursor: pointer; }
+    .menu-group.active, .menu-group:hover { background: #F0F3FF; color: var(--primary); }
+    .menu-sub { padding: 0 8px 8px 28px; }
+    .menu-item { height: 32px; display: flex; align-items: center; padding: 0 8px; color: #666; font-size: 12px; cursor: pointer; border-radius: 3px; }
+    .menu-item.active, .menu-item:hover { color: var(--primary); background: var(--primary-light); font-weight: 600; }
+    .topbar { grid-column: 2; display: flex; align-items: center; min-width: 0; background: #fff; border-bottom: 1px solid var(--border); }
+    .fold { width: 44px; text-align: center; color: #666; border-right: 1px solid var(--border); }
+    .tabs { flex: 1; min-width: 0; height: 48px; display: flex; overflow: auto; }
+    .tab { position: relative; height: 48px; display: flex; align-items: center; padding: 0 16px; white-space: nowrap; color: #666; cursor: pointer; }
+    .tab.active { color: var(--primary); font-weight: 700; }
+    .tab.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; background: var(--primary); }
+    .tab .x { margin-left: 8px; color: #8a93a3; }
+    .account { height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 18px; color: #666; }
+    .content { grid-column: 2; overflow: auto; padding: 0; background: #fff; }
+    .page { display: none; min-width: 1180px; }
+    .page.active { display: block; }
+    .page-inner { padding: 24px 28px 0; }
+    .page-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .page-title h1 { margin: 0; color: var(--text-title); font-size: 16px; }
+    .page-title-main { display: flex; align-items: center; gap: 8px; }
+    .update-time { color: #8a93a3; font-size: 12px; font-weight: 400; }
+    .detail-link { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); border: 0; background: transparent; font-size: 13px; cursor: pointer; }
+    .muted { color: #8a93a3; font-size: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px; }
+    .stat { height: 82px; background: #EEF3FF; border: 1px solid #C9D6FF; border-radius: 6px; padding: 16px; }
+    .stat .label { color: #687386; font-size: 13px; }
+    .stat .num { margin-top: 8px; color: var(--text-title); font-size: 28px; font-weight: 700; }
+    .card { background: #fff; border: 0; border-radius: 0; box-shadow: none; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 0 18px; border-bottom: 0; }
+    .filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .field { display: flex; align-items: center; gap: 6px; color: #666; }
+    .input, .select, .textarea {
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--text-main);
+      outline: none;
+      padding: 0 8px;
+    }
+    .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(5,29,134,.15); }
+    .input { width: 150px; }
+    .select { width: 130px; }
+    .dt { width: 180px; }
+    .wide { width: 500px; }
+    .btn { height: 32px; padding: 0 15px; border: 1px solid #dcdee2; border-radius: 4px; background: #fff; color: #333; }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); color: #fff; }
+    .btn-text { border: 0; background: transparent; color: var(--primary); padding: 0; }
+    .btn-danger { border: 0; background: transparent; color: #FF0000; padding: 0; }
+    .search-icon-btn { width: 20px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; padding: 0; color: #333; }
+    .search-icon-btn svg { width: 16px; height: 16px; stroke: #333; }
+    .search-icon-btn:hover { opacity: .72; }
+    .icon-btn { width: 20px; height: 32px; border: 0; background: transparent; color: #333; padding: 0; }
+    .toolbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .more-row { display: none; padding: 0 0 18px; }
+    .more-row.show { display: flex; }
+    .record-more-row { gap: 12px; flex-wrap: wrap; }
+    .table-wrap { background: #fff; border: 1px solid #ECECEC; border-top: 0; box-shadow: none; border-radius: 0; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th { height: 40px; background: #ECECEC; padding: 0 14px; text-align: left; color: #666; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    td { height: 68px; padding: 10px 14px; border-bottom: 1px solid var(--divider); color: #515a6e; font-size: 13px; vertical-align: middle; }
+    tr:hover td { background: #F9FBFF; }
+    .link { color: var(--primary); cursor: pointer; }
+    .link:hover { text-decoration: underline; }
+    .sub { margin-top: 5px; color: #8a93a3; font-size: 12px; line-height: 1.5; }
+    .tag { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 22px; padding: 0 6px; border-radius: 3px; font-size: 13px; white-space: nowrap; }
+    .tag-blue { color: var(--primary); background: var(--primary-light); }
+    .tag-green { color: #14C45A; background: #E8FFF0; }
+    .tag-orange { color: #FF8A00; background: #FFF3E5; }
+    .tag-gray { color: #999; background: #F5F5F5; }
+    .ops { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+    .op-menu { position: fixed; display: none; z-index: 9999; min-width: 118px; background: #fff; border: 1px solid #E8ECF0; border-radius: 4px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+    .op-menu.show { display: block; }
+    .op-menu div { padding: 9px 16px; color: var(--primary); font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .op-menu div:hover { background: #F0F3FF; }
+    .op-menu .danger { color: #FF0000; }
+    .op-menu .danger:hover { background: #FFF0F0; }
+    .code-copy { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .code-text { color: #333; user-select: text; }
+    .pager { height: 48px; display: flex; align-items: center; justify-content: flex-end; padding: 0 16px; border-top: 1px solid var(--border); background: #fff; color: #666; font-size: 13px; }
+    .pager-main { display: flex; align-items: center; gap: 8px; }
+    .page-num { display: inline-flex; min-width: 30px; height: 30px; padding: 0 8px; align-items: center; justify-content: center; border-radius: 4px; color: #333; }
+    .page-num.active { background: var(--primary); color: #fff; }
+    .page-arrow { color: #999; font-size: 16px; }
+    .pager-jump { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; }
+    .pager-jump .input { width: 44px; height: 28px; text-align: center; padding: 0 4px; }
+    .custom-check { position: relative; display: inline-flex; width: 16px; height: 16px; vertical-align: middle; }
+    .custom-check input { opacity: 0; width: 16px; height: 16px; margin: 0; }
+    .custom-check span { position: absolute; inset: 0; border: 1px solid #C9D0E0; border-radius: 3px; background: #fff; }
+    .custom-check input:checked + span { background: var(--primary); border-color: var(--primary); }
+    .custom-check input:checked + span::after { content: ""; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    .form-page-wrap { background: #fff; min-height: calc(100vh - 48px); }
+    .form-head { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: #fff; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .form-page-wrap.readonly .form-config input,
+    .form-page-wrap.readonly .form-config select,
+    .form-page-wrap.readonly .form-config textarea,
+    .form-page-wrap.readonly .form-config button,
+    .form-page-wrap.readonly .form-config .switch { pointer-events: none; opacity: .72; }
+    .form-page-wrap.readonly .image-preview-box { pointer-events: none; }
+    .form-page-wrap.readonly .rule-table { pointer-events: none; opacity: .72; }
+    .form-body { display: grid; grid-template-columns: 360px minmax(0,1fr) 116px; gap: 28px; align-items: start; padding: 0 28px 36px; }
+    .preview-col { position: sticky; top: 16px; padding-top: 0; }
+    .form-preview-phone.phone { width: 338px; height: 740px; border: 0; box-shadow: none; }
+    .form-preview-phone .ios-status { width: 338px; }
+    .form-preview-phone .wechat-nav { width: 338px; }
+    .form-preview-phone .wechat-capsule { left: 242px; }
+    .form-preview-phone .machine { width: 294px; height: 276px; }
+    .form-preview-phone .machine.no-grid-image { width: 280px; height: 236px; padding: 0 26px; }
+    .form-preview-phone .grid { grid-template-rows: repeat(3,74px); }
+    .form-preview-phone .machine.no-grid-image .grid { grid-template-rows: repeat(3,60px); }
+    .form-config .dt { width: 240px; }
+    .form-config .section { border: 0; padding: 28px 0 10px; margin: 0; background: transparent; border-radius: 0; }
+    .section { margin-bottom: 16px; padding: 20px 24px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+    .section h2 { margin: 0 0 18px; padding-left: 10px; border-left: 3px solid var(--primary); color: var(--text-title); font-size: 15px; }
+    .form-row { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+    .form-row > label { min-height: 36px; display: flex; align-items: center; justify-content: flex-end; color: #555; }
+    .req::after { content: "*"; color: #FF0000; margin-left: 4px; }
+    .hint { margin-top: 6px; color: #999; font-size: 12px; }
+    .textarea { width: 500px; min-height: 96px; padding: 8px; resize: vertical; }
+    .seg { display: inline-flex; }
+    .form-config .input, .form-config .select { height: 36px; }
+    .seg button { width: 125px; height: 36px; border: 1px solid #dcdee2; background: #fff; color: #555; }
+    .seg button.active { color: var(--primary); border-color: var(--primary); background: var(--primary-light); }
+    .upload { width: 100px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #dcdee2; border-radius: 4px; background: #fafafa; color: #999; }
+    .upload input { display: none; }
+    .upload.has-image { border-style: solid; background-size: cover; background-position: center; color: transparent; }
+    .image-editor { display: flex; align-items: flex-end; gap: 12px; }
+    .image-preview-box { position: relative; width: 100px; height: 100px; border: 1px solid #dcdee2; border-radius: 4px; background: #fafafa center/cover no-repeat; overflow: hidden; cursor: pointer; }
+    .image-preview-box input { display: none; }
+    .image-preview-box.empty { border-style: dashed; display: flex; align-items: center; justify-content: center; color: #999; }
+    .image-preview-box.empty::after { content: "+\A 上传图片"; white-space: pre; text-align: center; line-height: 22px; }
+    .image-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; gap: 10px; background: rgba(0,0,0,.35); color: #fff; }
+    .image-preview-box:not(.empty):hover .image-overlay { display: flex; }
+    .image-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #fff; cursor: pointer; padding: 0; }
+    .image-icon svg { width: 16px; height: 16px; stroke: currentColor; }
+    .image-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+    .image-format-hint { color: #999; font-size: 12px; margin-top: 8px; }
+    .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .hex-input { width: 92px; height: 32px; border: 1px solid var(--border); border-radius: 4px; color: #333; padding: 0 8px; }
+    .color-row input[type="color"] { width: 34px; height: 32px; border: 1px solid var(--border); border-radius: 4px; background: #fff; padding: 2px; }
+    .asset-row { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .share-config { display: none; }
+    .share-config.show { display: grid; }
+    .rule-table td { height: 72px; }
+    .drag-handle { color: #8a93a3; cursor: grab; font-size: 16px; }
+    .dragging td { background: #EBF0FF; }
+    .prize-cell { display: grid; grid-template-columns: 42px minmax(0,1fr); gap: 10px; align-items: center; }
+    .prize-thumb { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border: 1px solid #E8ECF0; border-radius: 4px; background: #FFF3E5; font-size: 22px; overflow: hidden; }
+    .prize-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .prize-name { color: var(--text-title); font-size: 13px; }
+    .prize-type { margin-top: 5px; color: #8a93a3; font-size: 12px; }
+    .radio-line { display: flex; align-items: center; gap: 24px; height: 36px; }
+    .radio-line input { accent-color: var(--primary); }
+    .coupon-add-line { height: 32px; display: flex; align-items: center; }
+    .coupon-filter-line { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
+    .coupon-filter-line .field { white-space: nowrap; }
+    .user-detail { padding: 0 28px 28px; background: #fff; min-height: calc(100vh - 48px); }
+    .user-head { height: 54px; display: flex; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
+    .user-head .back { color: #333; cursor: pointer; font-size: 14px; }
+    .user-layout { display: grid; grid-template-columns: 460px 1fr; gap: 36px; }
+    .user-left { border-right: 1px solid var(--border); padding-right: 36px; }
+    .profile-card { height: 102px; border-radius: 6px; background: #F7F7F8; display: flex; align-items: center; gap: 18px; padding: 0 24px; margin-bottom: 22px; }
+    .profile-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,#ddd,#777); }
+    .profile-name { font-size: 20px; font-weight: 700; color: #333; margin-bottom: 6px; }
+    .user-info-line { display: grid; grid-template-columns: 96px 1fr; line-height: 34px; font-size: 13px; color: #333; }
+    .metric-group { margin-top: 22px; }
+    .metric-title { color: #8a93a3; font-size: 13px; margin-bottom: 12px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 20px; }
+    .metric-grid.two { grid-template-columns: repeat(2, 1fr); }
+    .metric-label { color: #8a93a3; font-size: 13px; margin-bottom: 8px; }
+    .metric-value { font-size: 20px; font-weight: 700; color: #333; }
+    .user-section { margin-bottom: 34px; }
+    .user-section-title { border-left: 3px solid var(--primary); padding-left: 10px; font-size: 15px; font-weight: 600; color: #333; margin-bottom: 18px; }
+    .user-section-title .edit { margin-left: 12px; color: var(--primary); font-size: 13px; font-weight: 400; }
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 48px; font-size: 13px; line-height: 22px; }
+    .empty-box { height: 136px; border-bottom: 1px solid var(--divider); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 13px; }
+    .mini-table th, .mini-table td { height: 42px; }
+    .coupon-filter-line .input { width: 150px; }
+    .coupon-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 16px; margin-bottom: 12px; }
+    .coupon-filter-actions { display: flex; align-items: center; gap: 10px; }
+    .coupon-more-filters { display: none; }
+    .coupon-more-filters.show { display: grid; }
+    .coupon-selected-wrap { width: 100%; margin-top: 4px; overflow-x: auto; overflow-y: hidden; }
+    .coupon-selected { width: 960px; min-width: 960px; border: 1px solid var(--border); table-layout: fixed; }
+    .coupon-selected th { height: 40px; padding: 0 10px; font-size: 12px; }
+    .coupon-selected td { height: auto; min-height: 58px; padding: 10px; white-space: normal; line-height: 1.45; vertical-align: middle; word-break: break-word; }
+    .coupon-selected .coupon-action-col { width: 72px; }
+    .coupon-selected .coupon-check-col { width: 54px; }
+    .coupon-selected .coupon-award-col { width: 92px; }
+    .coupon-selected .coupon-name-col { width: 180px; }
+    .coupon-selected .coupon-info-col { width: 130px; }
+    .coupon-selected .coupon-time-col { width: 170px; }
+    .coupon-selected .coupon-burden-col { width: 110px; }
+    .coupon-selected .coupon-valid-col { width: 130px; }
+    .coupon-selected .coupon-count-col { width: 120px; }
+    .coupon-award-input { width: 58px; height: 28px; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; }
+    .coupon-award-cell { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .coupon-name-stack { display: grid; gap: 4px; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; }
+    .slider { position: absolute; inset: 0; border-radius: 999px; background: #c8c8c8; }
+    .slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 2px; top: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.22); transition: .2s; }
+    .switch input:checked + .slider { background: var(--primary); }
+    .switch input:checked + .slider::before { transform: translateX(20px); }
+    .anchor-nav { position: sticky; top: 16px; width: 100px; border-left: 1px solid var(--divider); background: transparent; }
+    .anchor-nav a { display: flex; align-items: center; height: 40px; padding-left: 14px; color: #666; text-decoration: none; font-size: 13px; }
+    .anchor-nav a.active { margin-left: -2px; border-left: 3px solid var(--primary); color: var(--primary); font-weight: 600; }
+    .phone { width: 375px; height: 812px; position: relative; overflow: hidden; background: #ffcbb9; border: 1px solid #eee; box-shadow: 0 10px 24px rgba(15,23,42,.1); }
+    .phone-scroll { height: 100%; overflow: auto; }
+    .ios-status { position: absolute; left: 0; top: 0; z-index: 18; width: 375px; height: 20px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; color: #2b2b2b; font-size: 12px; font-weight: 600; }
+    .wechat-nav { position: absolute; left: 0; top: 20px; z-index: 18; width: 375px; height: 44px; display: flex; align-items: center; justify-content: center; color: #333; font-size: 16px; font-weight: 700; }
+    .wechat-back { position: absolute; left: 13px; top: 9px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: #333; font-size: 24px; line-height: 1; }
+    .wechat-title { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wechat-capsule { position: absolute; left: 278px; top: 7px; width: 90px; height: 30px; display: flex; align-items: center; justify-content: space-around; border: 1px solid rgba(0,0,0,.18); border-radius: 16px; background: rgba(255,255,255,.45); color: #111; font-size: 18px; }
+    .wechat-capsule .dot { width: 16px; height: 16px; border: 2px solid #111; border-radius: 50%; }
+    .mini-page { min-height: 812px; padding-top: 64px; background: linear-gradient(180deg,#ffc7b5,#ffd4c4); }
+    .mp-hero { position: relative; min-height: 412px; padding: 22px 0 12px; overflow: hidden; }
+    .mp-title { display: none; }
+    .mp-float { position: absolute; right: 0; top: 34px; z-index: 4; display: flex; flex-direction: column; gap: 8px; }
+    .mp-float button { width: 62px; height: 26px; border: 0; border-radius: 14px 0 0 14px; background: rgba(122,84,76,.45); color: #fff; font-size: 12px; }
+    .mp-side-entry { position: absolute; left: 355px; z-index: 6; width: 20px; height: 67px; border: 0; border-radius: 6px 0 0 6px; background: rgba(0,0,0,.2); color: #fff; font-size: 12px; line-height: 14px; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .mp-rule-entry { top: 96px; }
+    .mp-mine-entry { top: 169px; }
+    .mp-banner { position: absolute; left: 72px; top: 92px; z-index: 2; width: 230px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: linear-gradient(#fff,#ffe2bf); color: #ff6d00; font-weight: 800; box-shadow: 0 8px 18px rgba(195,68,34,.18); }
+    .machine { position: relative; margin: 56px auto 0; width: 326px; height: 306px; padding: 14px; border-radius: 32px; background: linear-gradient(#ffb13a,#ff7d28); box-shadow: 0 12px 0 #ffc160, 0 18px 28px rgba(226,80,22,.18); }
+    .machine::before { content: ""; position: absolute; inset: 7px; border: 3px solid #fff3af; border-radius: 28px; }
+    .machine.has-grid-image { width: 350px; height: 350px; margin-top: 36px; padding: 0; border-radius: 0; background-size: 100% 100%; background-position: center; background-repeat: no-repeat; box-shadow: none; }
+    .machine.has-grid-image::before, .machine.no-grid-image::before { display: none; }
+    .machine.no-grid-image { width: 300px; height: 252px; margin-top: 76px; padding: 0 28px; border-radius: 0; background: transparent; box-shadow: none; }
+    .grid { position: relative; z-index: 1; height: 100%; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,84px); gap: 8px; padding: 24px 16px 16px; }
+    .machine.has-grid-image .grid { position: absolute; left: 52px; top: 66px; width: 246px; height: 246px; padding: 0; grid-template-columns: repeat(3,74px); grid-template-rows: repeat(3,74px); gap: 9px; }
+    .machine.no-grid-image .grid { grid-template-rows: repeat(3,64px); gap: 18px 30px; padding: 0; }
+    .prize { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid #fff; border-radius: 8px; background: #fff8ed; box-shadow: inset 0 -4px 0 #ffe2a2; color: #8b3328; text-align: center; font-size: 11px; }
+    .machine.has-grid-image .prize { border: 0; border-radius: 8px; background: transparent; box-shadow: none; color: #a2362c; display: flex; align-items: center; justify-content: center; }
+    .machine.no-grid-image .prize { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+    .machine.no-grid-image .prize b, .machine.no-grid-image .prize-sub { display: none; }
+    .prize-index { display: none; }
+    .machine.no-grid-image .prize-index { display: block; margin-top: 7px; color: #a83a2f; font-size: 10px; }
+    .prize.active { outline: 3px solid #ff4f67; box-shadow: 0 0 18px rgba(255,72,94,.65), inset 0 -4px 0 #ffe2a2; }
+    .gift { font-size: 26px; }
+    .machine.has-grid-image .gift { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; }
+    .machine.has-grid-image .gift img { width: 34px; height: 34px; object-fit: cover; border-radius: 4px; }
+    .machine.has-grid-image .prize b { max-width: 64px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 14px; text-align: center; }
+    .machine.has-grid-image .prize-sub { display: none; }
+    .draw { background: linear-gradient(#de8b74,#c66756); color: #fff; font-size: 22px; font-weight: 900; line-height: 1.1; }
+    .machine.has-grid-image .draw { border-radius: 6px; background: linear-gradient(#df8d75,#c76255); color: #fff; box-shadow: 0 2px 6px rgba(120,44,35,.16); font-size: 22px; }
+    .machine.no-grid-image .draw { border-radius: 4px; background: linear-gradient(#d98b7b,#bd6358); box-shadow: 0 2px 6px rgba(120,44,35,.14); }
+    .broadcast-ticker { position: absolute; left: 10px; top: 16px; z-index: 5; width: 106px; height: 20px; overflow: hidden; border-radius: 10px; background: rgba(0,0,0,.2); color: #fff; font-size: 11px; line-height: 20px; white-space: nowrap; }
+    .broadcast-track { animation: broadcastRoll 6s linear infinite; }
+    .broadcast-item { width: 106px; height: 20px; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; }
+    @keyframes broadcastRoll {
+      0%, 28% { transform: translateY(0); }
+      34%, 62% { transform: translateY(-20px); }
+      68%, 94% { transform: translateY(-40px); }
+      100% { transform: translateY(-60px); }
+    }
+    .mp-card-bg { margin: 12px 16px; padding: 14px; border-radius: 8px; background: rgba(255,255,255,.48); }
+    .mp-code-section { margin: 12px 0; padding: 18px 24px 20px; background: transparent; }
+    .mp-card { padding: 14px; border: 1px solid #E5E5E5; border-radius: 8px; background: #fff; }
+    .mp-card-title { margin-bottom: 14px; text-align: center; font-size: 16px; font-weight: 800; }
+    .code-box { display: flex; flex-direction: column; gap: 18px; padding: 0; background: transparent; }
+    .code-box input { width: 100%; height: 58px; border: 0; border-radius: 999px; background: #F4F4F4; padding: 0 24px; outline: none; color: #333; text-align: center; font-size: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
+    .code-box input::placeholder { color: #555; }
+    .code-box button { width: 100%; height: 62px; border: 0; border-radius: 999px; background: linear-gradient(180deg,#FFB34E 0%,#FF7A1A 100%); color: #fff; font-size: 22px; font-weight: 800; letter-spacing: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 8px 16px rgba(255,122,26,.18); }
+    .winner-card { margin: 8px 14px 24px; padding: 14px 14px 16px; border-radius: 10px; background: rgba(255,255,255,.84); }
+    .winner-head { height: 28px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .winner-title { color: #333; font-size: 18px; line-height: 24px; font-weight: 900; }
+    .winner-title::before, .winner-title::after { content: ""; display: inline-block; width: 18px; height: 8px; margin: 0 4px 2px; border-radius: 999px; background: rgba(80,80,80,.18); vertical-align: middle; }
+    .winner-mine { border: 0; background: transparent; color: #333; font-size: 13px; }
+    .winner-list { padding: 10px 14px 0; border-radius: 12px; background: #F7F7F7; }
+    .winner-row { min-height: 60px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 10px; align-items: center; border-bottom: 1px dotted #E5E5E5; }
+    .winner-row:last-of-type { border-bottom: 0; }
+    .avatar { width: 38px; height: 38px; margin: 0; border-radius: 50%; background: radial-gradient(circle at 45% 35%, #FFF7B8 0 14%, #F8B13F 15% 24%, #5EB8F1 25% 64%, #DDF2FF 65%); box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); }
+    .w-name { max-width: 138px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333; font-size: 13px; font-weight: 800; }
+    .w-time { margin-top: 2px; color: #8A8A8A; font-size: 12px; line-height: 16px; }
+    .w-prize { color: #333; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .winner-more { height: 42px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; }
+    .record-page { min-height: 812px; padding: 0 16px 32px; background: #F5F5F5; }
+    .record-tabs { height: 48px; display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 -16px 12px; border-bottom: 1px solid #EEEEEE; background: #fff; }
+    .record-tab { position: relative; border: 0; border-radius: 0; background: transparent; color: #333; font-size: 15px; font-weight: 600; }
+    .record-tab.active { color: #FF7A1A; font-weight: 700; }
+    .record-tab.active::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 24px; height: 3px; transform: translateX(-50%); border-radius: 2px; background: #FF7A1A; }
+    .record-list { display: grid; gap: 10px; }
+    .record-item { min-height: 78px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 14px; border-radius: 12px; background: #fff; }
+    .record-activity { color: #333; font-size: 15px; font-weight: 700; }
+    .record-time { margin-top: 6px; color: #999; font-size: 12px; }
+    .record-prize { color: #FF7A1A; font-size: 15px; font-weight: 800; text-align: right; white-space: nowrap; }
+    .record-prize.empty { color: #666; }
+    .mp-empty { min-height: 470px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; text-align: center; background: #fff; border-radius: 12px; }
+    .mp-empty-ill { width: 86px; height: 86px; margin-bottom: 16px; border-radius: 50%; background: linear-gradient(180deg,#fff,#ececec); position: relative; }
+    .mp-empty-ill::after { content: ""; position: absolute; left: 20px; right: 20px; top: 38px; height: 18px; border: 2px solid #ddd; border-top: 0; border-radius: 0 0 18px 18px; }
+    .mp-empty-actions { display: flex; gap: 12px; margin-top: 18px; }
+    .mp-empty-actions button { width: 92px; height: 36px; border-radius: 18px; border: 1px solid #FF7A1A; background: #fff; color: #FF7A1A; font-size: 14px; }
+    .mp-empty-actions button.primary { background: #FF7A1A; color: #fff; }
+    .modal-mask { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.42); }
+    .modal-mask.show { display: flex; }
+    .modal { max-height: 86vh; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.16); }
+    .modal-sm { width: 396px; }
+    .modal-md { width: 560px; }
+    .modal-xl { width: 920px; max-width: calc(100vw - 80px); }
+    .promo-modal { width: 1080px; height: 620px; max-width: calc(100vw - 80px); max-height: calc(100vh - 80px); }
+    .prize-modal { width: 880px; max-width: calc(100vw - 96px); }
+    .prize-modal .modal-bd { padding: 18px 22px; }
+    .prize-modal .form-row { grid-template-columns: 96px minmax(0,1fr); }
+    .modal-hd { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--border); color: var(--text-title); font-size: 16px; font-weight: 600; }
+    .modal-bd { padding: 18px; overflow: auto; }
+    .modal-ft { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+    .close { color: #999; font-size: 22px; cursor: pointer; }
+    .confirm-body { padding: 20px 22px 14px; }
+    .confirm-title { display: flex; align-items: center; gap: 10px; color: #333; font-weight: 600; }
+    .warn-icon { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #FF7800; color: #fff; }
+    .confirm-desc { margin: 10px 0 0 30px; color: #666; font-size: 13px; line-height: 22px; }
+    .promo-layout { display: grid; grid-template-columns: 160px 1fr; flex: 1; min-height: 0; }
+    .promo-menu { padding: 38px 14px 0; border-right: 1px solid var(--border); background: #fff; }
+    .promo-menu div { min-height: 58px; display: flex; align-items: center; padding: 0 8px 0 18px; border-left: 4px solid transparent; font-size: 13px; line-height: 22px; cursor: pointer; color: var(--text-sub); }
+    .promo-menu .active { border-left-color: var(--primary); color: var(--primary); font-weight: 600; background: transparent; }
+    .promo-pane { display: none; position: relative; min-width: 0; height: 100%; padding: 26px 34px 70px; }
+    .promo-pane.active { display: block; }
+    .promo-link-content { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 34px; height: 100%; align-items: start; }
+    .promo-poster-preview { position: relative; width: 232px; height: 402px; margin: 0 auto; border-radius: 6px; background: linear-gradient(155deg,#a647ff 0%,#f2a8ff 46%,#fff3d6 100%); overflow: hidden; display: flex; align-items: flex-start; justify-content: center; padding-top: 36px; color: #fff; font-size: 34px; line-height: 44px; font-weight: 800; text-shadow: 0 3px 0 rgba(79,23,132,.22); }
+    .promo-poster-preview::after { content: ""; position: absolute; left: 50%; top: 170px; width: 150px; height: 150px; transform: translateX(-50%); border-radius: 50%; border: 14px solid rgba(255,255,255,.62); box-shadow: inset 0 0 0 20px rgba(113,55,215,.28); }
+    .promo-poster-title { position: relative; z-index: 1; width: 180px; }
+    .promo-qr { position: absolute; right: 14px; bottom: 14px; width: 64px; height: 64px; background: #fff; color: #333; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 16px; text-shadow: none; font-weight: 500; }
+    .promo-link-fields { border-left: 1px solid var(--border); padding-left: 34px; padding-top: 28px; min-width: 0; }
+    .promo-field-group { margin-bottom: 34px; }
+    .promo-label { margin-bottom: 16px; color: var(--text-title); font-weight: 600; }
+    .promo-copy-control { width: 460px; max-width: 100%; height: 34px; display: grid; grid-template-columns: minmax(0,1fr) 96px; border: 1px solid #DADDE6; border-radius: 4px; overflow: hidden; background: #fff; }
+    .promo-copy-control .input { width: 100%; height: 32px; border: 0; border-radius: 0; }
+    .promo-copy-control .btn { height: 32px; border: 0; border-left: 1px solid #DADDE6; border-radius: 0; background: #fff; color: var(--text-main); font-size: 13px; white-space: nowrap; padding: 0 12px; }
+    .promo-downloads { display: flex; gap: 12px; margin-top: 108px; }
+    .promo-share-content { display: grid; grid-template-columns: 330px minmax(0,1fr); gap: 34px; height: 100%; align-items: start; }
+    .promo-share-preview-wrap { padding-top: 18px; }
+    .promo-section-title { margin-bottom: 18px; color: var(--text-title); font-weight: 600; font-size: 16px; }
+    .promo-share-preview { height: 360px; border: 1px solid #DADDE6; border-radius: 6px; background: #F6F7FA; padding: 60px 28px 0 64px; position: relative; }
+    .promo-card-avatar { position: absolute; left: 16px; top: 60px; width: 36px; height: 36px; border-radius: 4px; background: #E0E3EA; }
+    .promo-card { width: 150px; min-height: 198px; padding: 12px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .promo-card-title { margin: 8px 0 10px; font-weight: 600; color: var(--text-title); line-height: 20px; }
+    .promo-card-img { height: 110px; border-radius: 4px; background: #D64242; display: flex; align-items: center; justify-content: center; color: rgba(100,0,0,.34); font-size: 34px; font-weight: 700; }
+    .promo-share-form { border-left: 1px solid var(--border); padding-left: 34px; padding-top: 18px; min-width: 0; }
+    .promo-form-item { margin-bottom: 18px; }
+    .promo-form-item > label { display: block; margin-bottom: 8px; color: var(--text-title); font-weight: 600; }
+    .promo-share-title { width: 360px; max-width: 100%; }
+    .promo-image-box { width: 96px; height: 80px; }
+    .promo-poster-box { width: 96px; height: 96px; }
+    .promo-footer { position: absolute; right: 30px; bottom: 22px; display: flex; gap: 8px; }
+    .mp-mask { position: absolute; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+    .mp-mask.show { display: flex; }
+    .mp-dialog { width: 286px; overflow: hidden; border-radius: 14px; background: #fff; text-align: center; }
+    .mp-dialog h3 { margin: 0; padding: 22px 16px 8px; font-size: 17px; }
+    .mp-dialog p { margin: 0; padding: 0 22px 18px; color: #666; font-size: 14px; line-height: 22px; text-align: left; }
+    .mp-dialog button { width: 100%; height: 46px; border: 0; border-top: 1px solid #eee; background: #fff; color: #ff5f75; font-weight: 800; }
+    .result { width: 300px; min-height: 430px; padding: 168px 22px 32px; border-radius: 0; background: linear-gradient(#fff8ee,#ffe1cb); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; text-align: center; }
+    .result h3 { margin: 0; color: #b33b2f; font-size: 24px; }
+    .result-prize-img { width: 76px; height: 76px; margin: 18px auto 10px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,.7); font-size: 48px; overflow: hidden; }
+    .result-prize-img img { width: 100%; height: 100%; object-fit: cover; }
+    .result p { margin: 0 0 18px; color: #8b3328; font-size: 16px; font-weight: 700; }
+    .result button { width: 174px; height: 40px; margin-top: 12px; border: 0; border-radius: 20px; background: #ff5f75; color: #fff; font-weight: 800; }
+    .toast { position: fixed; left: 50%; top: 62px; z-index: 2000; display: none; transform: translateX(-50%); padding: 10px 14px; border: 1px solid #C8D4F8; border-radius: 6px; background: #fff; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,.08); font-size: 13px; }
+    #page-data, #page-mini { padding: 24px 28px; }
+  </style>
+</head>
+<body>
+  <div class="workbench" id="workbench">
+    <aside class="logic-rail" onclick="toggleLogic(true)">展开逻辑</aside>
+    <aside class="logic-panel">
+      <div class="logic-head">
+        <div class="logic-title">九宫格抽奖需求说明</div>
+        <div class="logic-actions">
+          <label>同步本地文档<input type="file" accept=".md,.markdown,.txt" style="display:none" onchange="syncLocalDoc(this)"></label>
+          <button onclick="toggleLogic(false)">收起逻辑</button>
+        </div>
+      </div>
+      <div class="logic-source" id="logicSource">来源：九宫格抽奖需求文档.md</div>
+      <div class="logic-doc" id="logicDoc"></div>
+    </aside>
+    <section class="stage">
+      <div class="admin">
+        <aside class="sider">
+          <div class="logo">私域运营平台</div>
+          <div class="menu-search"><input id="menuSearch" placeholder="搜索报表" oninput="filterMenu()"></div>
+          <div id="menuList">
+            <div class="menu-group"><span>□</span><span>首页</span></div>
+            <div class="menu-group"><span>□</span><span>商品中心</span><span style="margin-left:auto">›</span></div>
+            <div class="menu-group"><span>□</span><span>订单中心</span><span style="margin-left:auto">›</span></div>
+            <div class="menu-group active"><span>□</span><span>营销中心</span><span style="margin-left:auto">⌄</span></div>
+            <div class="menu-sub">
+              <div class="menu-item">优惠券</div>
+              <div class="menu-item">积分营销</div>
+              <div class="menu-item active" onclick="openPage('list')">抽奖活动</div>
+              <div class="menu-item">邀请有礼</div>
+            </div>
+            <div class="menu-group"><span>□</span><span>数据中心</span><span style="margin-left:auto">›</span></div>
+            <div class="menu-group"><span>□</span><span>系统配置</span><span style="margin-left:auto">›</span></div>
+          </div>
+        </aside>
+        <header class="topbar">
+          <div class="fold">☰</div>
+          <div class="tabs" id="tabs"></div>
+          <div class="account"><span>运营账号</span><span>⌄</span></div>
+        </header>
+        <main class="content">
+          <section class="page active" id="page-list">
+            <div class="page-inner">
+              <div class="page-title">
+                <div class="page-title-main"><h1>抽奖数据</h1><span class="update-time">2026-06-01 10:15:30 更新 ⟳</span></div>
+                <button class="detail-link" onclick="openPage('data')">查看详情 ›</button>
+              </div>
+              <div class="stats">
+                <div class="stat"><div class="label">抽奖用户数</div><div class="num" id="statUsers">0</div></div>
+                <div class="stat"><div class="label">中奖用户数</div><div class="num" id="statWinners">0</div></div>
+              </div>
+              <div class="card">
+                <div class="toolbar">
+                  <div class="filters">
+                    <div class="field">活动名称：<input class="input" id="filterName" placeholder="请输入活动名称"></div>
+                    <div class="field">活动ID：<input class="input" id="filterId" placeholder="请输入活动ID"></div>
+                    <div class="field">活动状态：<select class="select" id="filterStatus"><option value="">全部</option><option>未开始</option><option>进行中</option><option>已结束</option></select></div>
+                    <button class="search-icon-btn" title="搜索" onclick="renderActivityList()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                    </button>
+                    <button class="btn" id="moreSearchBtn" onclick="toggleMoreSearch()">更多搜索⌄</button>
+                    <button class="btn-text" onclick="clearFilters()">清空</button>
+                  </div>
+                  <div class="toolbar-actions">
+                    <button class="btn btn-primary" onclick="newActivity()">⊕ 新增</button>
+                  </div>
+                </div>
+                <div class="more-row" id="moreSearch">
+                  <div class="filters">
+                    <div class="field">活动时间：<input class="input dt" id="filterStart" type="datetime-local"><span>至</span><input class="input dt" id="filterEnd" type="datetime-local"></div>
+                  </div>
+                </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th style="width:20%">活动信息</th><th style="width:16%">活动时间</th><th style="width:12%">参与用户/中奖用户</th><th style="width:13%">创建时间</th><th style="width:13%">更新时间</th><th style="width:11%">抽奖口令</th><th style="width:7%">状态</th><th style="width:8%">操作</th></tr>
+                  </thead>
+                  <tbody id="activityTbody"></tbody>
+                </table>
+                <div class="pager"><div class="pager-main"><span class="page-arrow">‹</span><span class="page-num active">1</span><span class="page-num">2</span><span class="page-arrow">›</span><span>共 <span id="totalCount">0</span> 条</span><select class="select" style="width:96px"><option>20条/页</option><option>50条/页</option><option>100条/页</option></select><span class="pager-jump">前往<input class="input" type="number" min="1" value="1">页</span></div></div>
+              </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" id="page-form">
+            <div class="form-page-wrap" id="formPageWrap">
+              <div class="form-head">
+                <div class="link" onclick="openPage('list')">‹ <span id="formTitle">新建抽奖活动</span></div>
+                <div id="formActions"><button class="btn-text" onclick="openPage('list')" style="margin-right:18px">取消</button><button class="btn btn-primary" onclick="saveActivity()">保存</button></div>
+              </div>
+              <div class="form-body">
+                <div class="preview-col"><div class="phone form-preview-phone"><div class="phone-scroll"><div id="miniPreview"></div></div></div></div>
+                <div class="form-config">
+                <section class="section" id="base"><h2>基本信息</h2>
+                  <div class="form-row"><label class="req">活动名称</label><input class="input wide" id="formName" maxlength="50" placeholder="请输入活动名称，50字内"></div>
+                  <div class="form-row"><label class="req">活动时间</label><div><input class="input dt" id="formStart" type="datetime-local"> <span class="muted">至</span> <input class="input dt" id="formEnd" type="datetime-local"></div></div>
+                  <div class="form-row"><label>背景颜色</label><div><div class="color-row"><input class="hex-input" id="bgHex" value="#FFD0C1" oninput="setBackgroundColor(this.value)"><input id="bgColor" type="color" value="#ffd0c1" onchange="setBackgroundColor(this.value)"><button class="btn-text" onclick="restoreDefaultAsset('bg')">恢复默认</button></div></div></div>
+                  <div class="form-row"><label>背景图</label><div><div class="image-editor"><div class="image-preview-box" id="bgUploadBox" title="点击重新上传" onclick="triggerAssetUpload('bg')"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewAssetImage('bg')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deleteAssetImage('bg')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="bgUploadInput" type="file" accept="image/*" style="display:none" onchange="uploadAsset(this,'bg')"><div><div class="image-actions"><button class="btn-text" onclick="restoreDefaultAsset('bg')">恢复默认图</button></div><div class="image-format-hint">图片比例1:1，推荐尺寸750x750px及以上，上传后覆盖背景颜色</div></div></div></div></div>
+                  <div class="form-row"><label class="req">九宫格图</label><div><div class="image-editor"><div class="image-preview-box" id="gridUploadBox" title="点击重新上传" onclick="triggerAssetUpload('grid')"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewAssetImage('grid')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deleteAssetImage('grid')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="gridUploadInput" type="file" accept="image/*" style="display:none" onchange="uploadAsset(this,'grid')"><div><div class="image-actions"><button class="btn-text" onclick="restoreDefaultAsset('grid')">恢复默认图</button></div><div class="image-format-hint">建议尺寸1000*1000px，支持jpg、png、jpeg格式。</div></div></div></div></div>
+                  <div class="form-row"><label class="req">中奖弹窗</label><div><div class="image-editor"><div class="image-preview-box" id="resultUploadBox" title="点击重新上传" onclick="triggerAssetUpload('result')"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewAssetImage('result')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deleteAssetImage('result')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="resultUploadInput" type="file" accept="image/*" style="display:none" onchange="uploadAsset(this,'result')"><div><div class="image-actions"><button class="btn-text" onclick="restoreDefaultAsset('result')">恢复默认图</button></div><div class="image-format-hint">建议尺寸750*1388px，支持jpg、png、jpeg格式。</div></div></div></div></div>
+                  <div class="form-row"><label>活动规则</label><textarea class="textarea" id="formRule" placeholder="请输入玩法规则，前端规则入口展示"></textarea></div>
+                </section>
+                <section class="section" id="reward"><h2>抽奖规则</h2>
+                  <table class="rule-table"><thead><tr><th style="width:88px">位置</th><th>奖品</th><th style="width:130px">发奖数</th><th style="width:130px">中奖概率</th><th style="width:80px">操作</th></tr></thead><tbody id="rewardTbody"></tbody></table>
+                  <div class="hint">固定 8 个奖品位，中奖概率合计必须等于 100%。当前合计：<b id="rateTotal">100%</b></div>
+                </section>
+                <section class="section" id="share"><h2>推广分享</h2>
+                  <div class="form-row"><label>数据播报</label><div><label class="switch"><input id="showBroadcast" type="checkbox" checked onchange="renderMiniPreview()"><span class="slider"></span></label></div></div>
+                  <div class="form-row"><label>抽奖用户列表</label><div><label class="switch"><input id="showWinners" type="checkbox" checked onchange="renderMiniPreview()"><span class="slider"></span></label></div></div>
+                  <div class="form-row"><label>分享</label><div><label class="switch"><input id="shareSwitch" type="checkbox" checked onchange="toggleShareFields()"><span class="slider"></span></label></div></div>
+                  <div class="form-row share-config show"><label class="req">分享标题</label><input class="input wide" id="shareTitle" maxlength="50" placeholder="请输入分享标题，50字内"></div>
+                  <div class="form-row share-config show"><label class="req">分享图片</label><div><label class="upload" id="shareImageBox">＋<br>上传图片<input type="file" accept="image/*" onchange="uploadAsset(this,'share')"></label><div class="hint">用于微信小程序分享卡片</div></div></div>
+                  <div class="form-row share-config show"><label>海报</label><div><label class="upload" id="posterImageBox">＋<br>上传海报<input type="file" accept="image/*" onchange="uploadAsset(this,'poster')"></label><div class="hint">用于推广弹窗海报展示</div></div></div>
+                </section>
+                </div>
+                <aside class="anchor-nav"><a class="active" href="#base">基本信息</a><a href="#reward">抽奖规则</a><a href="#share">推广分享</a></aside>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" id="page-data">
+            <div class="page-title"><h1>抽奖数据</h1></div>
+            <div class="stats"><div class="stat"><div class="label">参与用户</div><div class="num" id="dataUsers">0</div></div><div class="stat"><div class="label">中奖记录</div><div class="num" id="dataWinners">0</div></div></div>
+            <div class="card">
+              <div class="toolbar">
+                <div class="filters">
+                  <div class="field">用户ID/手机号：<input class="input" id="recordKeyword" placeholder="请输入"></div>
+                  <div class="field">用户昵称：<input class="input" id="recordNick" placeholder="请输入昵称"></div>
+                  <div class="field">奖励类型：<select class="select" id="recordType"><option value="">全部</option><option>优惠券</option><option>积分</option><option>空奖</option></select></div>
+                  <div class="field">奖励发放时间：<input class="input dt" id="recordStart" type="datetime-local"><span>至</span><input class="input dt" id="recordEnd" type="datetime-local"></div>
+                  <button class="search-icon-btn" onclick="renderRecords()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+                  <button class="btn" onclick="toggleRecordMoreSearch()">更多搜索⌄</button>
+                  <button class="btn-text" onclick="clearRecordFilters()">清空</button>
+                </div>
+                <div class="toolbar-actions"><button class="btn" onclick="exportRecords()">导出</button></div>
+              </div>
+              <div class="more-row record-more-row" id="recordMoreSearch">
+                <div class="field">活动状态：<select class="select" id="recordStatus"><option value="">全部</option><option>未开始</option><option>进行中</option><option>已结束</option></select></div>
+                <div class="field">活动名称：<select class="select" id="recordActivity"><option value="">全部活动</option></select></div>
+              </div>
+              <table><thead><tr><th style="width:22%">活动信息</th><th style="width:20%">用户信息</th><th style="width:12%">口令</th><th style="width:16%">奖品</th><th style="width:15%">发放状态</th><th style="width:15%">抽奖时间</th></tr></thead><tbody id="dataTbody"></tbody></table>
+              <div class="pager"><div class="pager-main"><span class="page-arrow">‹</span><span class="page-num active">1</span><span class="page-arrow">›</span><span>共 <span id="recordTotal">0</span> 条</span><select class="select" style="width:96px"><option>20条/页</option><option>50条/页</option><option>100条/页</option></select><span class="pager-jump">前往<input class="input" type="number" min="1" value="1">页</span></div></div>
+            </div>
+          </section>
+
+          <section class="page" id="page-user">
+            <div class="user-detail">
+              <div class="user-head"><span class="back" onclick="openPage('data')">‹ 用户详情</span></div>
+              <div class="user-layout">
+                <div class="user-left">
+                  <div class="profile-card"><div class="profile-avatar"></div><div><div class="profile-name" id="userDetailName">中奖用户1</div><div class="muted" id="userDetailPhone">手机号：138****8899</div></div></div>
+                  <div class="user-info-line"><span>用户ID：</span><span id="userDetailId">U10029</span></div>
+                  <div class="user-info-line"><span>注册时间：</span><span>2024-12-09 23:05:26</span></div>
+                  <div class="user-info-line"><span>来源：</span><span>后台导入</span></div>
+                  <div class="user-info-line"><span>邀请码：</span><span>-</span></div>
+                  <div class="user-info-line"><span>邀请渠道：</span><span>其他</span></div>
+                  <div class="user-info-line"><span>邀请人：</span><span>-</span></div>
+                  <div class="metric-group"><div class="metric-title">＋ 优惠券</div><div class="metric-grid"><div><div class="metric-label">未使用优惠券</div><div class="metric-value">0</div></div><div><div class="metric-label">已使用</div><div class="metric-value">0</div></div><div><div class="metric-label">已过期</div><div class="metric-value">0</div></div></div></div>
+                  <div class="metric-group"><div class="metric-title">＋ 积分</div><div class="metric-grid two"><div><div class="metric-label">未使用</div><div class="metric-value">100</div></div><div><div class="metric-label">已使用</div><div class="metric-value">0</div></div></div></div>
+                  <div class="metric-group"><div class="metric-title">＋ 会员消费</div><div class="metric-grid"><div><div class="metric-label">累计消费金额</div><div class="metric-value">0.00</div></div><div><div class="metric-label">累计消费订单</div><div class="metric-value">0</div></div><div><div class="metric-label">客单价</div><div class="metric-value">0.00</div></div></div></div>
+                  <div class="metric-group"><div class="metric-title">＋ 会员售后</div><div class="metric-grid two"><div><div class="metric-label">累计退款金额</div><div class="metric-value">0.00</div></div><div><div class="metric-label">累计退款订单</div><div class="metric-value">0</div></div></div></div>
+                </div>
+                <div class="user-right">
+                  <section class="user-section"><div class="user-section-title">用户资料 <span class="edit">编辑</span></div><div class="info-grid"><div>用户性别：女</div><div>用户生日：2025-05-14</div><div>当前阶段：宝宝已出生</div><div>预产期：-</div><div>偏好品牌：爱他美</div></div></section>
+                  <section class="user-section"><div class="user-section-title">宝宝信息</div><table class="mini-table"><thead><tr><th>宝宝姓名</th><th>生日</th><th>月龄</th><th>性别</th><th>过敏体质</th><th>特配奶粉</th><th>操作</th></tr></thead><tbody><tr><td>小小娟</td><td>2026-04-05</td><td>1个月</td><td>女宝</td><td>否</td><td>-</td><td><button class="btn-text">编辑</button></td></tr></tbody></table></section>
+                  <section class="user-section"><div class="user-section-title">标签群组 <span class="edit">编辑</span></div><div class="info-grid"><div>用户标签：--</div><div>所在群组：--</div></div></section>
+                  <section class="user-section"><div class="user-section-title">收货地址</div><table class="mini-table"><thead><tr><th>收货人</th><th>手机号</th><th>收货地址</th><th>是否默认</th></tr></thead></table><div class="empty-box">暂无收货地址</div></section>
+                  <section class="user-section"><div class="user-section-title">企微资料</div><div class="info-grid"><div>unionid：oKg2n6CJO0t4oB-s324IPEZrsHRU</div><div>openid：orggt5BJl2Q7-VMQCL-Dv5gUpB5w</div><div>external_userid：-</div><div>企微标签：--</div></div></section>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" id="page-mini">
+            <div class="page-title"><h1>小程序抽奖页预览</h1><button class="btn" onclick="openPage('list')">返回列表</button></div>
+            <div style="display:flex;justify-content:center"><div class="phone"><div class="phone-scroll"><div id="miniStandalone"></div></div><div class="mp-mask" id="mpRules"><div class="mp-dialog"><h3>活动规则</h3><p>输入运营发布的抽奖口令即可参与抽奖。每个口令每个用户仅可抽奖一次，中奖结果以系统发放记录为准。</p><button onclick="closeMp('mpRules')">知道了</button></div></div><div class="mp-mask" id="mpResult"><div class="result"><h3 id="resultTitle">中奖啦</h3><div class="result-prize-img" id="resultPrizeImg">🧧</div><p id="resultText">50积分</p><button onclick="closeMp('mpResult')">知道了</button></div></div><div class="mp-mask" id="mpError"><div class="mp-dialog"><h3>温馨提示</h3><p id="mpErrorText">请输入正确的口令</p><button id="mpErrorBtn" onclick="closeMp('mpError')">知道了</button></div></div></div></div>
+          </section>
+        </main>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-mask" id="confirmModal"><div class="modal modal-sm"><div class="confirm-body"><div class="confirm-title"><span class="warn-icon">!</span><span id="confirmTitle">删除</span></div><div class="confirm-desc" id="confirmDesc">是否确认删除</div></div><div class="modal-ft"><button class="btn" onclick="closeModal('confirmModal')">取消</button><button class="btn btn-primary" onclick="confirmAction()">确定</button></div></div></div>
+  <div class="modal-mask" id="logModal"><div class="modal modal-xl"><div class="modal-hd"><span>操作日志</span><span class="close" onclick="closeModal('logModal')">×</span></div><div class="modal-bd"><table><thead><tr><th>日志ID</th><th>操作人</th><th>操作描述</th><th>提示信息</th><th>操作时间</th></tr></thead><tbody id="logTbody"></tbody></table></div></div></div>
+  <div class="modal-mask" id="promoModal">
+    <div class="modal promo-modal">
+      <div class="modal-hd"><span>推广</span><span class="close" onclick="closeModal(&quot;promoModal&quot;)">×</span></div>
+      <div class="promo-layout">
+        <div class="promo-menu">
+          <div class="active" onclick="switchPromo(&quot;link&quot;)">小程序<br>链接与二维码</div>
+          <div onclick="switchPromo(&quot;share&quot;)">小程序<br>分享设置</div>
+        </div>
+        <div class="promo-pane active" id="promo-link">
+          <div class="promo-link-content">
+            <div class="promo-poster-preview"><div class="promo-poster-title">活动海报</div><div class="promo-qr">小程序码</div></div>
+            <div class="promo-link-fields">
+              <div class="promo-field-group"><div class="promo-label">小程序链接</div><div class="promo-copy-control"><input class="input" readonly value="weixin://dl/business/?t=QFpUAFk1vJm"><button class="btn" onclick="toast(&quot;已复制链接&quot;)">复制链接</button></div></div>
+              <div class="promo-field-group"><div class="promo-label">小程序路径</div><div class="promo-copy-control"><input class="input" readonly value="pages/lottery/detail?id=100041"><button class="btn" onclick="toast(&quot;已复制路径&quot;)">复制链接</button></div></div>
+              <div class="promo-downloads"><button class="btn" onclick="toast(&quot;已下载小程序码&quot;)">＋ 下载小程序码</button><button class="btn" onclick="toast(&quot;已下载海报&quot;)">＋ 下载海报</button></div>
+            </div>
+          </div>
+          <div class="promo-footer"><button class="btn" onclick="closeModal(&quot;promoModal&quot;)">关闭</button></div>
+        </div>
+        <div class="promo-pane" id="promo-share">
+          <div class="promo-share-content">
+            <div class="promo-share-preview-wrap">
+              <div class="promo-section-title">小程序分享卡片设置</div>
+              <div class="promo-share-preview"><div class="promo-card-avatar"></div><div class="promo-card"><div class="muted">YUOU母婴商城</div><div class="promo-card-title" id="sharePreviewTitle">测试分享标题</div><div class="promo-card-img" id="promoSharePreviewImage">红包</div><div class="muted">小程序</div></div></div>
+            </div>
+            <div class="promo-share-form">
+              <div class="promo-form-item"><label class="req">分享标题</label><input class="input promo-share-title" id="promoShareTitle" value="测试分享标题" maxlength="50" oninput="document.getElementById(&quot;sharePreviewTitle&quot;).textContent=this.value"></div>
+              <div class="promo-form-item"><label class="req">分享图</label><div><div class="image-editor"><div class="image-preview-box empty promo-image-box" id="promoShareImageBox" title="点击上传" onclick="triggerAssetUpload(&quot;promoShare&quot;)"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewAssetImage(&quot;promoShare&quot;)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deleteAssetImage(&quot;promoShare&quot;)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="promoShareUploadInput" type="file" accept="image/*" style="display:none" onchange="uploadAsset(this,&quot;promoShare&quot;)"></div><div class="image-format-hint">分享图尺寸建议：宽高比例 5:4；适用于分享微信好友与朋友圈</div></div></div>
+              <div class="promo-form-item"><label>海报</label><div><div class="image-editor"><div class="image-preview-box empty promo-poster-box" id="promoPosterImageBox" title="点击上传" onclick="triggerAssetUpload(&quot;promoPoster&quot;)"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewAssetImage(&quot;promoPoster&quot;)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deleteAssetImage(&quot;promoPoster&quot;)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="promoPosterUploadInput" type="file" accept="image/*" style="display:none" onchange="uploadAsset(this,&quot;promoPoster&quot;)"></div><div class="image-format-hint">分享图尺寸建议：宽高比例 750px*1080px；适用于分享海报</div></div></div>
+            </div>
+          </div>
+          <div class="promo-footer"><button class="btn" onclick="closeModal(&quot;promoModal&quot;)">取消</button><button class="btn btn-primary" onclick="savePromoShareSettings()">保存</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-mask" id="prizeModal"><div class="modal modal-md prize-modal"><div class="modal-hd"><span>设置奖品</span><span class="close" onclick="closeModal('prizeModal')">×</span></div><div class="modal-bd">
+    <div class="form-row"><label class="req">奖品类型</label><div class="radio-line"><label><input type="radio" name="prizeTypeRadio" value="积分" onchange="onPrizeTypeChange()"> 积分</label><label><input type="radio" name="prizeTypeRadio" value="优惠券" checked onchange="onPrizeTypeChange()"> 优惠券</label><label><input type="radio" name="prizeTypeRadio" value="空奖" onchange="onPrizeTypeChange()"> 空奖</label></div></div>
+    <div class="form-row"><label class="req">奖品名称</label><input class="input wide" id="prizeName" maxlength="50" placeholder="请输入奖品名称，50字内"></div>
+    <div class="form-row"><label class="req">奖品图</label><div><div class="image-editor"><div class="image-preview-box" id="prizeImageBox" title="点击重新上传" onclick="triggerPrizeUpload()"><div class="image-overlay"><button class="image-icon" title="查看" onclick="event.stopPropagation();previewPrizeImage()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button><button class="image-icon" title="删除" onclick="event.stopPropagation();deletePrizeImage()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></div></div><input id="prizeImageInput" type="file" accept="image/*" style="display:none" onchange="uploadPrizeImage(this)"><div><div class="image-actions"><button class="btn-text" onclick="restorePrizeDefaultImage()">恢复默认图</button></div><div class="image-format-hint">建议尺寸100*100px，支持jpg、png、jpeg格式。</div></div></div></div></div>
+    <div class="form-row" id="couponPickRow"><label class="req">优惠券</label><div><div class="coupon-add-line"><button class="btn-text" onclick="openCouponModal()">＋ 添加优惠券</button></div><div id="selectedCouponBox"></div></div></div>
+    <div class="form-row" id="pointValueRow"><label class="req">积分值</label><div><input class="input wide" id="pointValue" type="number" min="1" step="1" placeholder="请输入正整数"></div></div>
+    <div class="form-row" id="prizeStockRow"><label class="req">奖品份数</label><div><input class="input wide" id="prizeStock" type="number" min="1" step="1" placeholder="请输入正整数"><span style="margin-left:8px;color:#666">份</span></div></div>
+    <div class="form-row"><label class="req">中奖概率</label><input class="input wide" id="prizeRate" type="number" min="0" max="100" step="0.01" onblur="formatPrizeRate()" value="12.50"></div>
+  </div><div class="modal-ft"><button class="btn" onclick="closeModal('prizeModal')">取消</button><button class="btn btn-primary" onclick="savePrize()">保存</button></div></div></div>
+  <div class="modal-mask" id="couponModal"><div class="modal modal-xl"><div class="modal-hd"><span>选择优惠券</span><span class="close" onclick="closeModal('couponModal')">×</span></div><div class="modal-bd"><div style="border:1px solid #9BAAD8;background:#EEF3FF;color:#051D86;padding:10px 12px;border-radius:4px;margin-bottom:12px">ℹ 只可选择手动发放类型的券，赠券数不可超过优惠券剩余发放数</div><div class="coupon-filter-line"><div class="field">优惠券名称：<input class="input" id="couponFilterName" placeholder="请输入名称"></div><div class="field">优惠券ID：<input class="input" id="couponFilterId" placeholder="请输入ID"></div><div class="coupon-filter-actions"><button class="search-icon-btn" onclick="renderCouponOptions()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button><button class="btn" onclick="toggleCouponMoreSearch()">更多搜索⌄</button><button class="btn" onclick="renderCouponOptions()">刷新数据</button></div></div><div class="coupon-filter-grid coupon-more-filters" id="couponMoreFilters"><div class="field">券类型：<select class="select" id="couponFilterType"><option value="">全部</option><option>满门槛券</option><option>无门槛券</option></select></div><div class="field">券时间：<input class="input dt" id="couponFilterStart" type="datetime-local"><span>至</span><input class="input dt" id="couponFilterEnd" type="datetime-local"></div></div><table><thead><tr><th style="width:54px"></th><th style="width:92px">奖券数</th><th style="width:180px">优惠券名称</th><th>优惠信息</th><th>发券时间</th><th>优惠承担</th><th>券有效期</th><th>发券量/领取数</th></tr></thead><tbody id="couponOptionTbody"></tbody></table></div><div class="modal-ft"><button class="btn" onclick="closeModal('couponModal')">取消</button><button class="btn btn-primary" onclick="confirmCouponSelect()">确定</button></div></div></div>
+  <div class="modal-mask" id="detailModal"><div class="modal modal-md"><div class="modal-hd"><span>抽奖记录详情</span><span class="close" onclick="closeModal('detailModal')">×</span></div><div class="modal-bd" id="detailBody"></div></div></div>
+  <div class="modal-mask" id="imagePreviewModal"><div class="modal modal-sm"><div class="modal-hd"><span>查看奖品图</span><span class="close" onclick="closeModal('imagePreviewModal')">×</span></div><div class="modal-bd" style="display:flex;justify-content:center"><img id="imagePreviewTarget" alt="奖品图" style="max-width:260px;max-height:260px;border:1px solid #E8ECF0;border-radius:4px"></div></div></div>
+  <div class="op-menu" id="opMenu"></div>
+  <div class="toast" id="toast"></div>
+
+  <script type="text/plain" id="defaultLogicMarkdown"># 抽奖需求文档
+
+## 1. 需求背景
+1.1 运营在小红书发抽奖口令，用户复制口令进入小程序抽奖，每个口令每个用户可抽奖一次
+1.2 本功能目标是将内容平台用户引流到私域，同时促进私域用户下单转化
+1.3 新增九宫格口令抽奖玩法，用九宫格奖品位、口令验证、中奖名单和我的奖品入口提升活动趣味性与私域转化效率。
+
+## 2. 业务目标
+2.1 支持运营配置抽奖活动，包括活动基础信息、抽奖规则、推广分享信息。
+2.2 支持用户在小程序端口令进行抽奖，并查看抽奖奖品
+2.3 支持抽奖数据查询、操作日志、活动推广等完整运营闭环。
+
+## 3. 核心业务规则
+3.1 每个用户每个口令可抽奖一次
+3.2 同一时间段可创建多个抽奖活动，每个活动一个抽奖口令
+3.3 活动状态按时间和人工操作流转：新建活动后未到开始时间为待开始，到开始时间后为进行中，到结束时间或人工立即结束后为已结束。
+3.4 奖品可选优惠券、积分、空奖，每个奖项可设置多个
+3.5 优惠券奖品，需选择手动发放且进行中的优惠券，可设置奖品图、发券数
+3.6 积分奖品，可设置奖品图、发积分数
+3.7 空奖，可设置奖品图
+3.8 奖品可设置中奖概率，中奖概率加起来为100%
+3.9 九宫格口令抽奖固定为 8 个奖品位 + 中间抽奖按钮，奖品位支持积分、优惠券、实物奖品、空奖。
+3.10 九宫格口令抽奖需先输入口令并验证，口令正确后触发抽奖动画；口令为空、错误、已使用时不触发抽奖。
+
+## 4 本期范围
+- 小程序抽奖页面
+- pc后台活动管理页 
+- 优惠券、积分奖品要立即到账
+
+## 5 本期不做
+- 不做活动的奖励回收
+
+---
+
+# 抽奖 PC 端 PRD
+
+## 抽奖列表
+
+# 页面路径
+
+营销中心 - 抽奖
+
+---
+
+# 流程状态
+
+> 说明：抽奖活动按活动时间和人工操作自动流转状态。
+
+- **待开始**：编辑、复制、删除、推广、日志
+- **进行中**：编辑、复制、立即结束、推广、日志
+- **已结束**：复制、删除、日志
+
+---
+
+# 列表逻辑
+
+## 活动数据
+
+1. 抽奖用户数：统计所有活动参与抽奖的去重用户数，按用户 ID 去重 count，展示在活动数据卡片。
+2. 获奖用户数：统计所有活动参与抽奖获得积分、优惠券的去重用户数，按中奖记录 count，展示在活动数据卡片。
+3. 数据更新时间：展示活动数据最近统计时间，格式 `YYYY.MM.DD HH:mm:ss`，点击「刷新」后重新计算当前活动统计。
+
+## 表搜索
+
+1. 活动名称：文本输入-模糊匹配，匹配活动名称字段，支持空值查询。
+2. 活动 ID：文本输入-精确匹配，匹配活动 ID。
+3. 活动时间：日期时间范围，匹配活动开始时间和结束时间。
+4. 活动类型：下拉单选，枚举值为全部、口令抽奖
+5. 活动状态：下拉单选，枚举值为全部、待开始、进行中、已结束。
+
+> 多字段间搜索关系：AND（同时满足）
+
+## 查询表
+
+**排序与分页**：默认按创建时间倒序排列，默认 20 条/每页，支持分页切换。
+
+1. 活动信息（多信息字段）
+   - 1.1 活动名称：取活动名称，蓝色常规体展示，点击进入活动详情页；详情页复用抽奖新增/编辑页，只读不可编辑。
+   - 1.2 活动 ID：取活动 ID，展示在活动名称下方。
+   - 1.3 活动类型：取活动类型，标签样式展示。
+2. 活动时间：展示开始时间和结束时间；长期有效活动展示「长期有效」。
+3. 参与用户：展示参与该活动抽奖的去重用户数，按用户 ID 去重 count；点击进入抽奖数据页，并默认按当前活动名称筛选。
+4. 创建时间：展示创建人和创建时间，时间格式 `YYYY-MM-DD HH:mm:ss`。
+5. 更新时间：展示更新人和更新时间，时间格式 `YYYY-MM-DD HH:mm:ss`。
+6. 活动状态：枚举值说明。
+   - 待开始：橙色状态标签。
+   - 进行中：绿色状态标签。
+   - 已结束：灰色状态标签。
+7. 操作列：按活动状态和兑换维度展示操作。
+   - 待开始：编辑、复制、删除、推广、日志
+   - 进行中：编辑、复制、立即结束、推广、日志
+   - 已结束：复制、删除、日志
+
+---
+
+# 列表交互
+
+1. **新增**：点击按钮，跳转抽奖新增页，打开独立页签。
+2. **活动名称**：点击活动名称，进入抽奖详情页，页面字段全部只读不可编辑。
+3. **参与用户**：点击参与用户数，进入抽奖数据页，并自动带入当前活动名称作为筛选条件。
+4. **删除**：点击删除，展示二次确认弹窗。标题：删除。内容：是否确认删除。确认后删除该活动，刷新列表。
+5. **立即结束**：点击立即结束，展示二次确认弹窗。标题：立即结束。内容：是否立即结束。确认后将活动状态更新为已结束，结束时间更新为当前时间。
+6. **推广**：点击后打开推广弹窗。小程序链接与二维码展示小程序链接、小程序路径、海报图，支持复制链接、下载小程序码、下载海报；小程序分享设置支持填写分享标题、上传分享图和海报，保存后作为活动推广配置。
+7. **日志**：点击后打开操作日志弹窗，字段包含日志 ID、操作人、操作描述、提示信息、操作时间。
+
+---
+
+## 抽奖新增/编辑
+
+# 页面路径
+
+营销中心 - 抽奖 - 抽奖新增/编辑
+
+---
+
+# 表单逻辑
+
+## 基本信息
+
+1. 活动类型：单选组，必填，枚举值为口令抽奖
+2. 活动名称：文本输入，必填，限制 50 字符内。
+3. 活动时间：日期时间范围，选填，支持长期有效；未勾选长期有效时可选择开始时间和结束时间，精确到秒。
+4. 九宫格图：图片上传，必填，取上传图片作为小程序抽奖的九宫格抽奖区的图。
+5. 背景色：颜色选择，非必填，取颜色作为小程序抽奖页的底图。
+6. 背景图：图片上传，非必填，取上传图片作为小程序抽奖页的底图。上传背景图直接覆盖背景色
+7. 抽奖弹窗：图片上传，必填，取上传图片作为小程序抽奖的的中奖和未中奖的弹窗
+8. 活动规则：多行文本，选填，有配置时小程序背景图右侧展示活动规则入口，点击后弹窗展示完整规则并支持滑动。
+
+## 规则设置
+
+1. 奖励设置：展示平铺表格，字段为位置、奖品、奖品图、发券数/发积分数、中奖概率、排序
+   - 位置从1～8，九宫格中间是默认图不可编辑奖励，从左到右从上到下排序
+   - 奖品，点击弹窗可选择优惠券、积分、空奖
+   - 优惠券奖品，需选择手动发放且进行中的优惠券，可设置奖品图、发券数
+   - 积分奖品，可设置奖品图、发积分数
+   - 空奖，可设置奖品图
+   - 中奖概率，默认为12.5%，可编辑最多2位小数，保存时概率之和为100%
+   - 排序，可直接拖动调整位置
+
+## 推广分享
+
+1. 数据播报：开关，选填，开启后展示中奖名单，格式为 `用户昵称获得xx积分`、`用户昵称获得xxx优惠券`。
+2. 抽奖用户列表：开关，选填，开启后展示中奖名单。
+3. 分享：开关，选填，开启后可配置小程序右上角页面分享卡片的内容。
+4. 分享标题：文本输入，开启分享后必填，限制 50 字符内。
+5. 分享图片：图片上传，开启分享后用于微信小程序分享卡片。
+6. 海报：图片上传，用于推广弹窗海报展示。
+
+---
+
+# 列表交互
+
+1. **保存**：点击保存按钮。校验必填字段；校验中奖概率之和为100%；校验通过后保存到活动列表，新增后返回抽奖列表，编辑后更新列表。
+2. **取消**：点击取消按钮，返回抽奖列表；如有未保存内容，展示离开确认。
+3. **设置奖励**：点击打开选择奖品弹窗。优惠券奖品需选择手动发放且进行中的优惠券，可设置奖品图、发券数；积分奖品可设置奖品图、发积分数；空奖可设置奖品图。
+
+---
+
+## 抽奖数据
+
+# 页面路径
+
+营销中心 - 抽奖 - 抽奖数据
+
+---
+
+# 列表逻辑
+展示抽奖记录
+
+## 表搜索
+
+1. 用户ID/手机号：文本输入-精确匹配
+2. 用户昵称：文本输入-模糊匹配
+3. 奖励类型：下拉单选，枚举值为全部、优惠券、积分、空奖。
+4. 奖励发放时间：日期时间范围，匹配奖励发放时间。
+5. 活动状态：下拉单选，枚举值为全部、待开始、进行中、已结束。
+6. 活动名称：下拉选择，可选所有创建的活动
+
+> 多字段间搜索关系：AND（同时满足）
+
+## 查询表
+
+**排序与分页**：默认按参与抽奖时间倒序排列，默认 20 条/每页，支持分页切换。
+
+1. 活动信息（多信息字段）：活动名称、活动ID、活动类型。
+2. 用户信息（多信息字段）：用户昵称、注册手机号、用户ID。
+3. 奖品：积分展示奖励的积分值 xx积分；优惠券展示 优惠券名称*数量；空奖展示 -
+4. 奖励发放时间：展示奖励发放时间，格式 `YYYY-MM-DD HH:mm:ss`。空奖时间为 -
+
+---
+
+# 抽奖小程序 PRD
+
+# 页面路径
+
+小程序 - 抽奖
+
+---
+
+# 页面逻辑
+
+## 页面状态
+
+> 说明：抽奖小程序页面展示后台当前进行中的抽奖活动。
+
+- **进行中**：展示后台配置的九宫格图、背景图、数据播报、活动规则入口、用户输入口令抽奖点击抽奖、我的奖品。
+- **无进行中活动**：用户输入口令抽奖点击抽奖按钮提示：活动暂未开始。
+- **抽奖结果**：展示抽奖弹窗图及中奖的奖品图和数量。
+
+## 页面内容
+
+1. 导航栏：二级页导航栏，标题为口令抽奖，左侧展示返回按钮，右侧展示小程序胶囊。
+2. 活动背景图：取后台配置的活动背景图或颜色
+3. 九宫格图：取后台配置的九宫格图
+4. 数据播报：后台配置勾选时展示。数据播报浮在背景图上，位置为左侧 10px，距离背景图底部 76px，尺寸 106px × 20px。数据来源为抽奖中奖的记录，按奖励发放时间倒序展示，最新发放在前。播报内容为用户昵称脱敏和奖品的名称。数据上下滚动展示，一条数据也循环滚动。
+5. 活动规则：后台配置时展示，浮标展示在背景图右侧，位置 355px、96px，尺寸 20px × 67px，圆角 `6px 0 0 6px`，背景色 `#000000` 20% 透明度，文字白色。
+6. 抽奖入口：文本输入框，提示文案为请输入抽奖口令；支持复制粘贴。
+7. 点击抽奖：主按钮，文案为点击抽奖。
+8. 我的奖励：点击进入抽奖记录页，展示 抽奖活动名称、奖励、奖励发放时间
+9. 抽奖用户列表，展示参与且中奖的用户：用户昵称脱敏、奖励名称。
+
+---
+
+# 页面交互
+
+1. 点击抽奖：按概率发奖励。
+2. 口令为空时 Toast 提示 `请输入口令进行抽奖`。
+3. 若口令已抽奖，打开提示弹窗，文案为 `口令已使用，请查看抽奖记录`，点击进入抽奖记录页。
+4. 若口令不对，打开提示弹窗，文案为 `请输入正确的口令`。
+5. 若成功抽奖，打开抽奖结果弹窗。
+
+---
+
+# 页面路径
+
+小程序 - 抽奖 - 抽奖记录
+
+---
+
+# 页面逻辑
+
+## 页面状态
+
+> 说明：记录按兑换结果分为全部、中奖、未中奖三种筛选状态。
+
+- **全部**：展示全部。
+- **中奖**：仅展示有奖励的记录。
+- **未中奖**：仅展示没有奖励的记录。
+- **空状态**：当前筛选条件下无记录时，展示空状态插画、提示文案和操作按钮。
+
+## 页面内容
+
+1. 导航栏：二级页导航栏，标题为抽奖记录，左侧展示返回按钮，右侧展示小程序胶囊。
+2. 标签筛选：展示全部、中奖、未中奖。
+3. 点击标签后切换当前记录列表。
+4. 数据记录：按记录时间倒序展示。
+5. 左侧活动信息：展示活动名称，格式为 `活动名称xxx`。
+6. 右侧成功信息：中奖时展示 `+xx积分`、`优惠券名称*数量` 和奖励发放时间。
+7. 空状态：无记录时展示空状态插画。
+8. 提示文案为暂无积分记录，去商城逛逛吧。
+9. 操作按钮为去商城、去首页。
+
+---
+
+# 页面交互
+
+1. 全部：点击后展示全部记录。
+2. 中奖：点击后筛选 `status = 中奖` 的记录。
+3. 未中奖：点击后筛选 `status = 未中奖` 的记录。
+4. 去商城：点击后跳转商城页面。
+5. 去首页：点击后返回首页。
+6. 返回：点击导航栏返回按钮，返回抽奖首页。
+</script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const LOGIC_CACHE_KEY = 'jiugonggeLotteryLogicMarkdownV3';
+    const LOGIC_FILE_KEY = 'jiugonggeLotteryLogicFileNameV3';
+    let activePage = 'list';
+    let editingId = null;
+    let formMode = 'create';
+    let selectedIds = new Set();
+    let pendingAction = null;
+    let currentPrizeIndex = 0;
+    let usedCode = false;
+    let draggedPrizeIndex = null;
+    let editingPrizeImage = '';
+    let selectedCoupon = null;
+    let pendingCouponId = '';
+    let pendingCouponCounts = {};
+    const DEFAULT_BG_COLOR = '#FFD0C1';
+    const DEFAULT_GRID_IMAGE = 'file:///Users/dapiaoliang/Desktop/%E8%A3%85%E4%BF%AE%E7%B4%A0%E6%9D%90hjj/%E4%B9%9D%E5%AE%AB%E6%A0%BC.png';
+    const DEFAULT_RESULT_IMAGE = 'file:///Users/dapiaoliang/Desktop/%E8%A3%85%E4%BF%AE%E7%B4%A0%E6%9D%90hjj/%E4%B8%AD%E5%A5%96.png';
+    const DEFAULT_PROMO_SHARE_IMAGE = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400"><rect width="500" height="400" fill="#D64242"/><text x="250" y="215" text-anchor="middle" font-size="92" font-family="Arial" fill="#8C1C1C" opacity=".45">红包</text></svg>');
+    const DEFAULT_PROMO_POSTER_IMAGE = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1080"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8848FF"/><stop offset=".5" stop-color="#F0A6FF"/><stop offset="1" stop-color="#FFF4CF"/></linearGradient></defs><rect width="750" height="1080" fill="url(#g)"/><text x="375" y="190" text-anchor="middle" font-size="86" font-family="Arial" fill="#fff" font-weight="700">秒杀专场</text><text x="375" y="300" text-anchor="middle" font-size="86" font-family="Arial" fill="#fff" font-weight="700">价狂心欢</text><circle cx="375" cy="565" r="160" fill="none" stroke="#fff" stroke-width="36" opacity=".65"/><circle cx="375" cy="565" r="92" fill="#fff" opacity=".36"/></svg>');
+    const DEFAULT_POINT_PRIZE_IMAGE = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#efe7ff"/><stop offset="1" stop-color="#9b6cff"/></linearGradient><linearGradient id="coin" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#ffd964"/><stop offset="1" stop-color="#f4a51c"/></linearGradient></defs><rect width="100" height="100" rx="4" fill="url(#bg)"/><rect x="12" y="12" width="76" height="58" rx="8" fill="#fff" opacity=".88"/><circle cx="30" cy="30" r="10" fill="url(#coin)"/><circle cx="56" cy="30" r="10" fill="url(#coin)"/><circle cx="30" cy="54" r="10" fill="url(#coin)"/><text x="30" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#9a5a00">积</text><text x="56" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#9a5a00">分</text><text x="30" y="58" text-anchor="middle" font-size="12" font-weight="700" fill="#9a5a00">券</text><rect x="48" y="45" width="36" height="17" rx="3" fill="#7d5cff"/><text x="66" y="57" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">100</text><rect x="14" y="76" width="72" height="12" rx="6" fill="#7d5cff"/><text x="50" y="85" text-anchor="middle" font-size="8" fill="#fff">积分奖品</text></svg>`);
+    const DEFAULT_COUPON_PRIZE_IMAGE = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f7d8ff"/><stop offset=".55" stop-color="#c36cff"/><stop offset="1" stop-color="#7f51de"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#6b32b8" flood-opacity=".32"/></filter></defs><rect width="100" height="100" rx="4" fill="url(#bg)"/><circle cx="18" cy="80" r="5" fill="#ff466d"/><circle cx="78" cy="22" r="8" fill="#ffd466"/><path d="M11 36c14-8 24-8 38 0s25 8 40 0v42c-14 8-26 8-40 0s-24-8-38 0z" fill="#fff" opacity=".42"/><text x="50" y="25" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">邀请好友</text><text x="50" y="40" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">共赢好礼</text><rect x="14" y="54" width="72" height="28" rx="4" fill="#fff" opacity=".9" filter="url(#s)"/><rect x="18" y="58" width="22" height="18" rx="2" fill="#ff5970"/><text x="29" y="70" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">券</text><rect x="47" y="58" width="32" height="18" rx="2" fill="#7a56e8"/><text x="63" y="70" text-anchor="middle" font-size="7" fill="#fff">优惠券</text></svg>`);
+    const DEFAULT_MP_BG = `background:${DEFAULT_BG_COLOR};`;
+    const formAssets = { bgImage: '', bgColor: DEFAULT_BG_COLOR, bgConfigured: false, gridImage: DEFAULT_GRID_IMAGE, resultImage: DEFAULT_RESULT_IMAGE, shareImage: '', posterImage: '', promoShareImage: DEFAULT_PROMO_SHARE_IMAGE, promoPosterImage: DEFAULT_PROMO_POSTER_IMAGE };
+    const tabs = { list: '抽奖活动', form: '新建/编辑活动', data: '抽奖数据', user: '用户详情', mini: '小程序预览' };
+    let activities = [
+      {id:'100041', name:'618囤奶节口令抽奖', type:'口令抽奖', code:'618', start:'2026-06-01 00:00:00', end:'2026-06-30 23:59:59', users:386, creator:'xzj', created:'2026-05-28 10:30:21', updater:'xzj', updated:'2026-05-28 16:18:45', status:'进行中', rule:'输入运营发布的口令即可参与抽奖。每个口令每个用户仅可抽奖一次，中奖奖品以系统发放记录为准。'},
+      {id:'100040', name:'小红书口令抽奖', type:'口令抽奖', code:'RED', start:'2026-05-20 00:00:00', end:'2026-05-27 23:59:59', users:126, creator:'国庆', created:'2026-05-18 15:22:10', updater:'国庆', updated:'2026-05-27 23:59:59', status:'已结束'},
+      {id:'100039', name:'端午好礼九宫格', type:'口令抽奖', code:'DUANWU', start:'2026-06-06 00:00:00', end:'2026-06-10 23:59:59', users:0, creator:'xzj', created:'2026-05-28 09:18:20', updater:'xzj', updated:'2026-05-28 09:18:20', status:'未开始'}
+    ];
+    const prizeConfig = [
+      {icon:'🧧', image:DEFAULT_POINT_PRIZE_IMAGE, name:'50积分', type:'积分', stock:'1000份', rate:12.5, sub:'50积分'},
+      {icon:'🎁', image:'', name:'谢谢参与', type:'空奖', stock:'-', rate:2, sub:'未中奖'},
+      {icon:'🎟️', image:DEFAULT_COUPON_PRIZE_IMAGE, name:'15元优惠券', type:'优惠券', stock:'300张', rate:18, sub:'满599可用'},
+      {icon:'🎁', image:'', name:'再接再厉', type:'空奖', stock:'-', rate:4, sub:'未中奖'},
+      {icon:'🎁', image:'', name:'谢谢参与', type:'空奖', stock:'-', rate:6, sub:'未中奖'},
+      {icon:'🎟️', image:DEFAULT_COUPON_PRIZE_IMAGE, name:'30元优惠券', type:'优惠券', stock:'200张', rate:12.5, sub:'满999可用'},
+      {icon:'🎁', image:'', name:'好运下次来', type:'空奖', stock:'-', rate:3, sub:'未中奖'},
+      {icon:'🧧', image:DEFAULT_POINT_PRIZE_IMAGE, name:'500积分', type:'积分', stock:'500份', rate:42, sub:'500积分'}
+    ];
+    let records = [
+      {activityId:'100041', nick:'中奖用户1', phone:'138****8899', userId:'U10029', code:'618', prize:'50积分', type:'积分', status:'发放成功', time:'2026-06-01 10:30:21'},
+      {activityId:'100041', nick:'中奖用户2', phone:'136****9001', userId:'U10030', code:'618', prize:'15元优惠券', type:'优惠券', status:'发放成功', time:'2026-06-01 10:28:09'},
+      {activityId:'100041', nick:'中奖用户3', phone:'139****2233', userId:'U10031', code:'618', prize:'空奖', type:'空奖', status:'-', time:'2026-06-01 10:25:36'}
+    ];
+    let miniUserRecords = [];
+    const couponOptions = [
+      {id:'100095', name:'手动券-无门槛减1.1', type:'无门槛券', info:'立减 1.1 元', sendTime:'2026-04-15 00:00:00 - 2026-06-30 00:00:00', burden:'平台承担50%', valid:'领取后 3 天有效', count:'1000 / 126'},
+      {id:'100096', name:'满999减30券', type:'满门槛券', info:'满999减30元', sendTime:'2026-05-01 00:00:00 - 2026-06-30 23:59:59', burden:'平台承担100%', valid:'领取后 7 天有效', count:'2000 / 310'}
+    ];
+    function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+    function inlineMarkdown(str) {
+      return escapeHtml(str).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    }
+    function renderMarkdown(md) {
+      const lines = String(md || '').split(/\r?\n/);
+      let html = '', listOpen = false;
+      const closeList = () => { if (listOpen) { html += '</ul>'; listOpen = false; } };
+      lines.forEach(line => {
+        const raw = line.trim();
+        if (!raw) { closeList(); return; }
+        if (raw.startsWith('### ')) { closeList(); html += `<h3>${inlineMarkdown(raw.slice(4))}</h3>`; return; }
+        if (raw.startsWith('## ')) { closeList(); html += `<h2>${inlineMarkdown(raw.slice(3))}</h2>`; return; }
+        if (raw.startsWith('# ')) { closeList(); html += `<h1>${inlineMarkdown(raw.slice(2))}</h1>`; return; }
+        if (raw.startsWith('> ')) { closeList(); html += `<blockquote>${inlineMarkdown(raw.slice(2))}</blockquote>`; return; }
+        if (/^[-*]\s+/.test(raw) || /^\d+\.\s+/.test(raw)) {
+          if (!listOpen) { html += '<ul>'; listOpen = true; }
+          html += `<li>${inlineMarkdown(raw.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, ''))}</li>`;
+          return;
+        }
+        closeList(); html += `<p>${inlineMarkdown(raw)}</p>`;
+      });
+      closeList();
+      return html;
+    }
+    function loadLogicDoc() {
+      const cached = localStorage.getItem(LOGIC_CACHE_KEY);
+      const fileName = localStorage.getItem(LOGIC_FILE_KEY);
+      $('logicDoc').innerHTML = renderMarkdown(cached || $('defaultLogicMarkdown').textContent.trim());
+      $('logicSource').textContent = cached ? `来源：本地缓存 + ${fileName || '已同步文档'}` : '来源：九宫格抽奖需求文档.md';
+    }
+    function syncLocalDoc(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem(LOGIC_CACHE_KEY, String(reader.result || ''));
+        localStorage.setItem(LOGIC_FILE_KEY, file.name);
+        loadLogicDoc();
+        toast('左侧逻辑已同步');
+      };
+      reader.readAsText(file, 'utf-8');
+      input.value = '';
+    }
+    function toggleLogic(open) { $('workbench').classList.toggle('logic-open', open); }
+    function renderTabs() {
+      $('tabs').innerHTML = Object.entries(tabs).map(([key, label]) => {
+        const close = key === 'list' ? '' : `<span class="x" onclick="event.stopPropagation();closeTab('${key}')">×</span>`;
+        return `<div class="tab ${key === activePage ? 'active' : ''}" onclick="openPage('${key}')">${key === 'list' ? '首页 / ' : ''}${label}${close}</div>`;
+      }).join('');
+    }
+    function closeTab(key) { activePage = key === activePage ? 'list' : activePage; openPage(activePage); }
+    function openPage(name) {
+      activePage = name;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      $('page-' + name).classList.add('active');
+      renderTabs();
+      if (name === 'mini') renderMiniStandalone();
+      if (name === 'data') renderRecords();
+    }
+    function statusClass(status) { return status === '进行中' ? 'tag-green' : status === '未开始' ? 'tag-orange' : 'tag-gray'; }
+    function parseTime(v) { return new Date(String(v).replace(' ', 'T')); }
+    function activityStatus(a) {
+      if (a.manualEnded || a.status === '已结束') return '已结束';
+      const now = new Date('2026-06-02T00:00:00');
+      if (now < parseTime(a.start)) return '未开始';
+      if (now > parseTime(a.end)) return '已结束';
+      return '进行中';
+    }
+    function activityWinnerCount(id) {
+      return records.filter(r => r.activityId === id && r.type !== '空奖').length;
+    }
+    function activityTime(a) { return `${a.start} - ${a.end}`; }
+    function toInputTime(v) { return v ? String(v).replace(' ', 'T').slice(0,16) : ''; }
+    function fromInputTime(v) { return v ? `${v.replace('T', ' ')}:00` : ''; }
+    function formatDateTime(date = new Date()) {
+      const pad = n => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+    function renderActivityList() {
+      const name = $('filterName').value.trim();
+      const id = $('filterId').value.trim();
+      const status = $('filterStatus').value;
+      const start = $('filterStart').value;
+      const end = $('filterEnd').value;
+      const list = activities.filter(a => (!name || a.name.includes(name)) && (!id || a.id.includes(id)) && (!status || activityStatus(a) === status) && (!start || toInputTime(a.end) >= start) && (!end || toInputTime(a.start) <= end));
+      $('activityTbody').innerHTML = list.map(a => {
+        const computedStatus = activityStatus(a);
+        const more = `<button class="btn-text" onmouseenter="showMoreActions(event,'${a.id}')">···</button>`;
+        const ops = computedStatus === '已结束'
+          ? `<button class="btn-text" onclick="copyActivity('${a.id}')">复制</button><button class="btn-danger" onclick="askDelete('${a.id}')">删除</button>${more}`
+          : `<button class="btn-text" onclick="editActivity('${a.id}')">编辑</button><button class="btn-text" onclick="copyActivity('${a.id}')">复制</button>${more}`;
+        return `<tr><td><div class="link" onclick="viewActivity('${a.id}')">${a.name}</div><div class="sub">ID：${a.id}</div><span class="tag tag-orange">口令抽奖</span></td><td>${a.start}<br><span class="muted">至</span><br>${a.end}</td><td><span class="link" onclick="openData('${a.id}')">${a.users}</span> / ${activityWinnerCount(a.id)}</td><td>${a.creator}<div class="sub">${a.created}</div></td><td>${a.updater}<div class="sub">${a.updated}</div></td><td><div class="code-copy"><span class="code-text">${a.code}</span><button class="btn-text" onclick="copyCode('${a.id}')">复制</button></div></td><td><span class="tag ${statusClass(computedStatus)}">${computedStatus}</span></td><td><div class="ops">${ops}</div></td></tr>`;
+      }).join('');
+      $('totalCount').textContent = list.length;
+      $('statUsers').textContent = activities.reduce((sum, a) => sum + a.users, 0);
+      $('statWinners').textContent = records.filter(r => r.type !== '空奖').length;
+      renderRecordActivityOptions();
+    }
+    function toggleMoreSearch() {
+      const shown = $('moreSearch').classList.toggle('show');
+      if ($('moreSearchBtn')) $('moreSearchBtn').textContent = shown ? '收起搜索⌃' : '更多搜索⌄';
+    }
+    function clearFilters() { ['filterName','filterId','filterStart','filterEnd'].forEach(id => $(id).value = ''); $('filterStatus').value = ''; renderActivityList(); }
+    function setFormReadonly(readonly) {
+      $('formPageWrap')?.classList.toggle('readonly', readonly);
+      if ($('formActions')) $('formActions').style.display = readonly ? 'none' : '';
+      document.querySelectorAll('#page-form input, #page-form select, #page-form textarea').forEach(el => {
+        el.disabled = readonly;
+      });
+    }
+    function fillActivityForm(a, title, mode) {
+      formMode = mode;
+      tabs.form = title;
+      editingId = mode === 'edit' ? a.id : null;
+      $('formTitle').textContent = title;
+      $('formName').value = a.name || '';
+      $('formStart').value = toInputTime(a.start || '2026-06-01 00:00:00');
+      $('formEnd').value = toInputTime(a.end || '2026-06-30 23:59:59');
+      $('formRule').value = '输入运营发布的邀请码即可参与抽奖。每个邀请码每个用户仅可抽奖一次。';
+      $('shareTitle').value = '618囤奶节，输入口令抽好礼';
+      if ($('shareSwitch')) $('shareSwitch').checked = true;
+      resetFormAssets();
+      toggleShareFields();
+      renderMiniPreview();
+      setFormReadonly(mode === 'detail');
+      openPage('form');
+    }
+    function showMoreActions(event, id) {
+      event.stopPropagation();
+      const a = activities.find(item => item.id === id);
+      const computedStatus = activityStatus(a);
+      const actions = computedStatus === '未开始'
+        ? [['删除', `askDelete('${id}')`, 'danger'], ['推广', `openModal('promoModal')`], ['日志', `openLog('${id}')`]]
+        : computedStatus === '进行中'
+          ? [['立即结束', `askEnd('${id}')`], ['推广', `openModal('promoModal')`], ['日志', `openLog('${id}')`]]
+          : [['日志', `openLog('${id}')`]];
+      $('opMenu').innerHTML = actions.map(([text, fn, cls]) => `<div class="${cls || ''}" onclick="${fn};$('opMenu').classList.remove('show')">${text}</div>`).join('');
+      $('opMenu').style.left = `${event.clientX - 80}px`;
+      $('opMenu').style.top = `${event.clientY + 12}px`;
+      $('opMenu').classList.add('show');
+    }
+    $('opMenu').addEventListener('mouseleave', () => setTimeout(() => $('opMenu').classList.remove('show'), 80));
+    document.addEventListener('click', e => { if (!e.target.closest('#opMenu')) $('opMenu').classList.remove('show'); });
+    function newActivity() {
+      editingId = null;
+      formMode = 'create';
+      tabs.form = '新建抽奖活动';
+      setFormReadonly(false);
+      $('formTitle').textContent = '新建抽奖活动';
+      $('formName').value = '';
+      $('formStart').value = '2026-06-01T00:00';
+      $('formEnd').value = '2026-06-30T23:59';
+      $('formRule').value = '';
+      $('shareTitle').value = '';
+      if ($('shareSwitch')) $('shareSwitch').checked = true;
+      resetFormAssets();
+      toggleShareFields();
+      renderMiniPreview();
+      openPage('form');
+    }
+    function editActivity(id) {
+      const a = activities.find(item => item.id === id);
+      fillActivityForm(a, '编辑抽奖活动', 'edit');
+    }
+    function viewActivity(id) {
+      const a = activities.find(item => item.id === id);
+      fillActivityForm(a, '抽奖活动详情', 'detail');
+    }
+    function saveActivity() {
+      if (formMode === 'detail') return toast('详情页不可编辑');
+      const name = $('formName').value.trim();
+      const rateTotal = prizeConfig.reduce((sum, item) => sum + Number(item.rate), 0);
+      if (!name) return toast('请填写活动名称');
+      if (!formAssets.gridImage) return toast('请上传九宫格图');
+      if (!formAssets.resultImage) return toast('请上传中奖弹窗图');
+      if ($('shareSwitch')?.checked && !$('shareTitle').value.trim()) return toast('请填写分享标题');
+      if ($('shareSwitch')?.checked && !formAssets.shareImage) return toast('请上传分享图片');
+      if (Math.round(rateTotal * 100) / 100 !== 100) return toast('中奖概率合计必须等于100%');
+      const payload = { name, start: fromInputTime($('formStart').value), end: fromInputTime($('formEnd').value), updater:'xzj', updated:'2026-06-01 09:30:00' };
+      if (editingId) Object.assign(activities.find(a => a.id === editingId), payload);
+      else activities.unshift({ id: String(Date.now()).slice(-6), type:'口令抽奖', code: generateLotteryCode(), users:0, creator:'xzj', created:'2026-06-01 09:30:00', status:'未开始', ...payload });
+      toast(editingId ? '保存成功' : `新增成功，口令已自动生成`);
+      renderActivityList();
+      openPage('list');
+    }
+    function copyActivity(id) {
+      const a = activities.find(item => item.id === id);
+      fillActivityForm({ ...a, name: `${a.name}-复制`, code: generateLotteryCode(), users: 0 }, '新建抽奖活动', 'create');
+      toast('已复制活动信息，请确认后保存');
+    }
+    function copyCode(id) {
+      const code = activities.find(a => a.id === id).code;
+      navigator.clipboard && navigator.clipboard.writeText(code);
+      toast(`已复制口令：${code}`);
+    }
+    function generateLotteryCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 8; i += 1) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+    function resetFormAssets() {
+      formAssets.bgImage = '';
+      formAssets.bgColor = DEFAULT_BG_COLOR;
+      formAssets.bgConfigured = false;
+      formAssets.gridImage = DEFAULT_GRID_IMAGE;
+      formAssets.resultImage = DEFAULT_RESULT_IMAGE;
+      formAssets.shareImage = '';
+      formAssets.posterImage = '';
+      if ($('bgColor')) $('bgColor').value = formAssets.bgColor.toLowerCase();
+      if ($('bgHex')) $('bgHex').value = formAssets.bgColor;
+      ['bgUploadBox','shareImageBox','posterImageBox'].forEach(id => {
+        if ($(id)) {
+          $(id).classList.remove('has-image', 'empty');
+          $(id).style.backgroundImage = '';
+          $(id).style.backgroundColor = id === 'bgUploadBox' ? DEFAULT_BG_COLOR : '';
+        }
+      });
+      markUploadBox('gridUploadBox', DEFAULT_GRID_IMAGE);
+      markUploadBox('resultUploadBox', DEFAULT_RESULT_IMAGE);
+      markUploadBox('promoShareImageBox', formAssets.promoShareImage);
+      markUploadBox('promoPosterImageBox', formAssets.promoPosterImage);
+      syncPromoSharePreview();
+    }
+    function setBackgroundColor(value) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(value)) return;
+      formAssets.bgColor = value.toUpperCase();
+      formAssets.bgImage = '';
+      formAssets.bgConfigured = true;
+      if ($('bgColor')) $('bgColor').value = value;
+      if ($('bgHex')) $('bgHex').value = formAssets.bgColor;
+      if ($('bgUploadBox')) {
+        $('bgUploadBox').classList.remove('has-image', 'empty');
+        $('bgUploadBox').style.backgroundImage = '';
+        $('bgUploadBox').style.backgroundColor = formAssets.bgColor;
+      }
+      renderMiniPreview();
+    }
+    function resetBackground() {
+      restoreDefaultAsset('bg');
+    }
+    function restoreDefaultAsset(type) {
+      if (type === 'bg') {
+        formAssets.bgImage = '';
+        formAssets.bgColor = DEFAULT_BG_COLOR;
+        formAssets.bgConfigured = false;
+        if ($('bgColor')) $('bgColor').value = DEFAULT_BG_COLOR.toLowerCase();
+        if ($('bgHex')) $('bgHex').value = DEFAULT_BG_COLOR;
+        if ($('bgUploadBox')) {
+          $('bgUploadBox').classList.remove('has-image', 'empty');
+          $('bgUploadBox').style.backgroundImage = '';
+          $('bgUploadBox').style.backgroundColor = DEFAULT_BG_COLOR;
+        }
+        toast('背景已恢复默认');
+      }
+      if (type === 'grid') {
+        formAssets.gridImage = DEFAULT_GRID_IMAGE;
+        markUploadBox('gridUploadBox', DEFAULT_GRID_IMAGE);
+        toast('九宫格图已恢复默认');
+      }
+      if (type === 'result') {
+        formAssets.resultImage = DEFAULT_RESULT_IMAGE;
+        markUploadBox('resultUploadBox', DEFAULT_RESULT_IMAGE);
+        toast('中奖弹窗已恢复默认');
+      }
+      renderMiniPreview();
+    }
+    function uploadAsset(input, type) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = String(reader.result || '');
+        if (type === 'bg') {
+          formAssets.bgImage = url;
+          formAssets.bgConfigured = true;
+          markUploadBox('bgUploadBox', url);
+        }
+        if (type === 'grid') {
+          formAssets.gridImage = url;
+          markUploadBox('gridUploadBox', url);
+        }
+        if (type === 'result') {
+          formAssets.resultImage = url;
+          markUploadBox('resultUploadBox', url);
+        }
+        if (type === 'share') {
+          formAssets.shareImage = url;
+          markUploadBox('shareImageBox', url);
+        }
+        if (type === 'poster') {
+          formAssets.posterImage = url;
+          markUploadBox('posterImageBox', url);
+        }
+        if (type === 'promoShare') {
+          formAssets.promoShareImage = url;
+          markUploadBox('promoShareImageBox', url);
+          if ($('promoSharePreviewImage')) {
+            $('promoSharePreviewImage').textContent = '';
+            $('promoSharePreviewImage').style.background = `url("${url}") center/cover no-repeat`;
+          }
+        }
+        if (type === 'promoPoster') {
+          formAssets.promoPosterImage = url;
+          markUploadBox('promoPosterImageBox', url);
+        }
+        renderMiniPreview();
+        toast('图片已上传并同步预览');
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    }
+    function markUploadBox(id, url) {
+      const box = $(id);
+      if (!box) return;
+      box.classList.add('has-image');
+      box.classList.remove('empty');
+      box.style.backgroundImage = `url("${url}")`;
+      box.style.backgroundColor = '';
+    }
+    function syncPromoSharePreview() {
+      if (!$('promoSharePreviewImage')) return;
+      if (formAssets.promoShareImage) {
+        $('promoSharePreviewImage').textContent = '';
+        $('promoSharePreviewImage').style.background = `url("${formAssets.promoShareImage}") center/cover no-repeat`;
+      } else {
+        $('promoSharePreviewImage').textContent = '红包';
+        $('promoSharePreviewImage').style.background = '#D64242';
+      }
+    }
+    function triggerAssetUpload(type) {
+      $(`${type}UploadInput`)?.click();
+    }
+    function currentAssetUrl(type) {
+      if (type === 'bg') return formAssets.bgImage;
+      if (type === 'grid') return formAssets.gridImage;
+      if (type === 'result') return formAssets.resultImage;
+      if (type === 'promoShare') return formAssets.promoShareImage;
+      if (type === 'promoPoster') return formAssets.promoPosterImage;
+      return '';
+    }
+    function previewAssetImage(type) {
+      const url = currentAssetUrl(type);
+      if (!url) return toast('当前为默认纯色背景');
+      $('imagePreviewTarget').src = url;
+      openModal('imagePreviewModal');
+    }
+    function deleteAssetImage(type) {
+      if (type === 'bg') {
+        formAssets.bgImage = '';
+        formAssets.bgColor = DEFAULT_BG_COLOR;
+        formAssets.bgConfigured = false;
+        if ($('bgColor')) $('bgColor').value = DEFAULT_BG_COLOR.toLowerCase();
+        if ($('bgHex')) $('bgHex').value = DEFAULT_BG_COLOR;
+        if ($('bgUploadBox')) {
+          $('bgUploadBox').classList.remove('has-image', 'empty');
+          $('bgUploadBox').style.backgroundImage = '';
+          $('bgUploadBox').style.backgroundColor = DEFAULT_BG_COLOR;
+        }
+      }
+      if (type === 'grid') {
+        formAssets.gridImage = '';
+        if ($('gridUploadBox')) {
+          $('gridUploadBox').classList.remove('has-image');
+          $('gridUploadBox').classList.add('empty');
+          $('gridUploadBox').style.backgroundImage = '';
+        }
+      }
+      if (type === 'result') {
+        formAssets.resultImage = '';
+        if ($('resultUploadBox')) {
+          $('resultUploadBox').classList.remove('has-image');
+          $('resultUploadBox').classList.add('empty');
+          $('resultUploadBox').style.backgroundImage = '';
+        }
+      }
+      if (type === 'promoShare') {
+        formAssets.promoShareImage = '';
+        if ($('promoShareImageBox')) {
+          $('promoShareImageBox').classList.remove('has-image');
+          $('promoShareImageBox').classList.add('empty');
+          $('promoShareImageBox').style.backgroundImage = '';
+        }
+        if ($('promoSharePreviewImage')) {
+          $('promoSharePreviewImage').textContent = '红包';
+          $('promoSharePreviewImage').style.background = '#D64242';
+        }
+      }
+      if (type === 'promoPoster') {
+        formAssets.promoPosterImage = '';
+        if ($('promoPosterImageBox')) {
+          $('promoPosterImageBox').classList.remove('has-image');
+          $('promoPosterImageBox').classList.add('empty');
+          $('promoPosterImageBox').style.backgroundImage = '';
+        }
+      }
+      renderMiniPreview();
+      toast('图片已删除');
+    }
+    function toggleShareFields() {
+      const enabled = $('shareSwitch')?.checked !== false;
+      document.querySelectorAll('.share-config').forEach(row => row.classList.toggle('show', enabled));
+    }
+    function askDelete(id) {
+      pendingAction = () => { activities = activities.filter(a => a.id !== id); selectedIds.delete(id); renderActivityList(); toast('删除成功'); };
+      $('confirmTitle').textContent = '删除';
+      $('confirmDesc').textContent = '是否确认删除';
+      openModal('confirmModal');
+    }
+    function askEnd(id) {
+      pendingAction = () => { const a = activities.find(item => item.id === id); const now = formatDateTime(); a.status = '已结束'; a.manualEnded = true; a.end = now; a.updated = now; renderActivityList(); toast('已立即结束'); };
+      $('confirmTitle').textContent = '立即结束';
+      $('confirmDesc').textContent = '是否立即结束';
+      openModal('confirmModal');
+    }
+    function confirmAction() { if (pendingAction) pendingAction(); pendingAction = null; closeModal('confirmModal'); }
+    function renderRewards() {
+      $('rewardTbody').innerHTML = prizeConfig.map((p, i) => `<tr draggable="true" ondragstart="startPrizeDrag(event,${i})" ondragover="event.preventDefault()" ondrop="dropPrize(event,${i})"><td><span class="drag-handle">☰</span> 位置${i + 1}</td><td><div class="prize-cell"><div class="prize-thumb">${p.image ? `<img src="${p.image}" alt="">` : p.icon}</div><div><div class="prize-name">${p.name}</div><div class="prize-type">${p.type}</div></div></div></td><td>${p.stock}</td><td>${Number(p.rate).toFixed(2)}%</td><td><button class="btn-text" onclick="editPrize(${i})">编辑</button></td></tr>`).join('');
+      $('rateTotal').textContent = `${prizeConfig.reduce((sum, item) => sum + Number(item.rate), 0).toFixed(2)}%`;
+    }
+    function startPrizeDrag(event, index) {
+      draggedPrizeIndex = index;
+      event.currentTarget.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+    }
+    function dropPrize(event, index) {
+      event.preventDefault();
+      document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      if (draggedPrizeIndex === null || draggedPrizeIndex === index) return;
+      const [moved] = prizeConfig.splice(draggedPrizeIndex, 1);
+      prizeConfig.splice(index, 0, moved);
+      draggedPrizeIndex = null;
+      renderRewards();
+      renderMiniPreview();
+      toast('奖品位置已调整');
+    }
+    function editPrize(index) {
+      currentPrizeIndex = index;
+      const p = prizeConfig[index];
+      editingPrizeImage = p.image || '';
+      selectedCoupon = p.coupon || null;
+      if (p.type === '积分' && !editingPrizeImage) editingPrizeImage = DEFAULT_POINT_PRIZE_IMAGE;
+      if (p.type === '优惠券' && !editingPrizeImage) editingPrizeImage = DEFAULT_COUPON_PRIZE_IMAGE;
+      if (selectedCoupon && !selectedCoupon.prizeCount) selectedCoupon.prizeCount = 1;
+      document.querySelectorAll('[name="prizeTypeRadio"]').forEach(input => input.checked = input.value === p.type);
+      $('prizeName').value = p.type === '空奖' ? (p.name || '谢谢参与') : p.name;
+      $('pointValue').value = p.pointValue || '';
+      $('prizeStock').value = String(p.stock || '').replace(/[^0-9]/g, '');
+      $('prizeRate').value = Number(p.rate).toFixed(2);
+      onPrizeTypeChange(false);
+      renderPrizeImageBox();
+      renderSelectedCoupon();
+      openModal('prizeModal');
+    }
+    function onPrizeTypeChange(shouldSync = true) {
+      const type = getPrizeType();
+      $('couponPickRow').style.display = type === '优惠券' ? 'grid' : 'none';
+      $('pointValueRow').style.display = type === '积分' ? 'grid' : 'none';
+      $('prizeStockRow').style.display = type === '空奖' ? 'none' : 'grid';
+      if (shouldSync && type === '空奖') $('prizeName').value = '谢谢参与';
+      if (shouldSync && type === '积分') editingPrizeImage = DEFAULT_POINT_PRIZE_IMAGE;
+      if (shouldSync && type === '优惠券') editingPrizeImage = DEFAULT_COUPON_PRIZE_IMAGE;
+      if (shouldSync && type !== '优惠券') selectedCoupon = null;
+      renderPrizeImageBox();
+      renderSelectedCoupon();
+    }
+    function getPrizeType() {
+      return document.querySelector('[name="prizeTypeRadio"]:checked')?.value || '优惠券';
+    }
+    function formatPrizeRate() {
+      const value = Math.max(0, Math.min(100, Number($('prizeRate').value || 0)));
+      $('prizeRate').value = value.toFixed(2);
+    }
+    function uploadPrizeImage(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = String(reader.result || '');
+        editingPrizeImage = url;
+        renderPrizeImageBox();
+        toast('奖品图已上传');
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    }
+    function triggerPrizeUpload() {
+      $('prizeImageInput')?.click();
+    }
+    function renderPrizeImageBox() {
+      const box = $('prizeImageBox');
+      if (!box) return;
+      box.classList.toggle('empty', !editingPrizeImage);
+      box.style.backgroundImage = editingPrizeImage ? `url("${editingPrizeImage}")` : '';
+    }
+    function previewPrizeImage() {
+      if (!editingPrizeImage) return toast('请先上传奖品图');
+      $('imagePreviewTarget').src = editingPrizeImage;
+      openModal('imagePreviewModal');
+    }
+    function deletePrizeImage() {
+      editingPrizeImage = '';
+      renderPrizeImageBox();
+      toast('奖品图已删除');
+    }
+    function restorePrizeDefaultImage() {
+      const type = getPrizeType();
+      if (type === '积分') {
+        editingPrizeImage = DEFAULT_POINT_PRIZE_IMAGE;
+        renderPrizeImageBox();
+        toast('已恢复默认积分奖品图');
+        return;
+      }
+      if (type === '优惠券') {
+        editingPrizeImage = DEFAULT_COUPON_PRIZE_IMAGE;
+        renderPrizeImageBox();
+        toast('已恢复默认优惠券奖品图');
+        return;
+      }
+      toast('当前奖品类型暂无默认图');
+    }
+    function savePrize() {
+      const p = prizeConfig[currentPrizeIndex];
+      formatPrizeRate();
+      const type = getPrizeType();
+      const name = $('prizeName').value.trim();
+      if (!name) return toast('请填写奖品名称');
+      if (!editingPrizeImage) return toast('请上传奖品图');
+      if (type === '优惠券' && !selectedCoupon) return toast('请添加优惠券');
+      if (type === '优惠券' && (!/^[1-9]\d*$/.test(String(selectedCoupon.prizeCount || '')))) return toast('请填写正整数奖券数');
+      if (type === '优惠券' && Number(selectedCoupon.prizeCount) > couponRemain(selectedCoupon)) return toast('奖券数不能超过优惠券剩余发放数');
+      if (type === '积分' && (!/^[1-9]\d*$/.test($('pointValue').value))) return toast('请填写正整数积分值');
+      if (type !== '空奖' && (!/^[1-9]\d*$/.test($('prizeStock').value))) return toast('请填写正整数奖品份数');
+      if (type === '优惠券' && Number($('prizeStock').value) > couponRemain(selectedCoupon)) return toast('奖品份数不能超过优惠券剩余发放数');
+      p.type = type;
+      p.name = name;
+      p.image = editingPrizeImage;
+      p.coupon = type === '优惠券' ? selectedCoupon : null;
+      p.pointValue = type === '积分' ? Number($('pointValue').value) : null;
+      p.stock = type === '空奖' ? '-' : `${Number($('prizeStock').value)}份`;
+      p.rate = Number(Number($('prizeRate').value || p.rate).toFixed(2));
+      p.sub = p.type === '积分' ? `${p.pointValue}积分` : p.type === '优惠券' ? selectedCoupon.info : '未中奖';
+      renderRewards();
+      renderMiniPreview();
+      closeModal('prizeModal');
+      toast('奖品已保存');
+    }
+    function openCouponModal() {
+      pendingCouponId = selectedCoupon?.id || '';
+      pendingCouponCounts = {};
+      couponOptions.forEach(c => { pendingCouponCounts[c.id] = selectedCoupon?.id === c.id ? (selectedCoupon.prizeCount || 1) : 1; });
+      if ($('couponMoreFilters')) $('couponMoreFilters').classList.remove('show');
+      renderCouponOptions();
+      openModal('couponModal');
+    }
+    function toggleCouponMoreSearch() {
+      $('couponMoreFilters')?.classList.toggle('show');
+    }
+    function renderCouponOptions() {
+      const name = $('couponFilterName')?.value.trim() || '';
+      const id = $('couponFilterId')?.value.trim() || '';
+      const type = $('couponFilterType')?.value || '';
+      const list = couponOptions.filter(c => (!name || c.name.includes(name)) && (!id || c.id.includes(id)) && (!type || c.type === type));
+      $('couponOptionTbody').innerHTML = list.map(c => `<tr><td><label class="custom-check"><input type="checkbox" ${pendingCouponId === c.id ? 'checked' : ''} onchange="selectCouponOption('${c.id}',this.checked)"><span></span></label></td><td><span class="coupon-award-cell"><input class="coupon-award-input" type="number" min="1" max="${couponRemain(c)}" step="1" value="${pendingCouponCounts[c.id] || 1}" oninput="updatePendingCouponCount('${c.id}',this.value)">张</span></td><td><div class="coupon-name-stack"><span class="tag tag-blue">${c.type}</span><span>${c.name}</span><span class="sub" style="margin-top:0">ID：${c.id}</span></div></td><td>${c.info}</td><td>${c.sendTime.replace(' - ','<br>')}</td><td>${c.burden}</td><td>${c.valid}</td><td>${c.count}</td></tr>`).join('');
+    }
+    function selectCouponOption(id, checked) {
+      pendingCouponId = checked ? id : '';
+      renderCouponOptions();
+    }
+    function updatePendingCouponCount(id, value) {
+      pendingCouponCounts[id] = value;
+    }
+    function couponRemain(coupon) {
+      const nums = String(coupon?.count || '').match(/\d+/g) || [];
+      return Math.max(0, Number(nums[0] || 0) - Number(nums[1] || 0));
+    }
+    function confirmCouponSelect() {
+      if (!pendingCouponId) return toast('请选择优惠券');
+      if (!/^[1-9]\d*$/.test(String(pendingCouponCounts[pendingCouponId] || ''))) return toast('请填写正整数奖券数');
+      const coupon = couponOptions.find(c => c.id === pendingCouponId);
+      if (Number(pendingCouponCounts[pendingCouponId]) > couponRemain(coupon)) return toast('奖券数不能超过优惠券剩余发放数');
+      selectedCoupon = { ...coupon, prizeCount: Number(pendingCouponCounts[pendingCouponId] || 1) };
+      $('prizeName').value = selectedCoupon.name;
+      syncCouponStockLimit();
+      renderSelectedCoupon();
+      closeModal('couponModal');
+    }
+    function renderSelectedCoupon() {
+      const box = $('selectedCouponBox');
+      if (!box) return;
+      if (!selectedCoupon) {
+        box.innerHTML = '';
+        syncCouponStockLimit();
+        return;
+      }
+      if (!selectedCoupon.prizeCount) selectedCoupon.prizeCount = 1;
+      box.innerHTML = `<div class="coupon-selected-wrap"><table class="coupon-selected"><thead><tr><th class="coupon-action-col">操作</th><th class="coupon-award-col">奖券数</th><th class="coupon-name-col">优惠券名称</th><th class="coupon-info-col">优惠信息</th><th class="coupon-time-col">发券时间</th><th class="coupon-burden-col">优惠承担</th><th class="coupon-valid-col">券有效期</th><th class="coupon-count-col">发券量/领取数</th></tr></thead><tbody><tr><td><button class="btn-danger" onclick="selectedCoupon=null;renderSelectedCoupon()">删除</button></td><td><span class="coupon-award-cell"><input class="coupon-award-input" type="number" min="1" max="${couponRemain(selectedCoupon)}" step="1" value="${selectedCoupon.prizeCount}" oninput="updateCouponPrizeCount(this.value)">张</span></td><td><div class="coupon-name-stack"><span class="tag tag-blue">${selectedCoupon.type}</span><span>${selectedCoupon.name}</span><span class="sub" style="margin-top:0">ID：${selectedCoupon.id}</span></div></td><td>${selectedCoupon.info}</td><td>${selectedCoupon.sendTime.replace(' - ','<br>')}</td><td>${selectedCoupon.burden}</td><td>${selectedCoupon.valid}</td><td>${selectedCoupon.count}</td></tr></tbody></table></div>`;
+      syncCouponStockLimit();
+    }
+    function syncCouponStockLimit() {
+      const input = $('prizeStock');
+      if (!input) return;
+      if (getPrizeType() === '优惠券' && selectedCoupon) input.max = couponRemain(selectedCoupon);
+      else input.removeAttribute('max');
+    }
+    function updateCouponPrizeCount(value) {
+      if (!selectedCoupon) return;
+      selectedCoupon.prizeCount = value;
+    }
+    function openData(id) {
+      const a = activities.find(item => item.id === id);
+      if ($('recordActivity') && a) $('recordActivity').value = a.id;
+      openPage('data');
+      renderRecords();
+    }
+    function getFilteredRecords() {
+      const keyword = $('recordKeyword').value.trim();
+      const nick = $('recordNick').value.trim();
+      const type = $('recordType').value;
+      const start = $('recordStart')?.value || '';
+      const end = $('recordEnd')?.value || '';
+      const status = $('recordStatus')?.value || '';
+      const activityId = $('recordActivity')?.value || '';
+      return records.filter(r => {
+        const a = activities.find(item => item.id === r.activityId);
+        const computedStatus = a ? activityStatus(a) : '';
+        return (!keyword || r.userId.includes(keyword) || r.phone.includes(keyword))
+          && (!nick || r.nick.includes(nick))
+          && (!type || r.type === type)
+          && (!activityId || r.activityId === activityId)
+          && (!status || computedStatus === status)
+          && (!start || toInputTime(r.time) >= start)
+          && (!end || toInputTime(r.time) <= end);
+      });
+    }
+    function renderRecords() {
+      const list = getFilteredRecords();
+      $('dataTbody').innerHTML = list.map(r => {
+        const activity = activities.find(a => a.id === r.activityId);
+        const activityName = activity ? activity.name : '618囤奶节口令抽奖';
+        return `<tr><td><div class="link" onclick="viewActivity('${r.activityId}')">${activityName}</div><div class="sub">ID：${r.activityId} <span class="tag tag-orange">口令抽奖</span></div></td><td><span class="link" onclick="openUserDetail('${r.userId}')">${r.nick}</span><div class="sub">${r.phone} / ${r.userId}</div></td><td>${r.code}</td><td>${r.prize}</td><td>${r.status === '发放成功' ? '<span class="tag tag-green">发放成功</span>' : '-'}</td><td>${r.time}</td></tr>`;
+      }).join('');
+      $('recordTotal').textContent = list.length;
+      $('dataUsers').textContent = list.length;
+      $('dataWinners').textContent = list.filter(r => r.type !== '空奖').length;
+    }
+    function renderRecordActivityOptions() {
+      if (!$('recordActivity')) return;
+      $('recordActivity').innerHTML = '<option value="">全部活动</option>' + activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    }
+    function clearRecordFilters() { $('recordKeyword').value = ''; $('recordNick').value = ''; $('recordType').value = ''; if ($('recordStart')) $('recordStart').value = ''; if ($('recordEnd')) $('recordEnd').value = ''; if ($('recordStatus')) $('recordStatus').value = ''; if ($('recordActivity')) $('recordActivity').value = ''; renderRecords(); }
+    function toggleRecordMoreSearch() { $('recordMoreSearch')?.classList.toggle('show'); }
+    function openUserDetail(userId) {
+      tabs.user = '用户详情';
+      const r = records.find(item => item.userId === userId) || records[0];
+      if (r) {
+        $('userDetailName').textContent = r.nick;
+        $('userDetailPhone').textContent = `手机号：${r.phone}`;
+        $('userDetailId').textContent = r.userId;
+      }
+      openPage('user');
+    }
+    function exportRecords() {
+      const rows = getFilteredRecords().map(r => {
+        const activity = activities.find(a => a.id === r.activityId);
+        return [
+          activity ? activity.name : '618囤奶节口令抽奖',
+          r.activityId,
+          r.nick,
+          r.userId,
+          r.prize,
+          r.status === '发放成功' ? '发放成功' : '-',
+          r.time
+        ];
+      });
+      const header = ['活动名称','活动ID','用户昵称','用户ID','奖品名称','发放状态','抽奖时间'];
+      const csv = [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `抽奖数据_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('抽奖数据已导出');
+    }
+    function showRecordDetail(index) {
+      const r = records[index];
+      $('detailBody').innerHTML = `<p>活动名称：618囤奶节口令抽奖</p><p>用户信息：${r.nick} / ${r.phone} / ${r.userId}</p><p>口令：${r.code}</p><p>奖品：${r.prize}</p><p>发放状态：${r.status}</p><p>抽奖时间：${r.time}</p>`;
+      openModal('detailModal');
+    }
+    function openLog() {
+      $('logTbody').innerHTML = `<tr><td>L10021</td><td>xzj</td><td>新建九宫格口令抽奖</td><td>-</td><td>2026-05-28 10:30:21</td></tr><tr><td>L10020</td><td>系统</td><td>状态由【待开始】改为【进行中】</td><td>到达活动开始时间</td><td>2026-06-01 00:00:00</td></tr>`;
+      openModal('logModal');
+    }
+    function miniChrome(inner, bgStyle = '', navTitle = '口令抽奖', navStyle = '') {
+      const pageBg = bgStyle ? `style="${bgStyle}"` : '';
+      const topBg = `style="${navStyle || bgStyle}"`;
+      return `<div class="ios-status" ${topBg}><span>10:14</span><span>5G  Wi-Fi  100%</span></div><div class="wechat-nav" ${topBg}><span class="wechat-back" onclick="renderMiniStandalone()">‹</span><span class="wechat-title">${navTitle}</span><div class="wechat-capsule"><span>···</span><span class="dot"></span></div></div><div class="mini-page" ${pageBg}>${inner}</div>`;
+    }
+    function miniHtml(withActions) {
+      const configuredBg = formAssets.bgImage
+        ? `background-image:url('${formAssets.bgImage}');background-size:cover;background-position:center;`
+        : (formAssets.bgConfigured ? `background:${formAssets.bgColor || '#FFFFFF'};` : DEFAULT_MP_BG);
+      const sectionBg = `style="${configuredBg}"`;
+      const activeActivity = activities.find(a => a.id === '100041') || activities.find(a => activityStatus(a) === '进行中') || activities[0];
+      const ruleText = $('formRule')?.value.trim() || activeActivity?.rule || '';
+      const showRules = Boolean(ruleText);
+      const showMine = true;
+      const showWinners = $('showWinners')?.checked !== false;
+      const showBroadcast = $('showBroadcast')?.checked !== false;
+      const ruleAction = withActions ? `onclick="openMp('mpRules')"` : '';
+      const mineAction = withActions ? `onclick="openMiniRecordPage('all')"` : '';
+      const drawAction = withActions ? `onclick="verifyCode()"` : '';
+      const gridClass = formAssets.gridImage ? 'machine has-grid-image' : 'machine no-grid-image';
+      const gridStyle = formAssets.gridImage ? `style="background-image:url('${formAssets.gridImage}')"` : '';
+      const broadcast = showBroadcast ? broadcastTicker() : '';
+      const body = `<section class="mp-hero" ${sectionBg}>${showRules ? `<button class="mp-side-entry mp-rule-entry" ${ruleAction}>活动规则</button>` : ''}${showMine ? `<button class="mp-side-entry mp-mine-entry" ${mineAction}>我的抽奖</button>` : ''}<div class="${gridClass}" ${gridStyle}><div class="grid">${gridCells(drawAction)}</div></div>${broadcast}</section><section class="mp-code-section"><div class="code-box"><input id="${withActions ? 'frontCode' : 'previewCode'}" placeholder="请输入口令抽奖"><button ${drawAction}>立即抽奖</button></div></section>${showWinners ? winnerPanel(mineAction) : ''}`;
+      return miniChrome(body, configuredBg);
+    }
+    function gridCells(drawAction) {
+      const cells = [0,1,2,7,'draw',3,6,5,4];
+      const positionLabels = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8};
+      return cells.map(item => item === 'draw' ? `<div class="prize draw" ${drawAction}>立即<br>抽奖</div>` : `<div class="prize" data-idx="${item}"><div class="gift">${prizeConfig[item].image ? `<img src="${prizeConfig[item].image}" alt="">` : prizeConfig[item].icon}</div><b>${prizeConfig[item].name}</b><small class="prize-sub">${prizeConfig[item].sub}</small><span class="prize-index">${positionLabels[item]}</span></div>`).join('');
+    }
+    function winnerRows() {
+      const seed = records.filter(r => r.type !== '空奖');
+      const rows = [...seed, ...seed, ...seed].slice(0, 6);
+      return rows.map((r, index) => `<div class="winner-row"><div class="avatar"></div><div><div class="w-name">${index % 2 ? '欧啦欧啦' : r.nick}</div><div class="w-time">${r.time}${index % 3 === 1 ? ' 1件' : ''}</div></div><div class="w-prize">${r.prize}</div></div>`).join('');
+    }
+    function winnerPanel(mineAction) {
+      return `<section class="winner-card"><div class="winner-head"><div class="winner-title">中奖名单</div><button class="winner-mine" ${mineAction}>我的抽奖 ›</button></div><div class="winner-list">${winnerRows()}<div class="winner-more">点击查看更多⌄</div></div></section>`;
+    }
+    function broadcastRows() {
+      return records
+        .filter(r => r.type !== '空奖')
+        .sort((a, b) => new Date(b.time.replace(/-/g, '/')) - new Date(a.time.replace(/-/g, '/')))
+        .map(r => `${maskNick(r.nick)}获得${r.prize}`);
+    }
+    function maskNick(nick) {
+      const text = String(nick || '用户');
+      if (text.length <= 2) return `${text[0] || '用'}*`;
+      return `${text.slice(0, 1)}***${text.slice(-1)}`;
+    }
+    function broadcastTicker() {
+      const rows = broadcastRows();
+      const data = rows.length ? rows : ['用户获得50积分'];
+      const loop = [...data, ...data, ...data].slice(0, 4);
+      return `<div class="broadcast-ticker"><div class="broadcast-track">${loop.map(text => `<div class="broadcast-item">${escapeHtml(text)}</div>`).join('')}</div></div>`;
+    }
+    function renderMiniPreview() { $('miniPreview').innerHTML = miniHtml(false); }
+    function renderMiniStandalone() { $('miniStandalone').innerHTML = miniHtml(true); }
+    function verifyCode() {
+      const value = $('frontCode')?.value.trim();
+      if (!value) return showMpTip('请输入口令进行抽奖');
+      if (value !== '618') return showMpTip('请输入正确的口令');
+      if (usedCode) return showMpTip('口令已使用，请查看抽奖记录', '查看抽奖记录', "openMiniRecordPage('all')");
+      usedCode = true;
+      runDraw(pickPrizeByRate());
+    }
+    function pickPrizeByRate() {
+      const total = prizeConfig.reduce((sum, p) => sum + Number(p.rate || 0), 0) || 100;
+      let point = Math.random() * total;
+      for (const [index, prize] of prizeConfig.entries()) {
+        point -= Number(prize.rate || 0);
+        if (point <= 0) return { ...prize, index };
+      }
+      return { ...prizeConfig[prizeConfig.length - 1], index: prizeConfig.length - 1 };
+    }
+    function runDraw(resultPrize) {
+      const cells = [...document.querySelectorAll('#miniStandalone .prize[data-idx]')];
+      const order = [0,1,2,3,4,5,6,7];
+      let step = 0;
+      const timer = setInterval(() => {
+        cells.forEach(c => c.classList.remove('active'));
+        const activeIdx = step > 26 ? resultPrize.index : order[step % order.length];
+        const active = cells.find(c => Number(c.dataset.idx) === activeIdx);
+        if (active) active.classList.add('active');
+        step += 1;
+        if (step > 28) {
+          clearInterval(timer);
+          cells.forEach(c => c.classList.remove('active'));
+          const isWin = resultPrize.type !== '空奖';
+          const newRecord = {activityId:'100041', nick:'当前用户', phone:'138****0000', userId:'U99999', code:'618', prize:resultPrize.name, type:resultPrize.type, status:isWin ? '发放成功' : '-', time:'2026-06-01 10:14:00'};
+          records.unshift(newRecord);
+          miniUserRecords.unshift(newRecord);
+          showDrawResult(resultPrize, isWin);
+          openMp('mpResult');
+          renderRecords();
+        }
+      }, 85);
+    }
+    function showDrawResult(prize, isWin) {
+      $('resultTitle').textContent = isWin ? '中奖啦' : '差一点就中奖啦';
+      $('resultText').textContent = isWin ? prize.name : '谢谢参与';
+      $('resultPrizeImg').innerHTML = prize.image ? `<img src="${prize.image}" alt="">` : (prize.icon || '🎁');
+      const resultBg = formAssets.resultImage || DEFAULT_RESULT_IMAGE;
+      document.querySelector('#mpResult .result').style.background = `url('${resultBg}') center / 100% 100% no-repeat`;
+    }
+    function showMpTip(text, buttonText = '知道了', action = "closeMp('mpError')") {
+      $('mpErrorText').textContent = text;
+      $('mpErrorBtn').textContent = buttonText;
+      $('mpErrorBtn').setAttribute('onclick', action);
+      openMp('mpError');
+    }
+    function openMiniRecordPage(type = 'all') {
+      closeMp('mpError');
+      $('miniStandalone').innerHTML = miniRecordHtml(type);
+    }
+    function miniRecordHtml(type = 'all') {
+      const sorted = [...miniUserRecords].sort((a, b) => new Date(b.time.replace(/-/g, '/')) - new Date(a.time.replace(/-/g, '/')));
+      const list = sorted.filter(r => type === 'all' || (type === 'win' ? r.type !== '空奖' : r.type === '空奖'));
+      const tabsHtml = [['all','全部'], ['win','中奖'], ['lose','未中奖']].map(([key, text]) => `<button class="record-tab ${type === key ? 'active' : ''}" onclick="openMiniRecordPage('${key}')">${text}</button>`).join('');
+      const rows = list.map(r => {
+        const activity = activities.find(a => a.id === r.activityId);
+        const isWin = r.type !== '空奖';
+        const prizeText = isWin ? formatRecordPrize(r) : '谢谢参与奖';
+        return `<div class="record-item"><div><div class="record-activity">活动名称${escapeHtml(activity?.name || '口令抽奖')}</div><div class="record-time">${escapeHtml(r.time)}</div></div><div class="record-prize ${isWin ? '' : 'empty'}">${escapeHtml(prizeText)}</div></div>`;
+      }).join('');
+      const empty = `<div class="mp-empty"><div class="mp-empty-ill"></div><div>暂无积分记录，去商城逛逛吧</div><div class="mp-empty-actions"><button class="primary" onclick="toast('已跳转商城')">去商城</button><button onclick="renderMiniStandalone()">去首页</button></div></div>`;
+      return miniChrome(`<section class="record-page"><div class="record-tabs">${tabsHtml}</div><div class="record-list">${rows || empty}</div></section>`, 'background:#F5F5F5;', '抽奖记录', 'background:#FFFFFF;');
+    }
+    function formatRecordPrize(r) {
+      if (r.type === '积分') return `+${String(r.prize).replace(/[^0-9]/g, '') || r.prize}积分`;
+      if (r.type === '优惠券') return `${r.prize}*1`;
+      return r.prize;
+    }
+    function filterMenu() {
+      const kw = $('menuSearch').value.trim();
+      document.querySelectorAll('.menu-item').forEach(el => { el.style.display = !kw || el.textContent.includes(kw) ? 'flex' : 'none'; });
+    }
+    function savePromoShareSettings() {
+      const title = $('promoShareTitle')?.value.trim() || '';
+      if (!title) return toast('请填写分享标题');
+      if (title.length > 50) return toast('分享标题不能超过50字');
+      if (!formAssets.promoShareImage) return toast('请上传分享图片');
+      toast('分享设置已保存');
+    }
+    function switchPromo(tab) {
+      document.querySelectorAll('.promo-menu div').forEach((el, i) => el.classList.toggle('active', (tab === 'link' && i === 0) || (tab === 'share' && i === 1)));
+      document.querySelectorAll('.promo-pane').forEach(p => p.classList.remove('active'));
+      $('promo-' + tab).classList.add('active');
+    }
+    function openModal(id) { $(id).classList.add('show'); }
+    function closeModal(id) { $(id).classList.remove('show'); }
+    function openMp(id) { $(id).classList.add('show'); }
+    function closeMp(id) { $(id).classList.remove('show'); }
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(t.timer);
+      t.timer = setTimeout(() => t.style.display = 'none', 1800);
+    }
+    loadLogicDoc();
+    renderTabs();
+    renderActivityList();
+    renderRewards();
+    renderRecordActivityOptions();
+    renderRecords();
+    resetFormAssets();
+    toggleShareFields();
+    renderMiniPreview();
+  </script>
+</body>
+</html>
