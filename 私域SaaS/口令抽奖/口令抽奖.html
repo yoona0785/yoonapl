@@ -254,7 +254,8 @@
     .radio-line input { accent-color: var(--primary); }
     .coupon-add-line { height: 32px; display: flex; align-items: center; }
     .coupon-filter-line { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
-    .coupon-filter-line .field { white-space: nowrap; }
+    .coupon-filter-line .field, .coupon-filter-grid .field { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+    .coupon-field-label { flex: 0 0 auto; color: var(--text); white-space: nowrap; }
     .user-detail { padding: 0 28px 28px; background: #fff; min-height: calc(100vh - 48px); }
     .user-head { height: 54px; display: flex; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
     .user-head .back { color: #333; cursor: pointer; font-size: 14px; }
@@ -277,7 +278,10 @@
     .empty-box { height: 136px; border-bottom: 1px solid var(--divider); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 13px; }
     .mini-table th, .mini-table td { height: 42px; }
     .coupon-filter-line .input { width: 150px; }
-    .coupon-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 16px; margin-bottom: 12px; }
+    .coupon-filter-grid { display: grid; grid-template-columns: max-content max-content; align-items: center; justify-content: start; gap: 12px 32px; margin-bottom: 12px; }
+    .coupon-filter-grid .select { width: 120px; }
+    .coupon-time-field { justify-content: flex-start; }
+    .coupon-time-field .dt { width: 160px; }
     .coupon-filter-actions { display: flex; align-items: center; gap: 10px; }
     .coupon-more-filters { display: none; }
     .coupon-more-filters.show { display: grid; }
@@ -582,7 +586,6 @@
 
           <section class="page" id="page-data">
             <div class="page-title"><h1>抽奖数据</h1></div>
-            <div class="stats"><div class="stat"><div class="label">参与用户</div><div class="num" id="dataUsers">0</div></div><div class="stat"><div class="label">中奖记录</div><div class="num" id="dataWinners">0</div></div></div>
             <div class="card">
               <div class="toolbar">
                 <div class="filters">
@@ -690,7 +693,7 @@
     <div class="form-row" id="prizeStockRow"><label class="req">奖品份数</label><div><input class="input wide" id="prizeStock" type="number" min="1" step="1" placeholder="请输入正整数"><span style="margin-left:8px;color:#666">份</span></div></div>
     <div class="form-row"><label class="req">中奖概率</label><input class="input wide" id="prizeRate" type="number" min="0" max="100" step="0.01" onblur="formatPrizeRate()" value="12.50"></div>
   </div><div class="modal-ft"><button class="btn" onclick="closeModal('prizeModal')">取消</button><button class="btn btn-primary" onclick="savePrize()">保存</button></div></div></div>
-  <div class="modal-mask" id="couponModal"><div class="modal modal-xl"><div class="modal-hd"><span>选择优惠券</span><span class="close" onclick="closeModal('couponModal')">×</span></div><div class="modal-bd"><div style="border:1px solid #9BAAD8;background:#EEF3FF;color:#051D86;padding:10px 12px;border-radius:4px;margin-bottom:12px">ℹ 只可选择手动发放类型的券，赠券数不可超过优惠券剩余发放数</div><div class="coupon-filter-line"><div class="field">优惠券名称：<input class="input" id="couponFilterName" placeholder="请输入名称"></div><div class="field">优惠券ID：<input class="input" id="couponFilterId" placeholder="请输入ID"></div><div class="coupon-filter-actions"><button class="search-icon-btn" onclick="renderCouponOptions()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button><button class="btn" onclick="toggleCouponMoreSearch()">更多搜索⌄</button><button class="btn" onclick="renderCouponOptions()">刷新数据</button></div></div><div class="coupon-filter-grid coupon-more-filters" id="couponMoreFilters"><div class="field">券类型：<select class="select" id="couponFilterType"><option value="">全部</option><option>满门槛券</option><option>无门槛券</option></select></div><div class="field">券时间：<input class="input dt" id="couponFilterStart" type="datetime-local"><span>至</span><input class="input dt" id="couponFilterEnd" type="datetime-local"></div></div><table><thead><tr><th style="width:54px"></th><th style="width:92px">奖券数</th><th style="width:180px">优惠券名称</th><th>优惠信息</th><th>发券时间</th><th>优惠承担</th><th>券有效期</th><th>发券量/领取数</th></tr></thead><tbody id="couponOptionTbody"></tbody></table></div><div class="modal-ft"><button class="btn" onclick="closeModal('couponModal')">取消</button><button class="btn btn-primary" onclick="confirmCouponSelect()">确定</button></div></div></div>
+  <div class="modal-mask" id="couponModal"><div class="modal modal-xl"><div class="modal-hd"><span>选择优惠券</span><span class="close" onclick="closeModal('couponModal')">×</span></div><div class="modal-bd"><div style="border:1px solid #9BAAD8;background:#EEF3FF;color:#051D86;padding:10px 12px;border-radius:4px;margin-bottom:12px">ℹ 只可选择手动发放类型的券，赠券数不可超过优惠券剩余发放数</div><div class="coupon-filter-line"><div class="field"><span class="coupon-field-label">优惠券名称：</span><input class="input" id="couponFilterName" placeholder="请输入名称"></div><div class="field"><span class="coupon-field-label">优惠券ID：</span><input class="input" id="couponFilterId" placeholder="请输入ID"></div><div class="coupon-filter-actions"><button class="search-icon-btn" onclick="renderCouponOptions()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button><button class="btn" onclick="toggleCouponMoreSearch()">更多搜索⌄</button><button class="btn" onclick="renderCouponOptions()">刷新数据</button></div></div><div class="coupon-filter-grid coupon-more-filters" id="couponMoreFilters"><div class="field"><span class="coupon-field-label">券类型：</span><select class="select" id="couponFilterType"><option value="">全部</option><option>满门槛券</option><option>无门槛券</option></select></div><div class="field coupon-time-field"><span class="coupon-field-label">发券时间：</span><input class="input dt" id="couponFilterStart" type="datetime-local"><span>至</span><input class="input dt" id="couponFilterEnd" type="datetime-local"></div></div><table><thead><tr><th style="width:54px"></th><th style="width:92px">奖券数</th><th style="width:180px">优惠券名称</th><th>优惠信息</th><th>发券时间</th><th>优惠承担</th><th>券有效期</th><th>发券量/领取数</th></tr></thead><tbody id="couponOptionTbody"></tbody></table></div><div class="modal-ft"><button class="btn" onclick="closeModal('couponModal')">取消</button><button class="btn btn-primary" onclick="confirmCouponSelect()">确定</button></div></div></div>
   <div class="modal-mask" id="detailModal"><div class="modal modal-md"><div class="modal-hd"><span>抽奖记录详情</span><span class="close" onclick="closeModal('detailModal')">×</span></div><div class="modal-bd" id="detailBody"></div></div></div>
   <div class="modal-mask" id="imagePreviewModal"><div class="modal modal-sm"><div class="modal-hd"><span>查看奖品图</span><span class="close" onclick="closeModal('imagePreviewModal')">×</span></div><div class="modal-bd" style="display:flex;justify-content:center"><img id="imagePreviewTarget" alt="奖品图" style="max-width:260px;max-height:260px;border:1px solid #E8ECF0;border-radius:4px"></div></div></div>
   <div class="op-menu" id="opMenu"></div>
@@ -1725,8 +1728,6 @@
         return `<tr><td><div class="link" onclick="viewActivity('${r.activityId}')">${activityName}</div><div class="sub">ID：${r.activityId} <span class="tag tag-orange">口令抽奖</span></div></td><td><span class="link" onclick="openUserDetail('${r.userId}')">${r.nick}</span><div class="sub">${r.phone} / ${r.userId}</div></td><td>${r.code}</td><td>${r.prize}</td><td>${r.status === '发放成功' ? '<span class="tag tag-green">发放成功</span>' : '-'}</td><td>${r.time}</td></tr>`;
       }).join('');
       $('recordTotal').textContent = list.length;
-      $('dataUsers').textContent = list.length;
-      $('dataWinners').textContent = list.filter(r => r.type !== '空奖').length;
     }
     function renderRecordActivityOptions() {
       if (!$('recordActivity')) return;
