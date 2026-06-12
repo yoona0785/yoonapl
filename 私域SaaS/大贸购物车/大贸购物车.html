@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>大贸购物车原型</title>
+  <style>
+    :root{
+      --primary:#051D86;--primary-hover:#3347a8;--primary-light:#EBF0FF;
+      --text-title:#17233d;--text-main:#515a6e;--text-sub:#808695;--text-hint:#c5c8ce;
+      --border:#dcdee2;--border-inner:#e8eaec;--bg-page:#f5f7f9;--bg-white:#fff;
+      --mp-primary:#6949BD;--mp-primary-light:#A35CE1;--mp-accent:#FF137D;--mp-bg:#F5F5F5;
+      --mp-text:#131313;--mp-sub:#717171;--mp-hint:#A1A1A1;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:#333;background:var(--bg-page)}
+    button,input,select{font:inherit}
+    .workbench{display:flex;height:100vh;overflow:hidden}
+    .logic-rail{width:48px;flex:0 0 48px;background:#fff;border-right:1px solid #ececec;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--primary);font-size:13px;letter-spacing:0;writing-mode:vertical-rl;user-select:none}
+    .logic-panel{display:none;width:40vw;min-width:420px;flex:0 0 40vw;background:#fff;border-right:1px solid #ececec;overflow:hidden;flex-direction:column}
+    .logic-panel.open{display:flex}
+    .logic-head{height:56px;border-bottom:1px solid #ececec;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+    .logic-head strong{font-size:16px;color:#17233d}
+    .logic-actions{display:flex;gap:12px;align-items:center}
+    .logic-actions button,.link-btn{border:0;background:transparent;color:var(--primary);cursor:pointer}
+    .logic-src{font-size:12px;color:#808695;padding:10px 18px;border-bottom:1px solid #f2f2f2;background:#FAFBFD}
+    .logic-doc{padding:18px 22px 40px;overflow:auto;line-height:1.75;font-size:13px}
+    .logic-doc h1{font-size:20px;margin:0 0 14px;color:#17233d}
+    .logic-doc h2{font-size:16px;margin:22px 0 10px;padding-left:10px;border-left:3px solid var(--primary);color:#17233d}
+    .logic-doc h3{font-size:14px;margin:16px 0 8px;color:#17233d}
+    .logic-doc p{margin:6px 0}
+    .logic-doc ul{padding-left:18px;margin:8px 0}
+    .logic-doc li{margin:4px 0}
+    .prototype-area{flex:1;overflow:auto;background:#eef1f5}
+    .prototype-shell{min-width:1180px;height:100%;display:flex;flex-direction:column}
+    .modebar{height:48px;background:#fff;border-bottom:1px solid #ececec;display:flex;align-items:center;gap:8px;padding:0 16px;position:sticky;top:0;z-index:20}
+    .modebar .brand{font-size:15px;font-weight:600;color:var(--primary);margin-right:16px}
+    .seg{height:32px;border:1px solid #dcdee2;background:#fff;border-radius:4px;padding:0 14px;color:#515a6e;cursor:pointer}
+    .seg.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:10000;background:#fff;border:1px solid #19be6b;color:#135200;border-radius:6px;padding:10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none}
+    .screen{display:none;min-height:calc(100vh - 48px)}
+    .screen.active{display:block}
+
+    /* PC admin */
+    .admin{height:calc(100vh - 48px);display:grid;grid-template-columns:160px 1fr;grid-template-rows:48px 1fr;background:#f4f6f9}
+    .admin-top{grid-column:1/3;display:flex;align-items:center;background:#fff;border-bottom:1px solid #ececec}
+    .admin-logo{width:160px;color:var(--primary);font-weight:700;font-size:15px;padding-left:24px;border-right:1px solid #ececec}
+    .hamb{padding:0 18px;color:#666}
+    .admin-tabs{display:flex;align-items:center;gap:18px;height:48px;flex:1}
+    .admin-tab{height:48px;display:flex;align-items:center;font-size:14px;color:#666;position:relative;cursor:pointer}
+    .admin-tab.active{color:var(--primary);font-weight:600}
+    .admin-tab.active:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--primary)}
+    .admin-user{padding:0 22px;color:#515a6e}
+    .sider{background:#fff;border-right:1px solid #ececec;padding:16px 12px;overflow:auto}
+    .menu-search{height:30px;border:1px solid #ececec;border-radius:5px;width:100%;padding:0 10px;color:#515a6e;margin-bottom:14px}
+    .mgroup{margin-bottom:4px}
+    .m1{height:40px;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:4px;color:#333;cursor:pointer;font-size:14px}
+    .m1:hover,.m1.active{background:#f0f3ff;color:var(--primary)}
+    .m2{height:32px;display:flex;align-items:center;padding-left:36px;border-radius:4px;font-size:12px;color:#666;cursor:pointer}
+    .m2.active,.m2:hover{background:#ebf0ff;color:var(--primary);font-weight:600}
+    .admin-main{overflow:auto;padding:16px 18px 28px}
+    .pc-page{display:none;background:#fff;min-height:calc(100vh - 96px);padding:18px 20px;box-shadow:0 1px 0 1px #efeded}
+    .pc-page.active{display:block}
+    .page-title{display:flex;align-items:center;justify-content:space-between;height:38px;border-bottom:1px solid #ececec;margin-bottom:18px}
+    .page-title h2{font-size:15px;font-weight:500;margin:0;color:#17233d}
+    .btn-primary{height:32px;padding:0 15px;border-radius:4px;background:var(--primary);color:#fff;border:0;cursor:pointer}
+    .btn-primary:hover{background:var(--primary-hover)}
+    .btn-default{height:32px;padding:0 15px;border-radius:4px;background:#fff;color:#515a6e;border:1px solid #dcdee2;cursor:pointer}
+    .btn-text{border:0;background:transparent;color:var(--primary);cursor:pointer;padding:0}
+    .form-section{margin-bottom:24px}
+    .section-title{border-left:3px solid var(--primary);padding-left:10px;font-size:15px;font-weight:600;margin:18px 0 14px}
+    .form-row{display:grid;grid-template-columns:180px 520px 1fr;align-items:center;gap:12px;min-height:46px;font-size:13px}
+    .form-row label{text-align:right;color:#515a6e}
+    .req{color:#ed4014}
+    .input,.select{height:32px;border:1px solid #dcdee2;border-radius:4px;padding:0 8px;background:#fff;color:#515a6e}
+    .hint{color:#999;font-size:13px}
+    .radio-group,.check-group{display:flex;gap:18px;align-items:center}
+    .radio,.check{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#515a6e}
+    .dot,.box{width:14px;height:14px;border:1px solid #c9d0e0;display:inline-block;position:relative;background:#fff}
+    .dot{border-radius:50%}.box{border-radius:3px;width:16px;height:16px}
+    .radio.active .dot{border-color:var(--primary)}.radio.active .dot:after{content:"";position:absolute;inset:3px;background:var(--primary);border-radius:50%}
+    .check.active .box{background:var(--primary);border-color:var(--primary)}
+    .check.active .box:after{content:"";position:absolute;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);left:3px;top:4px}
+    .searchbar{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+    .searchbar label{font-size:13px;color:#515a6e}
+    .order-status-tabs{height:48px;display:flex;align-items:center;gap:34px;border-bottom:1px solid #ececec;margin-bottom:18px}
+    .order-status-tabs button{height:48px;border:0;background:transparent;color:#515a6e;font-size:14px;padding:0;position:relative;cursor:pointer}
+    .order-status-tabs button.active{color:var(--primary);font-weight:600}
+    .order-status-tabs button.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--primary)}
+    .order-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+    .order-toolbar label{font-size:13px;color:#515a6e}
+    .order-toolbar .keyword{width:540px;height:32px}
+    .order-toolbar-spacer{flex:1}
+    .icon-btn{width:52px;height:32px;border:1px solid #dcdee2;border-radius:4px;background:#fff;color:#333;font-size:17px;cursor:pointer}
+    .more-btn{height:32px;border:1px solid #dcdee2;border-radius:4px;background:#fff;color:#515a6e;padding:0 16px;cursor:pointer}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th{height:40px;background:#f8f8f9;color:#666;font-weight:500;font-size:13px;text-align:left;padding:0 12px}
+    td{border-bottom:1px solid #f2f2f2;padding:12px;font-size:13px;color:#515a6e;vertical-align:top}
+    tr:hover td{background:#f9fbff}
+    .goods-cell{display:flex;gap:10px;align-items:flex-start}
+    .thumb{width:58px;height:58px;border-radius:4px;border:1px solid #eee;object-fit:cover;background:#fafafa}
+    .tag{display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:3px;font-size:12px;background:#ebf0ff;color:var(--primary);margin-left:8px}
+    .tag.gray{background:#f5f5f5;color:#999}.tag.orange{background:#fff3e5;color:#ff8a00}.tag.green{background:#e8fff0;color:#14c45a}
+    .pager{height:48px;border-top:1px solid #ececec;display:flex;justify-content:flex-end;align-items:center;gap:12px;color:#666;font-size:13px}
+    .detail-status{height:104px;background:#f5f7f9;display:grid;grid-template-columns:180px 1fr;align-items:center;padding:0 24px;margin-bottom:26px}
+    .detail-status strong{font-size:22px;color:var(--primary)}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);align-items:center;color:#999;font-size:12px;position:relative;gap:0}
+    .steps:before{content:"";position:absolute;left:34px;right:34px;top:14px;height:2px;background:#d9d9d9}
+    .steps span{position:relative;z-index:1;background:#f5f7f9;display:flex;align-items:center;gap:8px;justify-content:center}
+    .step-dot{width:28px;height:28px;border-radius:50%;background:#ddd;display:inline-flex;align-items:center;justify-content:center;color:#fff;margin-right:6px}
+    .info-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 64px;font-size:13px;margin-bottom:30px}
+    .sum{display:flex;justify-content:flex-end;align-items:flex-end;gap:10px;margin-top:18px}.sum b{font-size:20px;color:#e60012}
+
+    /* Modal */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:9990;display:none;align-items:center;justify-content:center}
+    .modal{width:680px;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16)}
+    .modal.wide{width:1180px;max-width:calc(100vw - 80px)}
+    .modal-head{height:50px;border-bottom:1px solid #ececec;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:16px;font-weight:500}
+    .modal-body{padding:18px;max-height:520px;overflow:auto}.modal-close{cursor:pointer;font-size:22px;color:#999}
+    .wide-table-wrap{overflow:auto;border:1px solid #f2f2f2}
+    .wide-table{min-width:2100px}
+    .edit-grid{display:grid;grid-template-columns:140px minmax(0,1fr) 140px minmax(0,1fr);gap:14px 12px;align-items:center}
+    .edit-grid label{text-align:right;color:#515a6e;font-size:13px}
+    .confirm-modal{width:390px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.16)}
+    .confirm-body{padding:20px 22px 16px}
+    .confirm-title{display:flex;align-items:center;gap:8px;font-weight:600;color:#333}
+    .confirm-icon{width:20px;height:20px;border-radius:50%;background:#FF7800;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+    .confirm-desc{margin:10px 0 0 28px;color:#666;font-size:13px;line-height:22px}
+    .confirm-foot{height:56px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;align-items:center;padding:0 20px}
+
+    /* Mini program */
+    .mini-wrap{display:flex;gap:18px;padding:22px;align-items:flex-start;justify-content:center;min-height:calc(100vh - 48px)}
+    .mini-nav{width:190px;background:#fff;border:1px solid #e8eaec;padding:12px;position:sticky;top:70px}
+    .mini-nav button{width:100%;height:36px;border:0;background:#fff;text-align:left;padding:0 10px;border-radius:6px;color:#515a6e;cursor:pointer;margin-bottom:4px}
+    .mini-nav button.active,.mini-nav button:hover{background:#ebf0ff;color:var(--primary)}
+    .phone{width:375px;height:812px;background:var(--mp-bg);border-radius:0;overflow:hidden;position:relative;box-shadow:0 10px 36px rgba(0,0,0,.18);font-family:"PingFang SC",-apple-system,sans-serif}
+    .mp-page{position:absolute;inset:0;display:none;background:#f5f5f5;color:var(--mp-text)}
+    .mp-page.active{display:block}
+    .statusbar{height:20px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:600;font-size:12px;color:#000;position:relative;z-index:3}
+    .capsule{position:absolute;right:7px;top:27px;width:90px;height:30px;border-radius:18px;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:space-around;z-index:4;color:#000}
+    .capsule:after{content:"";height:18px;width:1px;background:#d8d8d8;position:absolute;left:45px}
+    .navtitle{height:44px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;position:relative;z-index:3}
+    .back{position:absolute;left:15px;top:34px;width:34px;height:34px;z-index:5;border:0;background:transparent;cursor:pointer}
+    .back:before{content:"";display:block;width:11px;height:11px;border-left:2px solid #111;border-bottom:2px solid #111;transform:rotate(45deg);margin:10px 0 0 8px}
+    .mp-scroll{height:calc(100% - 64px);overflow:auto;padding-bottom:86px}
+    .mp-card{background:#fff;border-radius:12px;margin:10px 12px;padding:14px}
+    .mp-bottom{position:absolute;left:0;right:0;bottom:0;height:64px;background:#fff;box-shadow:0 -1px 8px rgba(0,0,0,.05);display:flex;align-items:center;z-index:8;padding-bottom:8px}
+    .mp-btn{border:0;border-radius:22px;height:44px;padding:0 18px;color:#fff;background:linear-gradient(90deg,var(--mp-primary),var(--mp-primary-light));font-size:16px;font-weight:500;cursor:pointer}
+    .mp-btn.secondary{background:#fff;color:var(--mp-primary);border:1px solid var(--mp-primary)}
+    .mp-price{color:var(--mp-accent);font-weight:700}
+    .hero{height:310px;background:linear-gradient(170deg,#c9bbff 0%,#f5efff 62%,#f5f5f5 63%);position:relative;padding-top:64px}
+    .hero .can{position:absolute;right:70px;top:92px;width:102px;height:126px;object-fit:cover;border-radius:6px}
+    .badge-stack{position:absolute;left:36px;top:92px;color:#fff;font-weight:600;text-align:center}
+    .badge-stack div{width:128px;height:52px;border-radius:8px;background:rgba(255,255,255,.35);margin-bottom:18px;padding-top:9px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.8)}
+    .qr{position:absolute;left:14px;right:14px;bottom:8px;height:104px;background:#9659e8;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:space-around;font-size:28px;font-weight:700}
+    .product-title{font-size:17px;font-weight:600;line-height:1.45;margin:10px 0}
+    .coupon-row{height:32px;display:flex;align-items:center;gap:8px;color:var(--mp-accent);font-size:12px}
+    .spec-chip{display:inline-flex;align-items:center;gap:6px;height:34px;border-radius:8px;background:#f7f7f7;padding:0 10px;margin:0 6px 8px 0;color:#333;font-size:14px}
+    .spec-chip.active{background:#f2ecff;border:1px solid var(--mp-primary);color:var(--mp-primary)}
+    .spec-chip.disabled{opacity:.45;border:1px dashed #ccc;background:#fff}
+    .bottom-icons{display:flex;align-items:center;gap:16px;padding-left:10px;width:150px;color:#333;font-size:11px}
+    .bottom-icons span{display:flex;flex-direction:column;align-items:center;gap:3px}
+    .bottom-icons em{font-style:normal}
+    .detail-actions{display:flex;gap:0;flex:1;padding-right:8px}.detail-actions .mp-btn{flex:1;border-radius:22px 0 0 22px}.detail-actions .mp-btn + .mp-btn{border-radius:0 22px 22px 0}
+    .sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;align-items:flex-end}
+    .sheet{width:100%;height:563px;background:#fff;border-radius:20px 20px 0 0;position:relative;padding:28px 15px 80px}
+    .sheet-close{position:absolute;right:18px;top:18px;font-size:30px;color:#0d1b2a;cursor:pointer}
+    .sheet-top{display:grid;grid-template-columns:112px 1fr 112px;gap:12px;align-items:center}
+    .qty{display:inline-flex;align-items:center;border-radius:6px;overflow:hidden;background:#f7f7f7}
+    .qty button{width:34px;height:30px;border:0;background:#f7f7f7;font-size:20px;cursor:pointer}.qty span{width:34px;text-align:center}
+    .selected-bar{position:absolute;left:0;right:0;bottom:58px;height:46px;background:#f2e9ff;color:var(--mp-primary);display:flex;align-items:center;padding:0 16px;font-size:14px}
+    .cart-tabs{height:42px;display:flex;align-items:center;gap:20px;padding:0 12px;background:#fff;font-size:15px;white-space:nowrap}.cart-tabs span.active{color:var(--mp-primary);font-weight:600}
+    .cart-tip{height:32px;background:#f1e7ff;color:var(--mp-primary);font-size:13px;display:flex;align-items:center;padding:0 12px;justify-content:space-between}
+    .cart-group{background:#fff;border-radius:10px;margin:10px 10px 0;padding:12px}
+    .cart-item{display:grid;grid-template-columns:28px 90px 1fr;gap:8px;margin-top:12px;position:relative}
+    .round-check{width:18px;height:18px;border:1px solid #ddd;border-radius:50%;display:inline-block;position:relative;margin-top:34px}
+    .round-check.active{background:var(--mp-primary);border-color:var(--mp-primary)}
+    .round-check.active:after{content:"";position:absolute;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);left:4px;top:5px}
+    .cart-img{width:82px;height:82px;border-radius:8px;object-fit:cover;background:#f8f8f8}
+    .item-title{font-size:14px;font-weight:600;line-height:1.35}.item-spec{font-size:12px;color:#999;margin-top:2px}
+    .invalid .cart-img{filter:grayscale(1);opacity:.65}.invalid .round-check{visibility:hidden}
+    .swipe-actions{position:absolute;right:0;top:0;bottom:0;display:flex;transform:translateX(0)}
+    .swipe-action{width:56px;border:0;color:#fff;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
+    .swipe-action.collect{background:#ff137d;border-radius:8px 0 0 8px}.swipe-action.delete{background:#6949bd;border-radius:0 8px 8px 0}
+    .cart-item.swiped{padding-right:112px}
+    .cart-price{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;min-width:0}
+    .cart-price .activity-tag{font-size:11px;color:#ff137d;font-weight:600}
+    .cart-price .origin-price,.origin-price{font-size:11px;color:#999;text-decoration:line-through}
+    .settle{padding:0 12px;gap:8px}.settle .select-all{display:flex;align-items:center;gap:6px;height:44px}.settle .select-all .round-check{margin-top:0}.settle .total{flex:1;font-size:15px}.settle .mp-btn{width:112px}
+    .addr{font-size:20px;font-weight:600;line-height:1.45}.order-product{display:grid;grid-template-columns:94px 1fr;gap:12px}
+    .readonly-note{font-size:12px;color:#999;text-align:right;margin-top:8px}
+    .fee-row{display:flex;justify-content:space-between;height:36px;align-items:center;font-size:16px}.fee-row span:last-child{color:#333}
+    .agree{display:flex;gap:8px;margin:12px;color:#666;font-size:14px;line-height:1.6}
+    .order-tabs{display:flex;height:42px;background:#fff;align-items:center;justify-content:space-around;font-size:15px}.order-tabs span.active{color:var(--mp-primary);font-weight:600;border-bottom:4px solid var(--mp-primary);height:42px;line-height:42px}
+    .order-card{background:#fff;border-radius:8px;margin:10px 12px;padding:14px}.order-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:10px}.order-status{color:#666}
+    .order-line{display:grid;grid-template-columns:82px 1fr;gap:10px;margin-top:8px}.order-line img{width:82px;height:82px;border-radius:8px;object-fit:cover}
+    .order-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.small-pill{height:30px;border:0;border-radius:16px;padding:0 16px;background:#f2f2f2;color:#666}.small-pill.primary{background:linear-gradient(90deg,var(--mp-primary),var(--mp-primary-light));color:#fff}
+    .detail-address{font-size:16px;font-weight:600;line-height:1.45;margin-top:10px}
+    .detail-fee{display:flex;justify-content:space-between;height:36px;align-items:center;font-size:14px;color:#555}
+    .detail-fee.strong{font-weight:600;color:#333}.detail-fee.strong span{color:var(--mp-accent)}
+    .detail-info-row{display:flex;justify-content:space-between;align-items:center;min-height:34px;color:#555;font-size:13px}
+    .mp-toast{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);background:rgba(0,0,0,.72);color:#fff;border-radius:8px;padding:10px 16px;font-size:14px;z-index:40;display:none}
+    /* 小程序前台字号收敛：参考常规小程序密度，覆盖早期偏大的展示字号 */
+    .phone{font-size:12px}
+    .phone .navtitle{font-size:16px}
+    .phone .mp-card{font-size:12px;line-height:1.45}
+    .phone .product-title{font-size:14px!important;line-height:1.38}
+    .phone .item-title{font-size:12px!important;line-height:1.35}
+    .phone .item-spec,.phone .readonly-note,.phone .cart-tip,.phone .coupon-row{font-size:11px}
+    .phone .mp-btn{font-size:13px;height:40px}
+    .phone .qr{font-size:20px}
+    .phone .qr span:last-child{font-size:30px!important}
+    .phone .mp-price{font-size:18px!important}
+    #mpDetail .mp-scroll .mp-card:first-child .mp-price{font-size:21px!important}
+    .phone .sheet .mp-price{font-size:24px!important}
+    .phone .settle .mp-price{font-size:20px!important}
+    .phone .addr{font-size:16px;line-height:1.4}
+    .phone .fee-row{font-size:13px;height:32px}
+    .phone .agree{font-size:12px;line-height:1.5}
+    .phone .cart-tabs,.phone .order-tabs{font-size:13px}
+    .phone .order-head{font-size:12px}
+    .phone .spec-chip{font-size:12px;height:30px}
+    .phone h3{font-size:14px!important}
+    .phone .selected-bar{font-size:12px}
+    .phone .qty button{font-size:16px}
+    .phone .bottom-icons{font-size:10px}
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast">保存成功</div>
+  <div class="workbench">
+    <div class="logic-rail" id="logicRail" onclick="toggleLogic(true)">展开逻辑</div>
+    <aside class="logic-panel" id="logicPanel">
+      <div class="logic-head">
+        <strong>大贸购物车需求逻辑</strong>
+        <div class="logic-actions">
+          <label class="link-btn">同步本地文档<input id="docInput" type="file" accept=".md,.markdown,.txt" hidden></label>
+          <button onclick="toggleLogic(false)">收起逻辑</button>
+        </div>
+      </div>
+      <div class="logic-src" id="logicSrc">来源：HTML 内置需求梳理</div>
+      <div class="logic-doc" id="logicDoc"></div>
+    </aside>
+    <main class="prototype-area">
+      <div class="prototype-shell">
+        <div class="modebar">
+          <div class="brand">大贸购物车原型</div>
+          <button class="seg active" data-screen="adminScreen">PC 后台</button>
+          <button class="seg" data-screen="miniScreen">小程序</button>
+          <span style="margin-left:auto;color:#999;font-size:13px">单文件可交互原型</span>
+        </div>
+
+        <section class="screen active" id="adminScreen">
+          <div class="admin">
+            <div class="admin-top">
+              <div class="admin-logo">私域运营平台</div>
+              <div class="hamb">☰</div>
+              <div class="admin-tabs" id="adminTabs">
+                <div class="admin-tab active" data-page="configPage">业务配置 ×</div>
+                <div class="admin-tab" data-page="goodsPage">商品列表 ×</div>
+                <div class="admin-tab" data-page="orderListPage">订单管理 ×</div>
+                <div class="admin-tab" data-page="orderDetailPage">订单详情 ×</div>
+              </div>
+              <div class="admin-user">运营管理员 ▾</div>
+            </div>
+            <aside class="sider">
+              <input class="menu-search" id="menuSearch" placeholder="搜索关键字">
+              <div class="mgroup" data-menu="商品中心"><div class="m1">▣ 商品中心 ›</div><div class="m2" onclick="showPcPage('goodsPage')">商品管理</div><div class="m2">品牌管理</div><div class="m2">分类管理</div><div class="m2">商品API</div><div class="m2">供应商管理</div></div>
+              <div class="mgroup" data-menu="订单中心"><div class="m1 active">▣ 订单中心 ›</div><div class="m2 active" onclick="showPcPage('orderListPage')">订单管理</div><div class="m2">支付分账</div><div class="m2">发货规则</div></div>
+              <div class="mgroup" data-menu="系统配置"><div class="m1 active">▣ 系统配置 ›</div><div class="m2 active" onclick="showPcPage('configPage')">业务配置</div><div class="m2">内容配置</div></div>
+              <div class="mgroup" data-menu="小程序前端"><div class="m1" onclick="openMiniFromPcMenu()">▣ 小程序前端 ›</div><div class="m2" onclick="openMiniFromPcMenu('mpDetail')">商品详情</div><div class="m2" onclick="openMiniFromPcMenu('mpCart')">购物车</div><div class="m2" onclick="openMiniFromPcMenu('mpConfirm')">确认订单</div><div class="m2" onclick="openMiniFromPcMenu('mpOrders')">我的订单</div></div>
+            </aside>
+            <div class="admin-main">
+              <section class="pc-page" id="goodsPage">
+                <div class="page-title"><h2>商品列表</h2><div><button class="btn-default">导出</button> <button class="btn-default">导入修改</button> <button class="btn-primary">⊕ 新增</button></div></div>
+                <div class="searchbar">
+                  <label>商品名称：</label><input class="input" id="goodsKeyword" style="width:220px" placeholder="请输入商品名称">
+                  <label>商品类型：</label><select class="select" id="goodsType"><option value="">全部</option><option>普通商品</option><option>跨境商品</option></select>
+                  <label>商品品牌：</label><select class="select" id="goodsBrand"><option value="">请选择</option><option>Nature's Way</option><option>Boiron</option><option>爱他美</option></select>
+                  <button class="btn-text" onclick="renderGoodsTable()">🔍</button><button class="btn-text" onclick="clearGoodsSearch()">清空</button>
+                </div>
+                <table>
+                  <thead><tr><th style="width:22%">商品名称</th><th>SPU</th><th>品牌</th><th>分类</th><th>商品来源</th><th>发货仓</th><th>售价</th><th>API商品编码</th><th>总库存</th><th>访客数</th><th>访问量</th><th>销量</th><th>虚拟销量</th><th>创建</th><th>操作</th></tr></thead>
+                  <tbody id="goodsTbody"></tbody>
+                </table>
+                <div class="pager">共 3398 条　‹　<span class="tag">1</span>　2　3　4　5　…　170　<select class="select"><option>20 条/页</option></select></div>
+              </section>
+
+              <section class="pc-page active" id="configPage">
+                <div class="page-title"><h2>业务配置</h2><button class="btn-primary" onclick="saveConfig()">保存</button></div>
+                <div class="form-section">
+                  <div class="section-title">订单配置</div>
+                  <div class="form-row"><label>待付款订单自动取消时间 <span class="req">*</span></label><input class="input" value="30"><div class="hint">注：提交订单在设置时间内未付款，自动取消订单</div></div>
+                  <div class="form-row"><label>发货后自动确认收货时间 <span class="req">*</span></label><input class="input" value="7"><div class="hint">注：订单发货后，超过时间自动收货订单状态为已完成</div></div>
+                  <div class="form-row"><label>确认收货后商品可评价时间 <span class="req">*</span></label><input class="input" value="60"><div class="hint">注：订单收货后，用户可在在设置的时间范围内对商品进行评价</div></div>
+                  <div class="form-row"><label>收货后申请售后期限 <span class="req">*</span></label><input class="input" value="45"><div class="hint">注：订单自动/用户确认收货后，超过期限不支持申请售后</div></div>
+                  <div class="form-row"><label>售后单审核设置 <span class="req">*</span></label><div class="radio-group js-radio"><span class="radio active"><i class="dot"></i>关闭，默认审核通过</span><span class="radio"><i class="dot"></i>开启，需人工审核</span></div><div class="hint">注：审核通过的售后单才会走售后流程</div></div>
+                  <div class="form-row"><label>售后单审核时效 <span class="req">*</span></label><input class="input" value="1"><div class="hint">注：超过期限未审核，将自动审核通过走售后流程</div></div>
+                  <div class="form-row"><label>售后单退货时效 <span class="req">*</span></label><input class="input" value="7"><div class="hint">注：退货退款的售后，超过期限不上货物流自动售后关闭</div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">购物车配置</div>
+                  <div class="form-row"><label>购物车开关 <span class="req">*</span></label><div class="radio-group" id="cartSwitch"><span class="radio" data-on="1"><i class="dot"></i>开启</span><span class="radio active" data-on="0"><i class="dot"></i>关闭</span></div><div class="hint">注：开启后，商品详情与选规格弹窗可展示 加入购物车</div></div>
+                  <div class="form-row" id="cartTypesRow" style="display:none"><label>商品加购范围 <span class="req">*</span></label><div class="check-group" id="cartTypes"><span class="check" data-type="normal"><i class="box"></i>普通商品</span></div><div></div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">客服电话</div>
+                  <div class="form-row"><label>客服电话 <span class="req">*</span></label><input class="input" value="123"><div class="hint">注：消费者可直接点击号码拨打电话</div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">客服配置</div>
+                  <div class="form-row"><label>客服通道 <span class="req">*</span></label><div class="radio-group js-radio"><span class="radio active"><i class="dot"></i>微信客服</span><span class="radio"><i class="dot"></i>企微客服</span></div><div></div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">平台信息</div>
+                  <div class="form-row"><label>洽欧销售平台编码 <span class="req">*</span></label><input class="input" value="PC00225"><div class="hint">注：对接洽欧传输数据时使用</div></div>
+                  <div class="form-row"><label>电商平台海关编码 <span class="req">*</span></label><input class="input" value="5003980A15"><div class="hint">注：支付报关时使用</div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">企微信息</div>
+                  <div class="form-row"><label>企业微信对接 <span class="req">*</span></label><div class="radio-group js-radio"><span class="radio"><i class="dot"></i>开启</span><span class="radio active"><i class="dot"></i>关闭</span></div><div></div></div>
+                </div>
+              </section>
+
+              <section class="pc-page" id="orderListPage">
+                <div class="order-status-tabs" id="orderStatusTabs">
+                  <button class="active" data-status="">全部订单</button>
+                  <button data-status="待付款">待付款</button>
+                  <button data-status="待发货">待发货</button>
+                  <button data-status="已发货">已发货</button>
+                  <button data-status="已完成">已完成</button>
+                  <button data-status="已关闭">已关闭</button>
+                </div>
+                <div class="order-toolbar">
+                  <label>关键词：</label><input class="input keyword" id="orderKeyword" placeholder="订单编号/收货人/商品名称/收货手机号/会员编号/会员昵称">
+                  <button class="icon-btn" onclick="renderOrderTable()">⌕</button>
+                  <button class="more-btn" onclick="toggleMoreOrderSearch()">更多搜索⌄</button>
+                  <button class="btn-text" onclick="clearOrderSearch()">清空</button>
+                  <span class="order-toolbar-spacer"></span>
+                  <button class="btn-default">⇧ 导出</button>
+                  <button class="btn-default">⇧ 商品导出</button>
+                </div>
+                <div class="order-toolbar" id="moreOrderSearch" style="display:none">
+                  <label>订单类型：</label><select class="select" id="orderType"><option value="">全部</option><option>普通订单</option><option>跨境订单</option><option>直邮订单</option></select>
+                  <label>推送状态：</label><select class="select" id="pushStatus"><option value="">全部</option><option>推送成功</option><option>推送失败</option><option>不需要推送</option></select>
+                </div>
+                <table>
+                  <thead><tr><th style="width:28%">商品</th><th>单价</th><th>数量</th><th>优惠</th><th>售后状态</th><th>发货仓</th><th>用户</th><th>订单状态</th><th>推送状态</th></tr></thead>
+                  <tbody id="orderTbody"></tbody>
+                </table>
+                <div class="pager">共 665 条　‹　<span class="tag">1</span>　2　3　4　5　…　45　<select class="select"><option>15 条/页</option></select> 前往 <input class="input" style="width:46px"> 页</div>
+              </section>
+
+              <section class="pc-page" id="orderDetailPage">
+                <div class="page-title"><h2><button class="btn-text" onclick="showPcPage('orderListPage')">‹ 查看订单</button></h2><button class="btn-default">备注</button></div>
+                <div class="detail-status">
+                  <div><strong id="detailStatus">待发货</strong><div class="hint">清关状态：支付单推送成功</div></div>
+                  <div class="steps"><span><i class="step-dot">1</i>用户创建订单</span><span><i class="step-dot">2</i>用户付款</span><span><i class="step-dot">3</i>商家发货</span><span><i class="step-dot">4</i>订单完成</span></div>
+                </div>
+                <div class="section-title">订单信息</div>
+                <div class="info-grid">
+                  <div>订单编号：<span id="detailNo">DM20260611001-01</span></div><div>主单编码：<span id="detailParentNo">DM20260611001</span></div><div>订单类型：普通订单</div><div>创建时间：2026-06-11 17:03:56</div>
+                  <div>付款时间：-</div>
+                  <div>支付方式：-</div><div>交易主单号：<span id="detailMainNo">DM20260611001</span></div><div>交易子单号：<span id="detailSubNo">DM20260611001-01</span></div><div>已使用优惠券id：100149</div>
+                  <div>积分抵扣：￥0.00</div><div>买家备注：-</div>
+                </div>
+                <div class="section-title">用户信息</div>
+                <div class="info-grid">
+                  <div>用户ID：100143</div><div>用户昵称：默认会员100143</div><div>用户手机号：186****5329</div><div>订单邀请人：-</div>
+                  <div>订单邀请渠道：-</div><div>unionid：oKg2n6F...</div><div>openid：ocJcG7...</div><div>external_userid：wm-7lfL...</div>
+                  <div style="grid-column:1 / -1">系统标签：宝宝月龄，用户特征-会员性别-女，是否关注企业微信，宝宝阶段，是否新客-否，宝宝月龄-2，回购周期，历史是否购买，购买数量，是否完成首单，本月注册用户且已完成首单，女性或者新客</div>
+                </div>
+                <div class="section-title">订单物流</div>
+                <div class="info-grid">
+                  <div>收货人：xmm</div><div>收货人电话：18638645324</div><div>收货地址：北京市北京市城区湖哈哈哈哈</div><div>物流公司名称：-</div>
+                </div>
+                <div class="section-title">商品信息</div>
+                <table>
+                  <thead><tr><th style="width:18%">商品</th><th>批次</th><th>分账信息</th><th>规格</th><th>状态</th><th>商品售价</th><th>购买数量</th><th>商品实付总价</th><th>商品优惠</th><th>商品税费</th><th>订单运费</th></tr></thead>
+                  <tbody id="detailGoods"></tbody>
+                </table>
+                <div class="sum">订单实付金额：<b id="detailPay">￥276.16</b></div>
+                <div class="hint" style="text-align:right">订单实付金额=商品原总价-商品优惠-积分抵扣+商品税费+订单运费</div>
+                <div class="section-title" style="margin-top:34px">订单日志</div>
+                <table>
+                  <thead><tr><th>操作时间</th><th>操作人</th><th>操作内容</th><th>状态变更</th></tr></thead>
+                  <tbody id="orderLogTbody"></tbody>
+                </table>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="miniScreen">
+          <div class="mini-wrap">
+            <div class="mini-nav">
+              <button class="active" data-mp="mpDetail">商品详情</button>
+              <button data-mp="mpCart">购物车</button>
+              <button data-mp="mpConfirm">确认订单</button>
+              <button data-mp="mpOrders">我的订单</button>
+              <button data-mp="mpOrderDetail">订单详情</button>
+            </div>
+            <div class="phone">
+              <div class="mp-toast" id="mpToast">已加入购物车</div>
+              <div class="capsule"><span>•••</span><span>◎</span></div>
+              <section class="mp-page active" id="mpDetail">
+                <div class="hero">
+                  <div class="statusbar"><span>••••○ 运营商</span><span>上午 9:41</span><span>⌁ 42% ▰</span></div>
+                  <button class="back" style="left:28px"></button>
+                  <div class="badge-stack"><div>顺丰包邮次日达</div><div>7天保价</div></div>
+                  <img class="can" src="/Users/dapiaoliang/Downloads/商品详情-多屏 – 1.png" alt="商品">
+                  <div class="qr"><span>官方正品<br>授权可查</span><span style="font-size:42px">▦</span></div>
+                </div>
+                <div class="mp-scroll" style="height:calc(100% - 64px);margin-top:-64px;padding-top:64px">
+                  <div class="mp-card">
+                    <div class="mp-price" style="font-size:26px">￥232.00 <span style="font-size:12px;background:#ff137d;color:#fff;border-radius:10px;padding:2px 6px">到手价￥165.9起</span></div>
+                    <div class="coupon-row"><span>满699减40</span><span>满699减40</span><span style="margin-left:auto">领券 ›</span></div>
+                    <div class="product-title">爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段(0-6月) 900g 3罐箱装</div>
+                    <div style="color:#717171;font-size:13px;line-height:1.6">推荐理由：此处读取后台商品管理编辑的商品卖点文案，最多五十个字。</div>
+                  </div>
+                  <div class="mp-card"><div style="display:flex;justify-content:space-between"><b>服务</b><span>正品保障，次日达，七天保价 ›</span></div><div style="display:flex;justify-content:space-between;margin-top:12px"><b>税费</b><span>预计税费 ￥99.99 ›</span></div><div style="display:flex;justify-content:space-between;margin-top:12px"><b>配送</b><span>浙江省 杭州市 余杭区 ›</span></div></div>
+                  <div class="mp-card" style="height:110px;background:#d9d9d9;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700">商品详情广告尺寸<br>710*180</div>
+                  <div class="mp-card"><b>评论（999+）</b><span style="float:right;color:#999">查看全部 ›</span><p style="color:#717171;font-size:13px;line-height:1.7">宝宝喝了这个，身体棒棒哒，我家宝宝1岁了，一直喝这个品牌...</p></div>
+                  <div class="mp-card"><b>商品详情</b><div style="margin-top:12px;background:#edf2ff;border-radius:12px;height:180px;display:flex;align-items:center;justify-content:center;color:#051D86;font-size:24px;font-weight:600">营养成分表</div></div>
+                </div>
+                <div class="mp-bottom">
+                  <div class="bottom-icons"><span>☊<em>客服</em></span><span onclick="showMp('mpCart')">🛒<em>购物车</em></span><span>☆<em>收藏</em></span><span>↗<em>分享</em></span></div>
+                  <div class="detail-actions"><button class="mp-btn secondary" id="addCartBtn" onclick="openSpecSheet('cart')">加入购物车</button><button class="mp-btn" id="buyNowBtn" onclick="openSpecSheet('buy')">立即购买</button></div>
+                </div>
+                <div class="sheet-mask" id="specSheet">
+                  <div class="sheet">
+                    <div class="sheet-close" onclick="closeSpecSheet()">×</div>
+                    <div class="sheet-top">
+                      <img src="/Users/dapiaoliang/Downloads/选规格.png" style="width:112px;height:112px;object-fit:cover;border-radius:8px">
+                      <div><div class="product-title" style="margin:0">商品名称展示一行超过就...</div><div class="mp-price" style="font-size:34px;margin-top:12px">￥25.00</div></div>
+                      <div class="qty"><button onclick="changeSheetQty(-1)">−</button><span id="sheetQty">1</span><button onclick="changeSheetQty(1)">+</button></div>
+                    </div>
+                    <div style="height:48px;display:flex;align-items:center;border-bottom:8px solid #f7f7f7;color:#717171">◷　快递公司　12:00前下单,预计x天内送达　›</div>
+                    <h3 style="font-size:17px;margin:22px 0 14px">规格</h3>
+                    <div><span class="spec-chip active">属性值属性值2*规格数量</span><span class="spec-chip disabled">属性值1*规格数量</span><span class="spec-chip">属性值2*规格数量</span><span class="spec-chip">属性值*规格数量</span><span class="spec-chip">属性值属性值属性值属性值2*规格数量</span></div>
+                    <div class="selected-bar">已选：属性值1,属性值2,规格数量，有效期至2028-07</div>
+                    <div style="position:absolute;left:15px;right:15px;bottom:10px;display:flex;gap:0">
+                      <button class="mp-btn secondary" style="flex:1;border-radius:22px 0 0 22px" onclick="sheetAddCart()">加入购物车</button>
+                      <button class="mp-btn" style="flex:1;border-radius:0 22px 22px 0" onclick="sheetBuyNow()">立即购买</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mp-page" id="mpCart">
+                <div class="statusbar"><span>••••○ 运营商</span><span>上午 9:41</span><span>⌁ 42% ▰</span></div>
+                <div class="navtitle">购物车</div>
+                <div class="cart-tabs"><span class="active">全部</span><span>普通</span></div>
+                <div class="cart-tip">左滑可删除、收藏商品 <span>×</span></div>
+                <div class="mp-scroll" style="height:calc(100% - 138px)">
+                  <div id="cartList"></div>
+                  <div class="cart-group" id="invalidGroup"><b>失效商品</b><button class="btn-text" style="float:right;color:#999" onclick="clearInvalidGoods()">清空失效商品</button><div class="cart-item invalid"><span class="round-check"></span><img class="cart-img" src="/Users/dapiaoliang/Downloads/购物车.png"><div><div class="item-title">爱他美卓萃1端700g0-6月龄1段</div><div style="margin-top:12px;color:#fff;background:rgba(0,0,0,.55);width:72px;text-align:center;border-radius:18px;padding:7px 0">已失效</div></div></div></div>
+                  <div style="text-align:center;color:#aaa;font-size:12px;margin:16px">— 大家都在买 —</div>
+                  <div style="height:96px;margin:0 10px 20px;background:#ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:24px">推荐页</div>
+                </div>
+                <div class="mp-bottom settle"><div class="select-all" onclick="toggleAllCart()"><span class="round-check active"></span><span>全选</span></div><div class="total">合计: <b class="mp-price" id="cartTotal">￥415.00</b></div><button class="mp-btn" onclick="openCartConfirm()">结算(<span id="settleCount">2</span>)</button></div>
+              </section>
+
+              <section class="mp-page" id="mpConfirm">
+                <div class="statusbar"><span></span><span>上午 9:41</span><span>⌁ 42% ▰</span></div><button class="back" onclick="showMp(confirmSource==='buy'?'mpDetail':'mpCart')"></button><div class="navtitle">确认订单</div>
+                <div class="mp-scroll">
+                  <div class="mp-card"><div class="addr">嘉陵江滨江路242号远见中心12楼出电梯右转1205办公室</div><div style="margin-top:10px;color:#717171">暂用名　130****3182</div><div style="border-top:1px solid #eee;margin-top:16px;padding-top:12px;color:#717171">◷ 快递公司　12:00前下单,预计x天内送达</div></div>
+                  <div class="mp-card" id="confirmGoods"></div>
+                  <div class="mp-card" id="confirmFees"></div>
+                  <div class="agree"><span class="round-check active" style="margin-top:2px"></span><span>购买须知《大贸下单协议2》</span></div>
+                </div>
+                <div class="mp-bottom settle"><div class="total">总计: <b class="mp-price" id="confirmTotal" style="font-size:26px">￥0.00</b></div><button class="mp-btn" onclick="submitOrder()">提交订单</button></div>
+              </section>
+
+              <section class="mp-page" id="mpOrders">
+                <div class="statusbar"><span>••••○ 运营商</span><span>上午 9:41</span><span>⌁ 42% ▰</span></div><button class="back"></button><div class="navtitle">我的订单</div>
+                <div class="order-tabs"><span class="active" onclick="filterMpOrders('')">全部</span><span onclick="filterMpOrders('待付款')">待付款</span><span onclick="filterMpOrders('待发货')">待发货</span><span onclick="filterMpOrders('待收货')">待收货</span><span onclick="filterMpOrders('已完成')">已完成</span></div>
+                <div class="mp-scroll" style="height:calc(100% - 106px)" id="mpOrderList"></div>
+              </section>
+
+              <section class="mp-page" id="mpOrderDetail">
+                <div class="statusbar"><span>••••○ 运营商</span><span>上午 9:41</span><span>⌁ 42% ▰</span></div><button class="back" onclick="showMp('mpOrders')"></button><div class="navtitle" id="mpOrderDetailTitle">已完成</div>
+                <div class="mp-scroll" id="mpOrderDetailBody" style="height:calc(100% - 64px);padding-bottom:86px"></div>
+                <div class="mp-bottom settle" style="gap:10px;justify-content:space-between">
+                  <div style="width:42px;text-align:center;font-size:12px;color:#333">♬<br>客服</div>
+                  <button class="small-pill">查看物流</button>
+                  <button class="small-pill">申请售后</button>
+                  <button class="small-pill primary">去评价</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="overlay" id="shareModal">
+    <div class="modal">
+      <div class="modal-head"><span>分账信息</span><span class="modal-close" onclick="closeModal()">×</span></div>
+      <div class="modal-body">
+        <table><thead><tr><th>分账方</th><th>分账金额</th><th>分账状态</th></tr></thead>
+        <tbody><tr><td>供应商A</td><td>￥205.16</td><td><span class="tag green">待分账</span></td></tr><tr><td>平台</td><td>￥38.00</td><td><span class="tag green">待分账</span></td></tr><tr><td>仓配服务商</td><td>￥33.00</td><td><span class="tag orange">待确认</span></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="batchModal">
+    <div class="modal wide">
+      <div class="modal-head"><span id="batchModalTitle">查看批次</span><span class="modal-close" onclick="closeBatchModal()">×</span></div>
+      <div class="modal-body">
+        <div class="wide-table-wrap">
+          <table class="wide-table">
+            <thead><tr><th>批次ID</th><th>供应商编码</th><th>供应商名称</th><th>供应商库位编码</th><th>中台批次号</th><th>推送系统</th><th>全球云链推送系统编码</th><th>中台状态</th><th>规格数量</th><th>总规格毛重(kg)</th><th>商品单价</th><th>建议零售单价</th><th>最低零售单单价</th><th>商品总价</th><th>起购量</th><th>每单限购量</th><th>允许加入购物车</th><th>商城状态</th><th>有效期</th><th>操作</th></tr></thead>
+            <tbody id="batchTbody"></tbody>
+          </table>
+        </div>
+        <div class="pager">共 <span id="batchCount">0</span> 条　‹　<span class="tag">1</span>　›　<select class="select"><option>20 条/页</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="batchEditModal">
+    <div class="modal">
+      <div class="modal-head"><span>修改批次</span><span class="modal-close" onclick="closeBatchEdit()">×</span></div>
+      <div class="modal-body">
+        <div class="edit-grid">
+          <label>批次ID</label><input class="input" id="editBatchId" disabled>
+          <label>供应商编码</label><input class="input" id="editSupplierCode" disabled>
+          <label>供应商名称</label><input class="input" id="editSupplierName">
+          <label>中台批次号</label><input class="input" id="editMiddleBatchNo">
+          <label>供应商库位编码</label><input class="input" id="editSupplierWareSeatCode" placeholder="来自 supplierWareSeatCode">
+          <label>允许加入购物车</label><select class="select" id="editAllowCart"><option>是</option><option>否</option></select>
+          <label>商城状态</label><select class="select" id="editMallStatus"><option>上架</option><option>下架</option></select>
+          <label>有效期</label><input class="input" id="editExpireDate" type="date">
+        </div>
+      </div>
+      <div class="confirm-foot"><button class="btn-default" onclick="closeBatchEdit()">取消</button><button class="btn-primary" onclick="saveBatchEdit()">保存</button></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="confirmModal">
+    <div class="confirm-modal">
+      <div class="confirm-body">
+        <div class="confirm-title"><span class="confirm-icon">!</span><span id="confirmTitle">删除</span></div>
+        <div class="confirm-desc" id="confirmDesc">是否确认删除</div>
+      </div>
+      <div class="confirm-foot">
+        <button class="btn-default" onclick="closeConfirm()">取消</button>
+        <button class="btn-primary" onclick="confirmAction()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const productImg='/Users/dapiaoliang/Downloads/购物车.png';
+    const logicKey='bulkTradeCart.logic.v2';
+    const localLogicDocUrl='./大贸购物车需求文档.md';
+    const localLogicDocName='大贸购物车需求文档.md';
+    const logicDefault = `# 大贸购物车需求说明
+
+## 1. 业务背景
+
+### 1.1 需求描述
+因存在多个商品需一起结算享受优惠，平台需新增购物车能力。商品类型包含大贸、跨境、直邮，需按商品类型配置商品详情是否展示购物车入口，并在购物车内按商品类型分组展示和结算。
+
+### 1.3 目标结果
+- 用户可将大贸商品加入购物车并批量结算
+- 大贸批量结算后按供应商库位拆单、推单、发货、售后
+- 待支付阶段展示整单，支付后按拆单子单展示
+
+### 1.4 本期范围
+- 做通用购物车框架
+- 本期仅大贸商品可加入购物车并批量结算
+- 批量结算需拆单推送中台
+- 子单发货、物流、售后沿用线上逻辑
+
+### 1.5 本期不做
+- 跨境、直邮购物车加购与结算
+
+## 2. 页面路径
+
+### PC 后台
+- 商品中心 / 商品管理：展示商品列表，API 商品编码可查看批次
+- 系统配置 / 业务配置：订单配置下新增购物车配置
+- 订单中心 / 订单管理 / 订单列表：展示待支付整单与支付后子单
+- 订单中心 / 订单管理 / 订单详情：展示多商品明细与分账信息
+- 左侧菜单最后固定展示小程序前端入口，点击后打开小程序页面预览
+
+### 小程序
+- 商品详情：根据商品类型与后台配置展示购物车入口
+- 选规格弹窗：支持加购时展示加入购物车按钮
+- 购物车：按普通、跨境、直邮分组展示
+- 确认订单：购物车批量结算后不可修改规格和数量
+- 我的订单：待支付展示整单，支付后展示拆单子单
+
+## 3. 配置逻辑
+
+### 商品管理
+- 商品中心新增商品管理一级页面
+- 商品列表展示商品名称、SPU、品牌、分类、商品来源、发货仓、售价、API商品编码、库存、访问和销量信息
+- 点击 API 商品编码打开查看批次弹窗
+- 查看批次弹窗展示批次ID、供应商编码、供应商名称、供应商库位编码、中台批次号、推送系统、全球云链推送系统编码、中台状态、规格数量、总规格毛重、价格、起购量、限购量、允许加入购物车、商城状态、有效期和操作
+- 供应商库位编码来自接口同步字段 supplierWareSeatCode
+- 修改批次弹窗增加供应商库位编码字段，字段来源为批次同步的 supplierWareSeatCode
+
+### 入口规则
+- PC 后台左侧菜单最后一级为小程序前端
+- 小程序前端入口用于在原型中快速查看 C 端页面效果
+- 点击小程序前端一级菜单默认打开商品详情
+- 点击其二级菜单可分别打开商品详情、购物车、确认订单、我的订单
+- 该入口仅用于原型预览，不代表线上后台真实功能菜单
+
+### 购物车配置
+- 购物车开关默认关闭，可选开启、关闭
+- 开启后展示商品加购范围
+- 商品加购范围无默认勾选，本期仅可选普通商品
+- 保存配置后，小程序商品详情和选规格弹窗需实时按配置展示或关闭加购能力
+
+### 商品范围
+- 商品必须为上架状态、库存充足、规格有效、价格有效
+- 商品类型未命中加购范围时，不允许加入购物车
+- 失效、下架、规格失效商品进入失效商品区，不可勾选结算
+
+## 4. 购物车逻辑
+
+### 分组展示
+- 购物车按普通、跨境、直邮分组
+- 本期普通/大贸分组允许勾选和结算
+- 跨境、直邮分组展示为不可结算状态，并提示本期暂不支持
+
+### 商品操作
+- 同一商品同一规格重复加购时合并数量
+- 支持单商品勾选、全选、数量调整、收藏、删除
+- 全选只选择当前可结算商品，不选择禁用或失效商品
+- 清空失效商品后，失效商品区从页面移除
+
+## 5. 订单拆单逻辑
+
+### 提交订单
+- 用户从购物车勾选商品后进入确认订单页
+- 确认订单页不可修改规格和数量
+- 提交订单后生成待支付整单
+- 待支付整单需同步展示在小程序我的订单和 PC 订单列表
+
+### 支付拆单
+- 待支付整单支付成功后，按供应商库位拆成子单
+- 订单列表推送状态展示推送成功、推送失败、不需要推送
+- 支付后小程序和 PC 后台均按子单展示
+- 子单后续发货、确认收货、售后沿用线上逻辑
+
+## 6. 交互说明
+- PC 后台修改购物车配置后，商品详情加入购物车按钮实时启用或关闭
+- 小程序选规格加入购物车后，购物车列表真实新增或合并商品
+- 购物车勾选、数量、删除、收藏会实时刷新结算金额并持久化
+- 提交订单后，待支付整单真实进入我的订单和 PC 订单列表
+- 点击去支付后，整单移出待付款列表并生成待发货子单
+- PC 订单列表支持关键词、状态筛选和订单状态变更
+- 从 PC 列表点击详情时，详情页带入当前订单号、状态、商品和金额
+- 分账信息点击后，以弹窗展示分账方、分账金额和状态
+
+## 7. 异常规则
+- 后台关闭购物车时，小程序不允许加入购物车
+- 未选择可结算普通商品时，不允许提交订单
+- 跨境和直邮商品点击勾选或修改数量时提示本期暂不支持
+- 删除购物车商品需二次确认
+- 推送中台失败时，订单列表展示重试入口
+`;
+    const defaultOrders = [
+      {no:'DM20260612001',sub:'',status:'待付款',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段','澳洲 Nature Way 佳思敏叶黄素软糖 50粒*1瓶','Boiron宝弘金盏花护肤膏 30g'],qty:4,pay:'386.16',push:'不需要推送',afterSales:['-','-','-'],discounts:['购物车满减￥40.00','积分抵扣￥10.00','-']},
+      {no:'DM20260611001',sub:'',status:'待付款',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段','澳洲益生菌滴剂'],qty:2,pay:'276.16',push:'不需要推送',afterSales:['-','-'],discounts:['满减￥40.00','积分抵扣￥10.00']},
+      {no:'DM20260611088',sub:'',status:'待发货',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段','澳洲 Nature Way 佳思敏叶黄素软糖','Boiron宝弘金盏花护肤膏 30g'],qty:4,pay:'468.80',push:'推送失败',afterSales:['未申请','退款中','未申请'],discounts:['券优惠￥20.00','-','满减￥15.00']},
+      {no:'DM20260611001-01',sub:'01',status:'待发货',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段'],qty:1,pay:'165.90',push:'推送成功',afterSales:['未申请'],discounts:['满减￥40.00']},
+      {no:'DM20260611001-02',sub:'02',status:'待发货',type:'普通订单',goods:['澳洲益生菌滴剂'],qty:1,pay:'110.26',push:'推送成功',afterSales:['未申请'],discounts:['积分抵扣￥10.00']},
+      {no:'TESTX0061114271498024',sub:'',status:'已关闭',type:'跨境订单',goods:['天气丹精华'],qty:1,pay:'15.96',push:'不需要推送',afterSales:['-'],discounts:['-']}
+    ];
+    const defaultCartItems=[
+      {id:1,type:'普通',name:'爱他美卓萃1端700g0-6月龄1段',spec:'背带裙，100码',price:586,originPrice:586,activityType:'none',qty:1,checked:true,favorite:false},
+      {id:2,type:'普通',name:'【爱他美官方旗舰店】卓傲3段幼儿配方奶粉800g*1罐12-36月',spec:'背带裙，100码',price:421,originPrice:586,activityType:'discount',qty:2,checked:true,favorite:false},
+      {id:5,type:'普通',name:'澳洲 Nature Way 佳思敏叶黄素软糖 50粒*1瓶',spec:'50粒，1瓶装',price:8.99,originPrice:72,activityType:'seckill',qty:1,checked:false,favorite:false},
+      {id:6,type:'普通',name:'Boiron宝弘金盏花护肤膏 30g',spec:'30g，1支装',price:58,originPrice:58,activityType:'none',qty:1,checked:false,favorite:false},
+      {id:3,type:'跨境',name:'【爱他美官方旗舰店】卓傲3段幼儿配方奶粉800g*1罐12-36月',spec:'1罐，800g',price:586,qty:1,checked:false,disabled:true},
+      {id:4,type:'直邮',name:'【爱他美官方旗舰店】卓傲3段幼儿配方奶粉800g*1罐12-36月',spec:'1罐，800g',price:586,qty:1,checked:false,disabled:true}
+    ];
+    const defaultMpOrders=[
+      {no:'D2030306508180711',status:'待付款',lines:['爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段(0-6月) 900g 3罐箱装','澳洲 Nature Way 佳思敏叶黄素软糖 50粒*1瓶'],pay:'97.00',whole:true},
+      {no:'D2030306508180711-01',status:'待发货',lines:['爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段(0-6月) 900g 3罐箱装','澳洲益生菌滴剂'],pay:'8.00'},
+      {no:'D2030306508180711-02',status:'待收货',lines:['爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段(0-6月) 900g 3罐箱装'],pay:'8.00'},
+      {no:'D2030306508180711-03',status:'已完成',lines:['爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段(0-6月) 900g 3罐箱装'],pay:'8.00'}
+    ];
+    const defaultGoods=[
+      {id:'104637',name:'Boiron宝弘金盏花护肤膏 30g',spu:'-',brand:'Boiron',category:'母婴护理',source:'API对接',warehouse:'-',price:'￥0',apiCode:'G013098',stock:212,visitor:0,views:0,sales:0,virtualSales:0,creator:'系统',type:'普通商品',img:productImg},
+      {id:'104635',name:'荷兰佳贝艾特白金版婴幼儿羊奶粉1段800g/罐(新包装) 800g/罐',spu:'-',brand:'佳贝艾特',category:'奶粉',source:'API对接',warehouse:'-',price:'￥0',apiCode:'NG00444501',stock:100,visitor:0,views:0,sales:0,virtualSales:0,creator:'系统',type:'跨境商品',img:productImg},
+      {id:'104628',name:"澳洲 Nature's Way佳思敏 脑力佳磷脂酰丝氨酸PS鱼油 30粒/瓶",spu:'-',brand:"Nature's Way",category:'营养品',source:'API对接',warehouse:'-',price:'￥0',apiCode:'G019446',stock:50,visitor:0,views:0,sales:0,virtualSales:0,creator:'系统',type:'普通商品',img:productImg},
+      {id:'104627',name:"澳洲 Nature's Way佳思敏 升级款金装版叶黄素软糖 50粒*1瓶",spu:'-',brand:"Nature's Way",category:'营养品',source:'API对接',warehouse:'-',price:'￥0',apiCode:'G019450',stock:30,visitor:0,views:0,sales:0,virtualSales:0,creator:'系统',type:'普通商品',img:productImg}
+    ];
+    const defaultBatches={
+      G013098:[
+        {batchId:'105419',supplierCode:'MA000378',supplierName:'重庆五瑞供应链管理有限公司',middleBatchNo:'BN260610KM728',pushSystem:'全球云链',globalCloudCode:'GCL-728',middleStatus:'已同步',specQty:'1',grossWeight:'0.32',goodsPrice:'￥12.00',suggestPrice:'￥19.90',minPrice:'￥15.90',totalPrice:'￥1200.00',minBuy:'1',limitBuy:'6',allowCart:'否',mallStatus:'下架',expireDate:'2028-07-31',supplierWareSeatCode:'SWSC-CQ-0001'},
+        {batchId:'105420',supplierCode:'MA000378',supplierName:'重庆五瑞供应链管理有限公司',middleBatchNo:'BN260610KM729',pushSystem:'全球云链',globalCloudCode:'GCL-729',middleStatus:'已同步',specQty:'2',grossWeight:'0.64',goodsPrice:'￥22.00',suggestPrice:'￥39.90',minPrice:'￥29.90',totalPrice:'￥2200.00',minBuy:'1',limitBuy:'3',allowCart:'是',mallStatus:'上架',expireDate:'2028-09-30',supplierWareSeatCode:'SWSC-CQ-0002'}
+      ],
+      NG00444501:[
+        {batchId:'204451',supplierCode:'SUP-AU-001',supplierName:'澳洲奶粉供应链有限公司',middleBatchNo:'AU260610AT901',pushSystem:'全球云链',globalCloudCode:'GCL-901',middleStatus:'待同步',specQty:'1',grossWeight:'0.96',goodsPrice:'￥165.90',suggestPrice:'￥232.00',minPrice:'￥165.90',totalPrice:'￥16590.00',minBuy:'1',limitBuy:'6',allowCart:'否',mallStatus:'下架',expireDate:'2026-09-30',supplierWareSeatCode:'SWSC-AU-0901'}
+      ],
+      G019446:[
+        {batchId:'301944',supplierCode:'SUP-NW-003',supplierName:"Nature's Way官方供应商",middleBatchNo:'NW260610PS446',pushSystem:'全球云链',globalCloudCode:'GCL-446',middleStatus:'已同步',specQty:'1',grossWeight:'0.18',goodsPrice:'￥58.00',suggestPrice:'￥89.00',minPrice:'￥69.00',totalPrice:'￥5800.00',minBuy:'1',limitBuy:'5',allowCart:'是',mallStatus:'上架',expireDate:'2027-12-31',supplierWareSeatCode:'SWSC-NW-0446'}
+      ],
+      G019450:[
+        {batchId:'301950',supplierCode:'SUP-NW-003',supplierName:"Nature's Way官方供应商",middleBatchNo:'NW260610YE450',pushSystem:'全球云链',globalCloudCode:'GCL-450',middleStatus:'已同步',specQty:'1',grossWeight:'0.25',goodsPrice:'￥72.00',suggestPrice:'￥109.00',minPrice:'￥88.00',totalPrice:'￥7200.00',minBuy:'1',limitBuy:'4',allowCart:'是',mallStatus:'上架',expireDate:'2027-10-31',supplierWareSeatCode:'SWSC-NW-0450'}
+      ]
+    };
+    let orders = JSON.parse(localStorage.getItem('bulkCartOrders')||'null') || defaultOrders;
+    let cartItems = JSON.parse(localStorage.getItem('bulkCartItems')||'null') || defaultCartItems;
+    let mpOrders = JSON.parse(localStorage.getItem('bulkCartMpOrders')||'null') || defaultMpOrders;
+    let goods = JSON.parse(localStorage.getItem('bulkCartGoods')||'null') || defaultGoods;
+    let batches = JSON.parse(localStorage.getItem('bulkCartBatches')||'null') || defaultBatches;
+    let cartConfig = JSON.parse(localStorage.getItem('bulkCartConfig')||'null') || {enabled:false,types:[]};
+    cartConfig.types = (cartConfig.types || []).filter(t=>t==='normal');
+    function normalizePushStatus(o){
+      if(['推送成功','推送失败','不需要推送'].includes(o.push)) return o.push;
+      if(o.status==='待付款' || o.status==='已关闭') return '不需要推送';
+      if(o.no==='DM20260611088') return '推送失败';
+      return '推送成功';
+    }
+    orders.forEach(o=>{
+      o.type = o.type === '购物车整单' || o.type === '购物车子单' ? '普通订单' : o.type;
+      o.status = o.status === '已支付' ? '待发货' : o.status;
+      if(!['待付款','待发货','已发货','已完成','已关闭'].includes(o.status)) o.status = '待发货';
+      o.push = normalizePushStatus(o);
+      o.afterSales = o.afterSales || o.goods.map(()=>o.status==='已关闭'?'-':'未申请');
+      o.discounts = o.discounts || o.goods.map((_,i)=>i===0?'券/积分优惠：￥10.00':'-');
+    });
+    if(!orders.some(o=>o.no==='DM20260611088')){
+      orders.splice(1,0,{no:'DM20260611088',sub:'',status:'待发货',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段','澳洲 Nature Way 佳思敏叶黄素软糖','Boiron宝弘金盏花护肤膏 30g'],qty:4,pay:'468.80',push:'推送失败',afterSales:['未申请','退款中','未申请'],discounts:['券优惠￥20.00','-','满减￥15.00']});
+    }
+    if(!orders.some(o=>o.no==='DM20260612001')){
+      orders.unshift({no:'DM20260612001',sub:'',status:'待付款',type:'普通订单',goods:['爱他美白金澳洲版婴儿配方奶粉1段','澳洲 Nature Way 佳思敏叶黄素软糖 50粒*1瓶','Boiron宝弘金盏花护肤膏 30g'],qty:4,pay:'386.16',push:'不需要推送',afterSales:['-','-','-'],discounts:['购物车满减￥40.00','积分抵扣￥10.00','-']});
+    }
+    const pendingDemoOrder=orders.find(o=>o.no==='DM20260612001'); if(pendingDemoOrder) pendingDemoOrder.push='不需要推送';
+    const failedDemoOrder=orders.find(o=>o.no==='DM20260611088'); if(failedDemoOrder && failedDemoOrder.status==='待发货') failedDemoOrder.push='推送失败';
+    mpOrders.forEach(o=>{if(o.status==='待付款' && (!o.lines || o.lines.length<2)){o.lines=o.lines||[];o.lines.push('澳洲 Nature Way 佳思敏叶黄素软糖 50粒*1瓶');o.pay=o.pay==='8.00'?'97.00':o.pay}});
+    const cartDemoItems=[
+      {id:1001,type:'普通',name:'无活动商品 爱他美卓萃1端700g0-6月龄1段',spec:'背带裙，100码',price:586,originPrice:586,activityType:'none',qty:1,checked:true,favorite:false},
+      {id:1002,type:'普通',name:'折扣立减商品 卓傲3段幼儿配方奶粉800g',spec:'背带裙，100码',price:421,originPrice:586,activityType:'discount',qty:1,checked:true,favorite:false},
+      {id:1003,type:'普通',name:'秒杀商品 Nature Way 叶黄素软糖 50粒',spec:'50粒，1瓶装',price:8.99,originPrice:72,activityType:'seckill',qty:1,checked:false,favorite:false},
+      {id:1004,type:'普通',name:'左滑可收藏删除商品 Boiron金盏花护肤膏 30g',spec:'30g，1支装',price:58,originPrice:58,activityType:'none',qty:1,checked:false,favorite:false}
+    ];
+    while(cartItems.filter(i=>i.type==='普通').length<4){
+      const tpl=cartDemoItems[cartItems.filter(i=>i.type==='普通').length];
+      cartItems.push({...tpl,id:Date.now()+cartItems.length});
+    }
+    cartItems.filter(i=>i.type==='普通').slice(0,4).forEach((i,idx)=>{
+      const tpl=cartDemoItems[idx];
+      i.activityType=tpl.activityType;
+      i.price=tpl.price;
+      i.originPrice=tpl.originPrice;
+      if(!i.name) i.name=tpl.name;
+      if(!i.spec) i.spec=tpl.spec;
+    });
+    let sheetMode='cart', mpOrderFilter='', currentDetailOrderNo='DM20260611001-01', selectedMpOrderNo='D2030306508180711-03', pendingAction=null;
+    let confirmSource='cart', confirmItems=[];
+
+    function saveState(){
+      localStorage.setItem('bulkCartOrders',JSON.stringify(orders));
+      localStorage.setItem('bulkCartItems',JSON.stringify(cartItems));
+      localStorage.setItem('bulkCartMpOrders',JSON.stringify(mpOrders));
+      localStorage.setItem('bulkCartGoods',JSON.stringify(goods));
+      localStorage.setItem('bulkCartBatches',JSON.stringify(batches));
+      localStorage.setItem('bulkCartConfig',JSON.stringify(cartConfig));
+    }
+
+    function init(){
+      applyConfigUI(); renderGoodsTable(); renderOrderTable(); renderDetailGoods(); renderCart(); renderMpOrders(); renderMpOrderDetail(); prepareConfirmFromCart();
+      renderOrderLogs(orders.find(x=>x.no===currentDetailOrderNo)||orders[0]);
+      initLogic();
+    }
+    function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+    function renderMarkdown(md){
+      return md.split('\n').map(line=>{
+        if(line.startsWith('# ')) return `<h1>${esc(line.slice(2))}</h1>`;
+        if(line.startsWith('## ')) return `<h2>${esc(line.slice(3))}</h2>`;
+        if(line.startsWith('### ')) return `<h3>${esc(line.slice(4))}</h3>`;
+        if(line.startsWith('- ')) return `<li>${esc(line.slice(2))}</li>`;
+        if(!line.trim()) return '';
+        return `<p>${esc(line)}</p>`;
+      }).join('').replace(/(<li>.*?<\/li>)+/g,m=>`<ul>${m}</ul>`);
+    }
+    function renderLogicDoc(content, source){document.getElementById('logicDoc').innerHTML=renderMarkdown(content);document.getElementById('logicSrc').textContent=source}
+    async function initLogic(){
+      const cached=localStorage.getItem(logicKey);
+      if(cached){try{const obj=JSON.parse(cached);renderLogicDoc(obj.content,'来源：本地缓存 + '+obj.name);return}catch(e){localStorage.removeItem(logicKey)}}
+      try{
+        const res=await fetch(localLogicDocUrl,{cache:'no-store'});
+        if(res.ok){const content=await res.text();localStorage.setItem(logicKey,JSON.stringify({name:localLogicDocName,content,source:'same-directory'}));renderLogicDoc(content,'来源：同目录本地文档 + '+localLogicDocName);return}
+      }catch(e){}
+      renderLogicDoc(logicDefault,'来源：内置快照；可点击同步本地文档读取 '+localLogicDocName);
+    }
+    function toggleLogic(open){document.getElementById('logicPanel').classList.toggle('open',open);document.getElementById('logicRail').style.display=open?'none':'flex'}
+    document.getElementById('docInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{localStorage.setItem(logicKey,JSON.stringify({name:f.name,content:r.result}));renderLogicDoc(r.result,'来源：本地缓存 + '+f.name);showToast('左侧逻辑已同步')};r.readAsText(f,'utf-8')});
+    document.querySelectorAll('.seg').forEach(b=>b.onclick=()=>{document.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(b.dataset.screen).classList.add('active')});
+    document.querySelectorAll('.admin-tab').forEach(t=>t.onclick=()=>showPcPage(t.dataset.page));
+    function showPcPage(id){document.querySelectorAll('.pc-page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.admin-tab').forEach(t=>t.classList.toggle('active',t.dataset.page===id))}
+    function openMiniFromPcMenu(page='mpDetail'){
+      document.querySelectorAll('.seg').forEach(x=>x.classList.toggle('active',x.dataset.screen==='miniScreen'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      document.getElementById('miniScreen').classList.add('active');
+      showMp(page);
+      showToast('已打开小程序前端预览');
+    }
+    document.getElementById('menuSearch').oninput=e=>{const v=e.target.value.trim();document.querySelectorAll('.mgroup').forEach(g=>g.style.display=g.innerText.includes(v)?'block':'none')};
+    document.querySelectorAll('#cartSwitch .radio').forEach(r=>r.onclick=()=>{document.querySelectorAll('#cartSwitch .radio').forEach(x=>x.classList.remove('active'));r.classList.add('active');cartConfig.enabled=r.dataset.on==='1';if(!cartConfig.enabled)cartConfig.types=[];saveState();applyConfigUI()});
+    document.querySelectorAll('#cartTypes .check').forEach(c=>c.onclick=()=>{c.classList.toggle('active');cartConfig.types=[...document.querySelectorAll('#cartTypes .check.active')].map(x=>x.dataset.type);saveState();updateDetailActions()});
+    document.querySelectorAll('.js-radio .radio').forEach(r=>r.onclick=()=>{r.closest('.js-radio').querySelectorAll('.radio').forEach(x=>x.classList.remove('active'));r.classList.add('active')});
+    document.querySelectorAll('#orderStatusTabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#orderStatusTabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderOrderTable()});
+    function applyConfigUI(){
+      document.querySelectorAll('#cartSwitch .radio').forEach(r=>r.classList.toggle('active',(r.dataset.on==='1')===cartConfig.enabled));
+      document.querySelectorAll('#cartTypes .check').forEach(c=>c.classList.toggle('active',cartConfig.types.includes(c.dataset.type)));
+      const row=document.getElementById('cartTypesRow'); if(row)row.style.display=cartConfig.enabled?'grid':'none';
+      updateDetailActions();
+    }
+    function updateDetailActions(){
+      const add=document.getElementById('addCartBtn');
+      const enabled=cartConfig.enabled && cartConfig.types.includes('normal');
+      if(add){add.disabled=!enabled;add.style.opacity=enabled?'1':'.45';add.textContent=enabled?'加入购物车':'暂不支持加购'}
+    }
+    function saveConfig(){saveState();showToast(`购物车配置已保存：${cartConfig.enabled?'开启':'关闭'}，范围：${cartConfig.types.includes('normal')?'普通商品':'未选择'}`);renderCart()}
+    function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2000)}
+    function renderGoodsTable(){
+      const kw=document.getElementById('goodsKeyword')?.value.trim() || '';
+      const type=document.getElementById('goodsType')?.value || '';
+      const brand=document.getElementById('goodsBrand')?.value || '';
+      const data=goods.filter(g=>(!kw||g.name.includes(kw)||g.apiCode.includes(kw))&&(!type||g.type===type)&&(!brand||g.brand===brand));
+      const tbody=document.getElementById('goodsTbody'); if(!tbody)return;
+      tbody.innerHTML=data.map(g=>`<tr>
+        <td><div class="goods-cell"><img class="thumb" src="${g.img}"><div><a class="btn-text">${esc(g.name)}</a><br><span class="hint">ID：${g.id}</span></div></div></td>
+        <td>${g.spu}</td><td>${g.brand}</td><td>${g.category}</td><td>${g.source}</td><td>${g.warehouse}</td><td>${g.price}</td>
+        <td><button class="btn-text" onclick="openBatchModal('${g.apiCode}')">${g.apiCode}</button></td>
+        <td>${g.stock}</td><td>${g.visitor}</td><td>${g.views}</td><td>${g.sales}</td><td>${g.virtualSales}</td><td>${g.creator}<br><span class="hint">2026-06-11</span></td>
+        <td><button class="btn-text">编辑</button>　<button class="btn-text">预览</button>　<button class="btn-text">复制</button></td>
+      </tr>`).join('') || '<tr><td colspan="15" style="height:120px;text-align:center;color:#999">暂无匹配商品</td></tr>';
+    }
+    function clearGoodsSearch(){document.getElementById('goodsKeyword').value='';document.getElementById('goodsType').value='';document.getElementById('goodsBrand').value='';renderGoodsTable()}
+    let currentApiCode='', editingBatchId='';
+    function openBatchModal(apiCode){
+      currentApiCode=apiCode;
+      document.getElementById('batchModalTitle').textContent='查看批次 - '+apiCode;
+      renderBatchTable();
+      document.getElementById('batchModal').style.display='flex';
+    }
+    function closeBatchModal(){document.getElementById('batchModal').style.display='none'}
+    function renderBatchTable(){
+      const rows=batches[currentApiCode]||[];
+      document.getElementById('batchCount').textContent=rows.length;
+      document.getElementById('batchTbody').innerHTML=rows.map(b=>`<tr>
+        <td>${b.batchId}</td><td>${b.supplierCode}</td><td>${b.supplierName}</td><td>${b.supplierWareSeatCode || '-'}</td><td>${b.middleBatchNo}</td><td>${b.pushSystem}</td><td>${b.globalCloudCode}</td><td>${b.middleStatus}</td><td>${b.specQty}</td><td>${b.grossWeight}</td>
+        <td>${b.goodsPrice}</td><td>${b.suggestPrice}</td><td>${b.minPrice}</td><td>${b.totalPrice}</td><td>${b.minBuy}</td><td>${b.limitBuy}</td><td>${b.allowCart}</td><td>${b.mallStatus}</td><td>${b.expireDate}</td>
+        <td><button class="btn-text" onclick="toggleBatchStatus('${b.batchId}')">${b.mallStatus==='上架'?'下架':'上架'}</button></td>
+      </tr>`).join('') || '<tr><td colspan="20" style="height:100px;text-align:center;color:#999">暂无批次</td></tr>';
+    }
+    function findCurrentBatch(batchId){return (batches[currentApiCode]||[]).find(b=>b.batchId===batchId)}
+    function openBatchEdit(batchId){
+      const b=findCurrentBatch(batchId); if(!b)return;
+      editingBatchId=batchId;
+      document.getElementById('editBatchId').value=b.batchId;
+      document.getElementById('editSupplierCode').value=b.supplierCode;
+      document.getElementById('editSupplierName').value=b.supplierName;
+      document.getElementById('editMiddleBatchNo').value=b.middleBatchNo;
+      document.getElementById('editSupplierWareSeatCode').value=b.supplierWareSeatCode || '';
+      document.getElementById('editAllowCart').value=b.allowCart;
+      document.getElementById('editMallStatus').value=b.mallStatus;
+      document.getElementById('editExpireDate').value=b.expireDate;
+      document.getElementById('batchEditModal').style.display='flex';
+    }
+    function closeBatchEdit(){document.getElementById('batchEditModal').style.display='none'}
+    function saveBatchEdit(){
+      const b=findCurrentBatch(editingBatchId); if(!b)return;
+      b.supplierName=document.getElementById('editSupplierName').value;
+      b.middleBatchNo=document.getElementById('editMiddleBatchNo').value;
+      b.supplierWareSeatCode=document.getElementById('editSupplierWareSeatCode').value;
+      b.allowCart=document.getElementById('editAllowCart').value;
+      b.mallStatus=document.getElementById('editMallStatus').value;
+      b.expireDate=document.getElementById('editExpireDate').value;
+      saveState(); renderBatchTable(); closeBatchEdit(); showToast('批次已保存，供应商库位编码已更新');
+    }
+    function toggleBatchStatus(batchId){const b=findCurrentBatch(batchId); if(!b)return;b.mallStatus=b.mallStatus==='上架'?'下架':'上架';saveState();renderBatchTable();showToast('商城状态已更新')}
+    function renderOrderTable(){
+      const kw=document.getElementById('orderKeyword').value.trim();
+      const st=document.querySelector('#orderStatusTabs button.active')?.dataset.status || '';
+      const type=document.getElementById('orderType')?.value || '';
+      const push=document.getElementById('pushStatus')?.value || '';
+      const data=orders.filter(o=>(!kw||o.no.includes(kw)||o.goods.join('').includes(kw))&&(!st||o.status===st)&&(!type||orderTypeLabel(o)===type)&&(!push||o.push===push));
+      document.getElementById('orderTbody').innerHTML=data.map(renderOrderRows).join('') || '<tr><td colspan="9" style="text-align:center;color:#999;height:120px">暂无匹配订单</td></tr>';
+    }
+    function toggleMoreOrderSearch(){const el=document.getElementById('moreOrderSearch');el.style.display=el.style.display==='none'?'flex':'none'}
+    function orderTypeLabel(o){return o.type==='跨境订单'||o.type==='直邮订单'?o.type:'普通订单'}
+    function renderOrderRows(o){
+      const goods=o.goods && o.goods.length ? o.goods : ['-'];
+      const rowCount=goods.length;
+      const perPrice=goods.map((_,i)=>'￥'+(Number(o.pay || 0) / rowCount).toFixed(2));
+      const qtys=goods.map((_,i)=>rowCount===1?o.qty || 1:(i===0?Math.max(1,(o.qty||rowCount)-rowCount+1):1));
+      const afterSaleText=v=>v==='未申请'?'':(v || '');
+      const orderActions=`<button class="btn-text" onclick="openOrderDetail('${o.no}')">详情</button>${o.status==='待付款'?`　<button class="btn-text" onclick="cancelPcPayment('${o.no}')">取消支付</button>`:''}${o.status==='待发货'?`　<button class="btn-text" onclick="shipOrder('${o.no}')">发货</button>`:''}${o.status==='已发货'?`　<button class="btn-text" onclick="finishOrder('${o.no}')">完成</button>`:''}`;
+      const pushCell=`${o.push}${o.push==='推送失败'?`<br><button class="btn-text" onclick="retryPush('${o.no}')">重新推送</button>`:''}`;
+      const orderCells=`<td rowspan="${rowCount}">youu私域商户1发货仓</td><td rowspan="${rowCount}">用户ID：100143<br>昵称：默认会员100143<br>收货人：xmm 18638645324</td><td rowspan="${rowCount}">${o.status}<br>${orderActions}</td><td rowspan="${rowCount}">${pushCell}</td>`;
+      const body=goods.map((name,i)=>`<tr>
+        <td><div class="goods-cell"><img class="thumb" src="${productImg}"><div><div>${esc(name)}</div><div>1个装</div><div>ID：10007${i}</div>${rowCount>1?`<div class="hint">订单共 ${rowCount} 件商品</div>`:''}</div></div></td>
+        <td>${perPrice[i]}</td><td>${qtys[i]}</td><td>${(o.discounts||[])[i] || '-'}</td><td>${afterSaleText((o.afterSales||[])[i])}</td>${i===0?orderCells:''}
+      </tr>`).join('');
+      return `<tr><td colspan="9" style="background:#fafafa">订单编号：${o.no}　创建时间：2026-06-11 14:27:31 <span class="tag">${orderTypeLabel(o)}</span><span style="float:right;color:#999">暂无备注</span></td></tr>${body}`;
+    }
+    function clearOrderSearch(){document.getElementById('orderKeyword').value='';if(document.getElementById('orderType'))document.getElementById('orderType').value='';if(document.getElementById('pushStatus'))document.getElementById('pushStatus').value='';document.querySelectorAll('#orderStatusTabs button').forEach((b,i)=>b.classList.toggle('active',i===0));renderOrderTable()}
+    function cancelPcPayment(no){
+      const o=orders.find(x=>x.no===no); if(!o)return;
+      openConfirm('取消支付','是否确认取消该待支付订单？',()=>{o.status='已关闭';o.push='不需要推送';o.afterSales=o.goods.map(()=>'-');saveState();renderOrderTable();showToast('订单已取消支付，状态已关闭')});
+    }
+    function openOrderDetail(no){currentDetailOrderNo=no;const o=orders.find(x=>x.no===no)||orders[0];const mainNo=o.no.split('-')[0];document.getElementById('detailNo').textContent=o.no;document.getElementById('detailParentNo').textContent=mainNo;document.getElementById('detailMainNo').textContent=mainNo;document.getElementById('detailSubNo').textContent=o.no;document.getElementById('detailStatus').textContent=o.status;renderDetailGoods();renderOrderLogs(o);showPcPage('orderDetailPage')}
+    function renderDetailGoods(){const o=orders.find(x=>x.no===currentDetailOrderNo)||orders[0];document.getElementById('detailPay').textContent='￥'+o.pay;document.getElementById('detailGoods').innerHTML=o.goods.map((n,i)=>`<tr><td><div class="goods-cell"><img class="thumb" src="${productImg}"><div>${n}<br><span class="hint">ID：10007${i}</span></div></div></td><td>B260312WE260</td><td><button class="btn-text" onclick="openShare()">查看</button></td><td>1个装</td><td><span class="tag ${o.status==='已关闭'?'gray':'orange'}">${o.status}</span></td><td>￥${(Number(o.pay)/o.goods.length).toFixed(2)}</td><td>1</td><td>￥${(Number(o.pay)/o.goods.length).toFixed(2)}</td><td>${i?'-':'满减￥40.00'}</td><td>￥${i?3.00:7.00}</td><td>￥${i?4.00:6.00}</td></tr>`).join('')}
+    function renderOrderLogs(o){
+      const logs=[
+        {time:'2026-06-11 17:03:56',user:'默认会员100143',content:'生成订单',change:'待支付 -> 待支付'},
+        ...(o.status==='已关闭'?[{time:'2026-06-11 17:30:00',user:'系统',content:'订单超时自动取消',change:'待支付 -> 已关闭'}]:[]),
+        ...(o.status==='已发货'||o.status==='已完成'?[{time:'2026-06-11 18:20:16',user:'系统',content:'商家发货',change:'待发货 -> 已发货'}]:[]),
+        ...(o.status==='已完成'?[{time:'2026-06-12 09:12:01',user:'默认会员100143',content:'确认收货',change:'已发货 -> 已完成'}]:[])
+      ];
+      document.getElementById('orderLogTbody').innerHTML=logs.map(l=>`<tr><td>${l.time}</td><td>${l.user}</td><td>${l.content}</td><td>${l.change}</td></tr>`).join('');
+    }
+    function pcPayAndSplit(no){
+      const o=orders.find(x=>x.no===no); if(!o)return;
+      if(!orders.some(x=>x.no===no+'-01')) {
+        orders.push({no:no+'-01',sub:'01',status:'待发货',type:'普通订单',goods:[o.goods[0]],qty:1,pay:(Number(o.pay)*0.6).toFixed(2),push:'推送成功',afterSales:['未申请'],discounts:['-']});
+        orders.push({no:no+'-02',sub:'02',status:'待发货',type:'普通订单',goods:[o.goods[1]||o.goods[0]],qty:1,pay:(Number(o.pay)*0.4).toFixed(2),push:'推送成功',afterSales:['未申请'],discounts:['-']});
+      }
+      o.status='待发货'; o.push='推送成功'; saveState(); renderOrderTable(); showToast('推送成功');
+    }
+    function retryPush(no){const o=orders.find(x=>x.no===no); if(o){o.push='推送成功';saveState();renderOrderTable();showToast('推送成功')}}
+    function shipOrder(no){const o=orders.find(x=>x.no===no); if(o){o.status='已发货';saveState();renderOrderTable();showToast('已发货，订单进入已发货')}}
+    function finishOrder(no){const o=orders.find(x=>x.no===no); if(o){o.status='已完成';saveState();renderOrderTable();showToast('订单已完成')}}
+    function openShare(){document.getElementById('shareModal').style.display='flex'}function closeModal(){document.getElementById('shareModal').style.display='none';closeBatchModal();closeBatchEdit();closeConfirm()}
+    function openConfirm(title,desc,action){document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmDesc').textContent=desc;pendingAction=action;document.getElementById('confirmModal').style.display='flex'}
+    function closeConfirm(){document.getElementById('confirmModal').style.display='none';pendingAction=null}
+    function confirmAction(){if(pendingAction)pendingAction();closeConfirm()}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+    document.querySelectorAll('.mini-nav button[data-mp]').forEach(b=>b.onclick=()=>showMp(b.dataset.mp));
+    function showMp(id){if(id==='mpConfirm'&&!confirmItems.length)prepareConfirmFromCart();document.querySelectorAll('.mp-page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.mini-nav button[data-mp]').forEach(b=>b.classList.toggle('active',b.dataset.mp===id));}
+    function mpToast(msg){const t=document.getElementById('mpToast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',1500)}
+    function openSpecSheet(mode='cart'){
+      if(mode==='cart' && !(cartConfig.enabled && cartConfig.types.includes('normal'))){mpToast('后台未开启普通商品加购');return}
+      sheetMode=mode;document.getElementById('specSheet').style.display='flex'
+    }
+    function closeSpecSheet(){document.getElementById('specSheet').style.display='none'}
+    function changeSheetQty(d){const el=document.getElementById('sheetQty');el.textContent=Math.max(1,Number(el.textContent)+d)}
+    function sheetAddCart(){
+      closeSpecSheet();
+      const existed=cartItems.find(i=>i.name.includes('商品名称展示'));
+      if(existed){existed.qty+=Number(document.getElementById('sheetQty').textContent)}
+      else cartItems.unshift({id:Date.now(),type:'普通',name:'商品名称展示一行超过就...',spec:'属性值1,属性值2,规格数量',price:25,originPrice:25,activityType:'none',qty:Number(document.getElementById('sheetQty').textContent),checked:true,favorite:false});
+      saveState(); renderCart(); mpToast('已加入购物车'); showMp('mpCart');
+    }
+    function sheetBuyNow(){
+      closeSpecSheet();
+      confirmSource='buy';
+      confirmItems=[{id:'buy-now',type:'普通',name:'商品名称展示一行超过就...',spec:'属性值1,属性值2,规格数量，有效期至2028-07',price:25,originPrice:25,activityType:'none',qty:Number(document.getElementById('sheetQty').textContent),checked:true}];
+      renderConfirmOrder();
+      showMp('mpConfirm');
+    }
+    function cartPriceHtml(i){
+      const price=`<b class="mp-price" style="font-size:22px">￥${Number(i.price).toFixed(2)}</b>`;
+      if(i.activityType==='discount') return `<div class="cart-price">${price}<span class="activity-tag">折扣立减</span><span class="origin-price">￥${Number(i.originPrice || i.price).toFixed(2)}</span></div>`;
+      if(i.activityType==='seckill') return `<div class="cart-price">${price}<span class="activity-tag">秒杀</span><span class="origin-price">￥${Number(i.originPrice || i.price).toFixed(2)}</span></div>`;
+      return `<div class="cart-price">${price}</div>`;
+    }
+    function renderCart(){
+      const normalItems=cartItems.filter(i=>i.type==='普通');
+      document.getElementById('cartList').innerHTML=`<div class="cart-group"><b>普通</b>${normalItems.map((i,idx)=>{
+        const noActions=idx<3;
+        return `<div class="cart-item ${noActions?'':'swiped'}"><span class="round-check ${i.checked?'active':''}" onclick="toggleCart(${i.id})"></span><img class="cart-img" src="${productImg}"><div><div class="item-title">${i.name}</div><div class="item-spec">${i.spec}</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px">${cartPriceHtml(i)}<div class="qty"><button onclick="changeCartQty(${i.id},-1)">−</button><span>${i.qty}</span><button onclick="changeCartQty(${i.id},1)">+</button></div></div></div>${noActions?'':`<div class="swipe-actions"><button class="swipe-action collect" onclick="toggleFavorite(${i.id})">☆<span>${i.favorite?'已收藏':'收藏'}</span></button><button class="swipe-action delete" onclick="deleteCartItem(${i.id})">⌫<span>删除</span></button></div>`}</div>`;
+      }).join('')||'<div style="color:#aaa;text-align:center;padding:18px">暂无商品</div>'}</div>`;
+      const checked=cartItems.filter(i=>i.type==='普通'&&i.checked&&!i.disabled);document.getElementById('settleCount').textContent=checked.length;document.getElementById('cartTotal').textContent='￥'+checked.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
+    }
+    function cloneOrderItem(i){return {id:i.id,type:i.type,name:i.name,spec:i.spec,price:Number(i.price),originPrice:Number(i.originPrice || i.price),activityType:i.activityType || 'none',qty:Number(i.qty || 1),checked:true}}
+    function prepareConfirmFromCart(){
+      confirmSource='cart';
+      confirmItems=cartItems.filter(i=>i.type==='普通'&&i.checked&&!i.disabled).map(cloneOrderItem);
+      renderConfirmOrder();
+    }
+    function openCartConfirm(){
+      prepareConfirmFromCart();
+      if(!confirmItems.length){mpToast('请先选择可结算的普通商品');return}
+      showMp('mpConfirm');
+    }
+    function confirmPriceHtml(i){
+      const price=`<b class="mp-price">￥${Number(i.price).toFixed(2)}</b>`;
+      if(i.activityType==='discount') return `${price}<span class="activity-tag" style="margin-left:6px">折扣立减</span>`;
+      if(i.activityType==='seckill') return `${price}<span class="activity-tag" style="margin-left:6px">折扣立减</span>`;
+      return price;
+    }
+    function renderConfirmOrder(){
+      const goodsBox=document.getElementById('confirmGoods'), feeBox=document.getElementById('confirmFees'), totalEl=document.getElementById('confirmTotal');
+      if(!goodsBox||!feeBox||!totalEl)return;
+      const items=confirmItems.length?confirmItems:cartItems.filter(i=>i.type==='普通'&&i.checked&&!i.disabled).map(cloneOrderItem);
+      const goodsTotal=items.reduce((s,i)=>s+i.price*i.qty,0);
+      const originTotal=items.reduce((s,i)=>s+(i.originPrice||i.price)*i.qty,0);
+      const discount=Math.max(0,originTotal-goodsTotal);
+      const freight=items.length?10:0;
+      const points=items.length && confirmSource==='cart'?10:0;
+      const pay=Math.max(0,goodsTotal+freight-points);
+      goodsBox.innerHTML=items.map((i,idx)=>`<div class="order-product" style="${idx?'margin-top:12px':''}"><img class="cart-img" style="width:82px;height:82px" src="${productImg}"><div><div class="product-title" style="margin:0">${esc(i.name)}</div><div style="color:#717171">${esc(i.spec || '1件装')}</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">${confirmPriceHtml(i)}<span style="color:#717171">x${i.qty}</span></div></div></div>`).join('') || '<div style="text-align:center;color:#aaa;padding:18px">暂无商品</div>';
+      feeBox.innerHTML=`<div class="fee-row"><b>商品原价</b><span>￥${originTotal.toFixed(2)}</span></div><div class="fee-row"><b>运费</b><span>￥${freight.toFixed(2)}</span></div><div class="fee-row"><b>活动优惠</b><span>${discount?'-￥'+discount.toFixed(2):'￥0.00'}</span></div><div class="fee-row"><b>优惠券</b><span style="color:#999">暂无可用优惠券 ›</span></div><div class="fee-row"><b>积分抵扣</b><span>${points?'-￥'+points.toFixed(2):'￥0.00'} ›</span></div><div class="fee-row"><b>订单备注</b><span style="color:#999">无备注 ›</span></div>`;
+      totalEl.textContent='￥'+pay.toFixed(2);
+    }
+    function toggleCart(id){const i=cartItems.find(x=>x.id===id);if(i.disabled){mpToast('跨境/直邮本期暂不支持购物车结算');return}i.checked=!i.checked;saveState();renderCart()}
+    function changeCartQty(id,d){const i=cartItems.find(x=>x.id===id);if(i.disabled)return mpToast('该类型本期不可结算');i.qty=Math.max(1,i.qty+d);saveState();renderCart()}
+    function toggleAllCart(){const visible=cartItems.filter(i=>i.type==='普通'&&!i.disabled);const all=visible.every(i=>i.checked);visible.forEach(i=>i.checked=!all);saveState();renderCart()}
+    function toggleFavorite(id){const i=cartItems.find(x=>x.id===id);if(i){i.favorite=!i.favorite;saveState();renderCart();mpToast(i.favorite?'已收藏':'已取消收藏')}}
+    function deleteCartItem(id){const i=cartItems.find(x=>x.id===id);if(!i)return;openConfirm('删除','是否确认删除该购物车商品？',()=>{cartItems=cartItems.filter(x=>x.id!==id);saveState();renderCart();mpToast('已删除')})}
+    function clearInvalidGoods(){openConfirm('清空失效商品','是否确认清空全部失效商品？',()=>{document.getElementById('invalidGroup').style.display='none';mpToast('已清空失效商品')})}
+    function submitOrder(){
+      const checked=confirmItems.length?confirmItems:cartItems.filter(i=>i.checked&&!i.disabled).map(cloneOrderItem);
+      if(!checked.length){mpToast('请先选择可结算的普通商品');showMp('mpCart');return}
+      const goodsTotal=checked.reduce((s,i)=>s+i.price*i.qty,0);
+      const pay=Math.max(0,goodsTotal+10-(confirmSource==='cart'?10:0));
+      const no='D'+Date.now().toString().slice(-13);
+      mpOrders.unshift({no,status:'待付款',lines:checked.map(i=>i.name),pay:pay.toFixed(2),whole:true});
+      orders.unshift({no:'DM'+no.slice(1),sub:'',status:'待付款',type:'普通订单',goods:checked.map(i=>i.name),qty:checked.reduce((s,i)=>s+i.qty,0),pay:pay.toFixed(2),push:'不需要推送',afterSales:checked.map(()=>'-'),discounts:checked.map((_,i)=>i===0?'购物车优惠￥10.00':'-')});
+      confirmItems=[];
+      saveState(); renderOrderTable(); renderMpOrders(); mpToast('订单已提交，待支付展示整单');showMp('mpOrders')
+    }
+    function filterMpOrders(st){mpOrderFilter=st;document.querySelectorAll('.order-tabs span').forEach(s=>s.classList.toggle('active',s.textContent===st||(st===''&&s.textContent==='全部')));renderMpOrders()}
+    function payOrder(no){
+      const whole=mpOrders.find(o=>o.no===no) || mpOrders.find(o=>o.status==='待付款');
+      if(!whole)return;
+      mpOrders=mpOrders.filter(o=>o.no!==whole.no);
+      const first=whole.lines[0]||'爱他美（Aptamil）白金澳洲版婴儿配方奶粉1段';
+      const second=whole.lines[1]||'澳洲益生菌滴剂';
+      mpOrders.unshift({no:whole.no+'-01',status:'待发货',lines:[first],pay:(Number(whole.pay)*0.6).toFixed(2)});
+      mpOrders.unshift({no:whole.no+'-02',status:'待发货',lines:[second],pay:(Number(whole.pay)*0.4).toFixed(2)});
+      const pcNo='DM'+whole.no.slice(1);
+      const pc=orders.find(o=>o.no===pcNo);
+      if(pc){pc.status='待发货';pc.push='推送成功'}
+      if(!orders.some(o=>o.no===pcNo+'-01')){
+        orders.unshift({no:pcNo+'-01',sub:'01',status:'待发货',type:'普通订单',goods:[first],qty:1,pay:(Number(whole.pay)*0.6).toFixed(2),push:'推送成功',afterSales:['未申请'],discounts:['-']});
+        orders.unshift({no:pcNo+'-02',sub:'02',status:'待发货',type:'普通订单',goods:[second],qty:1,pay:(Number(whole.pay)*0.4).toFixed(2),push:'推送成功',afterSales:['未申请'],discounts:['-']});
+      }
+      saveState();renderOrderTable();renderMpOrders();mpToast('支付成功，已按供应商库位拆单');mpOrderFilter='待发货';setTimeout(()=>{showMp('mpOrders');filterMpOrders('待发货')},800)
+    }
+    function renderMpOrders(){
+      const base=mpOrders.filter(o=>!mpOrderFilter||o.status===mpOrderFilter);
+      const box=document.getElementById('mpOrderList'); if(!box)return;
+      box.innerHTML=base.map(o=>`<div class="order-card" onclick="openMpOrderDetail('${o.no}')"><div class="order-head"><b>订单号：${o.no}</b><span class="order-status">${o.status}</span></div>${o.lines.map(l=>`<div class="order-line"><img src="${productImg}"><div><div class="item-title">${l}</div><div class="item-spec">1段；800g；1罐装；效期:2026-09</div><div style="display:flex;justify-content:space-between;margin-top:10px"><b>￥25.00</b><span style="color:#717171">x1</span></div></div></div>`).join('')}<div style="text-align:right;color:#717171;margin-top:8px">总价￥${o.pay}　优惠￥2.99　<b style="color:#333">实付￥${o.pay}</b><br>（含运费￥0.50，税费￥0.50）</div>${o.status==='待付款'?'<div style="background:#f3eaff;color:var(--mp-primary);border-radius:6px;padding:10px;margin-top:10px">待付款　剩余支付时间 MM分:SS分</div>':''}<div class="order-actions">${o.status==='待付款'?`<button class="small-pill primary" onclick="event.stopPropagation();payOrder('${o.no}')">去支付</button>`:o.status==='待发货'?`<button class="small-pill" onclick="event.stopPropagation();cancelMpOrder('${o.no}')">申请售后</button>`:o.status==='待收货'?`<button class="small-pill" onclick="event.stopPropagation()">查看物流</button><button class="small-pill primary" onclick="event.stopPropagation();confirmReceive('${o.no}')">确认收货</button>`:o.status==='已完成'?'<button class="small-pill" onclick="event.stopPropagation()">查看物流</button><button class="small-pill primary" onclick="event.stopPropagation()">去评价</button>':''}</div></div>`).join('') || '<div style="text-align:center;color:#aaa;padding:80px 0">暂无订单</div>';
+    }
+    function openMpOrderDetail(no){selectedMpOrderNo=no;renderMpOrderDetail();showMp('mpOrderDetail')}
+    function renderMpOrderDetail(){
+      const o=mpOrders.find(x=>x.no===selectedMpOrderNo) || mpOrders.find(x=>x.status==='已完成') || mpOrders[0];
+      if(!o)return;
+      const title=document.getElementById('mpOrderDetailTitle'), body=document.getElementById('mpOrderDetailBody');
+      title.textContent=o.status;
+      const paid=o.status!=='待付款';
+      const productRows=o.lines.map((l,i)=>`<div class="order-line" style="align-items:flex-start;margin-top:${i?18:0}"><img src="${productImg}"><div style="flex:1"><div class="item-title">${l}</div><div class="item-spec">1段；800g；1罐装；效期:2026-09</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><b>￥25.00</b><span style="color:#717171">x1</span></div>${paid?'<div style="text-align:right;margin-top:10px"><button class="small-pill">申请售后</button></div>':''}</div></div>`).join('');
+      body.innerHTML=`<div class="mp-card"><div style="font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">⌘ [无锡市] 快件到达【无锡快运中转场】待...</div><div style="border-top:1px solid #eee;margin-top:14px;padding-top:14px" class="detail-address">⌖ 嘉陵江滨江路242号远见中心12楼出电梯右转1205办公室</div><div style="margin-top:8px;color:#717171">暂用名　130****3182</div></div>
+        <div class="mp-card"><h3 style="margin:0 0 14px;font-size:17px">发货仓名称001</h3>${productRows}<div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px"><div class="detail-fee strong"><b>实付金额</b><span>￥${o.pay}</span></div><div class="detail-fee"><span>商品原价</span><span>￥${o.pay}</span></div><div class="detail-fee"><span>运费</span><span>￥0.00</span></div><div class="detail-fee"><span>税费</span><span>￥1.00</span></div><div class="detail-fee"><span>积分抵扣</span><span>-￥10.00</span></div><div class="detail-fee"><span>优惠券抵扣</span><span>￥0.00</span></div></div></div>
+        <div class="mp-card"><h3 style="margin:0 0 14px;font-size:17px">订单信息</h3><div class="detail-info-row"><span>订单编号</span><span>${o.no}</span></div><div class="detail-info-row"><span>下单时间</span><span>2026-06-11 17:03:56</span></div><div class="detail-info-row"><span>支付方式</span><span>${paid?'银联支付':'-'}</span></div><div class="detail-info-row"><span>支付时间</span><span>${paid?'2026-06-11 17:06:12':'-'}</span></div><div class="detail-info-row"><span>支付单号</span><span>${paid?'as123456789':'-'}</span></div><div class="detail-info-row"><span>发货时间</span><span>${['待收货','已完成'].includes(o.status)?'2026-06-11 18:20:16':'-'}</span></div><div class="detail-info-row"><span>完成时间</span><span>${o.status==='已完成'?'2026-06-12 09:12:01':'-'}</span></div><div class="detail-info-row"><span>下单备注</span><span>暂无</span></div></div>`;
+    }
+    function confirmReceive(no){const o=mpOrders.find(x=>x.no===no);if(o){o.status='已完成';saveState();renderMpOrders();mpToast('已确认收货')}}
+    function cancelMpOrder(no){const o=mpOrders.find(x=>x.no===no);if(o){o.status='售后中';saveState();renderMpOrders();mpToast('售后申请已提交')}}
+    init();
+  </script>
+</body>
+</html>
