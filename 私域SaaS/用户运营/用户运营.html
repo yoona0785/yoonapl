@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>用户运营原型</title>
+  <style>
+    :root{
+      --primary:#051D86;--primary-hover:#0a2aa0;--primary-light:#EBF0FF;
+      --text-main:#333;--text-sub:#666;--text-hint:#aaa;--text-link:#051D86;
+      --text-error:#FF0000;--text-warn:#FF7800;--success:#52C41A;
+      --bg-page:#F4F6F9;--bg-white:#fff;--bg-hover:#F0F3FF;--bg-active:#EBF0FF;
+      --border:#ECECEC;--divider:#F2F2F2;--nav-h:48px;--sidebar-w:160px;--sidebar-mini:44px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--text-main);font-size:14px;background:var(--bg-page)}
+    button,input,select,textarea{font-family:inherit}
+    button{cursor:pointer}
+    .workbench{height:100vh;display:flex;overflow:hidden;background:#eef1f5}
+    .logic-strip{width:48px;background:#fff;border-right:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:13px;writing-mode:vertical-rl;letter-spacing:0;cursor:pointer;user-select:none}
+    .logic-panel{display:none;width:40%;min-width:520px;background:#fff;border-right:1px solid var(--border);height:100%;overflow:hidden}
+    .workbench.logic-open .logic-panel{display:flex;flex-direction:column}
+    .workbench.logic-open .logic-strip{display:none}
+    .logic-head{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border)}
+    .logic-title{font-size:16px;font-weight:600;color:#17233d}
+    .logic-actions{display:flex;gap:12px;align-items:center;font-size:13px}
+    .logic-actions button,.logic-actions label{border:0;background:transparent;color:var(--primary);cursor:pointer;font-size:13px;padding:0}
+    .source-note{padding:10px 18px;color:#808695;font-size:12px;border-bottom:1px solid var(--divider);background:#fafbfc}
+    .logic-doc{padding:22px 30px 48px;overflow:auto;line-height:1.72}
+    .logic-doc h1{font-size:20px;margin:0 0 18px;color:#17233d}
+    .logic-doc h2{font-size:17px;margin:26px 0 10px;color:#17233d;border-left:3px solid var(--primary);padding-left:10px}
+    .logic-doc h3{font-size:15px;margin:18px 0 8px;color:#333}
+    .logic-doc p,.logic-doc li{font-size:13px;color:#515a6e}
+    .logic-doc ul,.logic-doc ol{padding-left:22px}
+    .logic-doc blockquote{margin:10px 0;padding:10px 14px;background:#f7f9fc;border-left:3px solid #d8deef;color:#666}
+    .logic-doc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+    .logic-doc th,.logic-doc td{border:1px solid #e8eaec;padding:8px;text-align:left}
+    .preview{flex:1;min-width:0;height:100%;overflow:hidden;background:var(--bg-page)}
+    .admin{height:100%;display:grid;grid-template-rows:48px minmax(0,1fr);background:#f3f4f6}
+    .topnav{height:48px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:stretch}
+    .logo{width:160px;display:flex;align-items:center;padding-left:24px;color:var(--primary);font-weight:700;font-size:15px;border-right:1px solid var(--border);white-space:nowrap}
+    .nav-toggle{width:44px;display:flex;align-items:center;justify-content:center;color:#666;border-right:1px solid #f4f4f4;cursor:pointer}
+    .tabs{flex:1;display:flex;align-items:stretch;min-width:0;overflow:auto}
+    .tab{height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;color:#666;position:relative;white-space:nowrap;font-size:14px;cursor:pointer}
+    .tab.active{color:var(--primary);font-weight:600}
+    .tab.active:after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--primary)}
+    .tab .x{font-size:13px;color:#999}
+    .nav-right{display:flex;align-items:center;gap:18px;padding:0 20px;color:#666;font-size:13px}
+    .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(145deg,#d8e1ff,#284bda);border:1px solid #153db8;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+    .admin-body{min-height:0;display:flex}
+    .sidebar{width:160px;background:#f6f6f7;border-right:1px solid var(--border);transition:width .2s;overflow:hidden}
+    .admin.collapsed .sidebar{width:44px}
+    .sb-search{padding:16px 12px 10px}
+    .sb-search input{width:100%;height:30px;border:1px solid #eee;border-radius:15px;padding:0 12px;font-size:12px;color:#666;background:#fff;outline:none}
+    .admin.collapsed .sb-search{display:none}
+    .menu-scroll{height:calc(100% - 56px);overflow:auto;padding:4px 0 16px}
+    .m1{height:40px;padding:0 12px;display:flex;align-items:center;gap:8px;color:#333;cursor:pointer}
+    .m1:hover,.m1.active{background:#F0F3FF;color:var(--primary)}
+    .m1 svg{width:15px;height:15px;stroke:#777;fill:none;stroke-width:1.7}
+    .m1:hover svg,.m1.active svg{stroke:var(--primary)}
+    .m1-label{flex:1;font-size:14px;white-space:nowrap}
+    .m1-arrow{color:#aaa;transition:.2s}
+    .m1.open .m1-arrow{transform:rotate(90deg)}
+    .m2-wrap{display:none}
+    .m1.open + .m2-wrap{display:block}
+    .m2-item{height:32px;margin:0 8px;padding-left:28px;display:flex;align-items:center;color:#666;font-size:12px;cursor:pointer;border-radius:2px;white-space:nowrap}
+    .m2-item:hover,.m2-item.active{background:#EBF0FF;color:var(--primary);font-weight:600}
+    .admin.collapsed .m1{justify-content:center;padding:0}
+    .admin.collapsed .m1-label,.admin.collapsed .m1-arrow,.admin.collapsed .m2-wrap{display:none}
+    .main{flex:1;min-width:0;overflow:auto;padding:0 0 28px;background:#f3f4f6}
+    .content-card{margin:18px 18px 0;background:#fff;border-radius:6px;min-height:calc(100vh - 84px);box-shadow:0 1px 0 1px #efeded;overflow:hidden}
+    .page{display:none}
+    .page.active{display:block}
+    .toolbar{padding:22px 26px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .search-grid{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center}
+    .field{display:flex;align-items:center;gap:8px;color:#333;font-size:13px}
+    .input,.select,.date,.textarea{border:1px solid var(--border);border-radius:4px;background:#fff;color:#515a6e;outline:none;font-size:13px}
+    .input,.select,.date{height:32px;padding:0 9px}
+    .input{width:170px}.select{width:150px}.date{width:178px}
+    .input:focus,.select:focus,.date:focus,.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.1)}
+    .search-btn{width:22px;height:32px;border:0;background:transparent;color:#333;padding:0;display:inline-flex;align-items:center;justify-content:center}
+    .text-link{border:0;background:transparent;color:var(--primary);font-size:13px;padding:0;cursor:pointer}
+    .btn-primary,.btn-secondary{height:32px;padding:0 15px;border-radius:4px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+    .btn-primary{border:0;background:var(--primary);color:#fff}
+    .btn-primary:hover{background:var(--primary-hover)}
+    .btn-secondary{border:1px solid #dcdee2;background:#fff;color:#515a6e}
+    .btn-secondary:hover{border-color:var(--primary);color:var(--primary)}
+    .right-actions{display:flex;gap:10px;align-items:center;white-space:nowrap}
+    .hidden-search{display:none}.hidden-search.show{display:flex}
+    .table-wrap{padding:0 26px 0}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    thead th{height:40px;background:#ECECEC;color:#666;font-size:13px;font-weight:500;text-align:left;padding:0 14px;border-right:1px solid #e2e2e7}
+    thead th:last-child{border-right:0}
+    tbody td{height:68px;border-bottom:1px solid var(--divider);padding:10px 14px;font-size:13px;color:#333;vertical-align:middle}
+    tbody tr:hover{background:#F9FBFF}
+    tbody tr.selected{background:var(--primary-light)}
+    .name-main{color:var(--primary);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+    .name-id{color:#999;font-size:12px;margin-bottom:5px}
+    .tag{display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:44px;padding:0 6px;border-radius:3px;font-size:13px;white-space:nowrap}
+    .tag.wait{color:#FF8A00;background:#FFF3E5}.tag.run{color:#14C45A;background:#E8FFF0}.tag.end{color:#999;background:#F5F5F5}.tag.fail{color:#FF4D4F;background:#FFF1F0}
+    .op{display:flex;gap:8px;align-items:center;color:var(--primary)}
+    .op button{border:0;background:transparent;color:var(--primary);padding:0;font-size:13px}
+    .op .danger{color:var(--text-error)}
+    .more{position:relative}
+    .more-pop{position:fixed;display:none;z-index:9999;background:#fff;border:1px solid #E8ECF0;border-radius:4px;min-width:92px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:4px 0}
+    .more-pop button{display:block;width:100%;height:34px;border:0;background:#fff;padding:0 16px;text-align:left;color:var(--primary);font-size:13px}
+    .more-pop button:hover{background:#F0F3FF}
+    .more-pop .danger{color:#FF0000}.more-pop .danger:hover{background:#FFF0F0}
+    .pager{height:50px;margin:0 26px;display:flex;align-items:center;justify-content:space-between;color:#666;font-size:13px}
+    .pager.only-pagination{justify-content:flex-end}
+    .check{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+    .check input{position:absolute;opacity:0}
+    .box{width:16px;height:16px;border:1px solid #C9D0E0;border-radius:3px;background:#fff;display:inline-block;position:relative}
+    .check input:checked + .box{background:var(--primary);border-color:var(--primary)}
+    .check input:checked + .box:after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+    .page-titlebar{height:54px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:#fff}
+    .back{display:flex;align-items:center;gap:6px;color:#333;font-size:14px;cursor:pointer}
+    .form-layout{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:16px;padding:20px 26px 42px}
+    .form-sections{min-width:0}
+    .section{background:#fff;border:1px solid var(--border);border-radius:6px;padding:20px 24px;margin-bottom:18px;scroll-margin-top:16px}
+    .section-title{font-size:15px;font-weight:600;border-left:3px solid var(--primary);padding-left:10px;margin:0 0 18px;color:#333}
+    .form-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:flex-start;margin-bottom:16px;min-height:36px}
+    .form-row:last-child{margin-bottom:0}
+    .label{height:36px;display:flex;align-items:center;justify-content:flex-end;color:#333;font-size:13px}
+    .req:after{content:" *";color:#FF0000}
+    .control .input,.control .select,.control .date{width:500px;height:36px}
+    .textarea{width:500px;min-height:92px;padding:9px;resize:vertical;line-height:1.5}
+    .hint{font-size:12px;color:#999;margin-top:6px}
+    .seg{display:flex}
+    .seg button{width:125px;height:36px;border:1px solid var(--border);background:#fff;color:#333;margin-left:-1px}
+    .seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}.seg button:last-child{border-radius:0 4px 4px 0}
+    .seg button.active{background:var(--primary-light);color:var(--primary);border-color:var(--primary);z-index:1}
+    .radio-line,.check-line{display:flex;align-items:center;gap:24px;min-height:36px}
+    .radio{display:inline-flex;gap:8px;align-items:center;color:#515a6e}
+    .radio input{accent-color:var(--primary)}
+    .template-card{width:500px;border:1px solid var(--border);border-radius:4px;padding:12px;margin-top:10px;background:#fafafa}
+    .template-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#333}
+    .anchor-nav{position:sticky;top:16px;align-self:start;justify-self:end;width:100px;border-left:1px solid var(--divider);padding:0 0 4px}
+    .anchor-nav a{display:block;height:32px;line-height:32px;padding-left:12px;color:#666;text-decoration:none;font-size:13px;border-left:2px solid transparent;margin-left:-1px}
+    .anchor-nav a.active{color:var(--primary);border-left-color:var(--primary);font-weight:600}
+    .detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 32px;font-size:13px;line-height:22px}
+    .detail-grid span{color:#666}
+    .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:10000;align-items:center;justify-content:center}
+    .modal-mask.show{display:flex}
+    .modal{background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);max-width:calc(100vw - 80px);max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+    .modal.md{width:680px}.modal.lg{width:860px}.modal.sm{width:392px;border-radius:6px}
+    .modal-head{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:16px;font-weight:600}
+    .modal-close{font-size:22px;color:#999;cursor:pointer}
+    .modal-body{padding:18px;overflow:auto}
+    .modal-foot{height:56px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 18px}
+    .tpl-list{border:1px solid var(--border)}
+    .tpl-item{display:grid;grid-template-columns:28px 1fr 120px 120px;align-items:center;gap:10px;height:48px;padding:0 12px;border-bottom:1px solid var(--divider);font-size:13px}
+    .tpl-item:last-child{border-bottom:0}
+    .coupon-area{width:100%}
+    .coupon-add{display:flex;align-items:center;gap:14px;margin-bottom:16px;color:#333}
+    .coupon-add .plus{font-size:20px;line-height:1;color:var(--primary)}
+    .coupon-table{width:100%;border:1px solid var(--border);border-collapse:collapse;table-layout:fixed;background:#fff}
+    .coupon-table th{height:44px;background:#f5f5f5;color:#333;font-size:13px;font-weight:500;text-align:center;border-right:1px solid var(--border);padding:0 10px}
+    .coupon-table td{height:62px;border-bottom:1px solid var(--divider);border-right:1px solid var(--border);padding:10px 12px;text-align:center;font-size:13px}
+    .coupon-table th:last-child,.coupon-table td:last-child{border-right:0}
+    .coupon-table .left{text-align:left}
+    .coupon-count{width:86px;height:24px;border:1px solid #dcdee2;border-radius:4px;padding:0 8px;font-size:13px}
+    .coupon-empty{height:150px;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px}
+    .coupon-name{font-weight:600;color:#333}
+    .coupon-tag{display:inline-flex;height:22px;align-items:center;padding:0 6px;border-radius:3px;background:#EBF0FF;color:var(--primary);font-size:12px;margin-right:6px}
+    .info-alert{height:36px;border:1px solid #7f90bf;background:#c8d1e3;color:#34405c;border-radius:4px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:13px;margin-bottom:8px}
+    .info-dot{width:14px;height:14px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+    .coupon-search{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;margin-bottom:14px}
+    .coupon-modal-table{border:1px solid var(--border);height:464px;overflow:hidden;background:#fff}
+    .coupon-modal-table table th,.coupon-modal-table table td{text-align:center}
+    .coupon-modal-table table td.left{text-align:left}
+    .confirm-body{padding:18px 22px 16px}
+    .confirm-title-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .confirm-icon{width:20px;height:20px;border-radius:50%;background:#FF7800;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+    .confirm-title{font-size:14px;font-weight:600}
+    .confirm-desc{padding-left:30px;color:#666;font-size:13px;line-height:22px}
+    .confirm-foot{padding:0 20px 16px;display:flex;justify-content:flex-end;gap:8px}
+    .toast-wrap{position:fixed;left:50%;top:62px;transform:translateX(-50%);z-index:11000;display:flex;flex-direction:column;gap:8px;align-items:center}
+    .toast{background:#fff;border:1px solid #B7EB8F;color:#135200;border-radius:6px;padding:10px 14px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+    .empty{height:180px;display:flex;align-items:center;justify-content:center;color:#999;border-bottom:1px solid var(--divider)}
+    .muted{color:#999}.nowrap{white-space:nowrap}.w100{width:100%}
+  </style>
+</head>
+<body>
+  <div class="workbench" id="workbench">
+    <div class="logic-strip" onclick="toggleLogic()">展开逻辑</div>
+    <aside class="logic-panel">
+      <div class="logic-head">
+        <div class="logic-title">用户运营原型文档</div>
+        <div class="logic-actions">
+          <label>同步本地文档<input id="docFile" type="file" accept=".md,.markdown,.txt" hidden></label>
+          <button onclick="toggleLogic()">收起逻辑</button>
+        </div>
+      </div>
+      <div class="source-note" id="sourceNote">来源：同目录本地文档《人群运营需求文档.md》</div>
+      <div class="logic-doc" id="logicDoc"></div>
+    </aside>
+    <main class="preview">
+      <div class="admin" id="admin">
+        <nav class="topnav">
+          <div class="logo">私域运营平台</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="tabs" id="tabs"></div>
+          <div class="nav-right"><span>下载</span><span class="avatar">管</span><span>管理员 ▾</span></div>
+        </nav>
+        <div class="admin-body">
+          <aside class="sidebar">
+            <div class="sb-search"><input id="menuSearch" placeholder="搜索关键字" oninput="searchMenu()"></div>
+            <div class="menu-scroll" id="menuScroll"></div>
+          </aside>
+          <section class="main">
+            <div class="content-card">
+              <div class="page active" id="page-list">
+                <div class="toolbar">
+                  <div class="search-grid">
+                    <label class="field">计划名称：<input class="input" id="qName" placeholder="请输入"></label>
+                    <label class="field">状态：<select class="select" id="qStatus"><option value="">请选择</option><option>待执行</option><option>执行失败</option><option>执行成功</option></select></label>
+                    <label class="field hidden-search" id="moreType">计划类型：<select class="select" id="qType"><option value="">全部</option><option>指定手机号用户</option><option>指定用户群</option></select></label>
+                    <label class="field hidden-search" id="moreWay">计划方式：<select class="select" id="qWay"><option value="">全部</option><option>立即执行</option><option>定时执行</option><option>周期执行</option></select></label>
+                    <button class="search-btn" onclick="renderList()" title="查询">⌕</button>
+                    <button class="text-link" onclick="toggleMoreSearch()" id="moreSearchBtn">更多搜索 ▾</button>
+                    <button class="text-link" onclick="resetSearch()">清空</button>
+                  </div>
+                  <div class="right-actions">
+                    <button class="btn-secondary" onclick="openTemplateList('subscribe')">订阅模板</button>
+                    <button class="btn-secondary" onclick="openTemplateList('sms')">短信模板</button>
+                    <button class="btn-primary" onclick="openForm()">⊕ 立即创建</button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <colgroup>
+                      <col style="width:18%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:7%"><col style="width:10%">
+                    </colgroup>
+                    <thead><tr><th>计划名称</th><th>计划类型</th><th>计划方式</th><th>计划时间</th><th>发放权益</th><th>通知方式</th><th>预估/实际执行人群</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="planRows"></tbody>
+                  </table>
+                  <div class="empty" id="emptyList" style="display:none">暂无匹配数据</div>
+                </div>
+                <div class="pager only-pagination">
+                  <div><span id="totalText">共 0 条</span>　&lt; <b style="background:#f5f5f5;padding:8px 12px;border-radius:4px;color:#333">1</b> &gt;　<select class="select" style="width:92px"><option>20条/页</option></select></div>
+                </div>
+              </div>
+              <div class="page" id="page-form"></div>
+              <div class="page" id="page-detail"></div>
+              <div class="page" id="page-template"></div>
+              <div class="page" id="page-user"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="more-pop" id="morePop"></div>
+  <div class="toast-wrap" id="toastWrap"></div>
+  <div class="modal-mask" id="modalMask" onclick="maskClose(event)"></div>
+  <script>
+    const defaultDoc = `# 用户运营需求文档
+
+## 1. 业务背景
+
+系统面向指定用户、指定用户群进行运营触达，支持发放优惠券、发放积分、发送小程序订阅消息、发送短信通知。运营计划支持立即执行、定时执行、周期执行，周期执行可按每周、每月、每几天配置执行时间。
+
+### 1.1 需求描述
+
+1. 用户中心新增用户运营菜单。
+2. 用户运营支持计划列表、搜索、新建、编辑、复制、删除、日志、立即执行、重新执行。
+3. 用户运营支持订阅模板、短信模板管理，模板列表以独立列表页展示，新增/编辑模板使用弹窗配置。
+4. 运营计划支持指定手机号用户、选择用户群。
+5. 发放权益支持优惠券、积分，可单独配置或组合配置。
+6. 通知方式支持小程序订阅消息、短信通知，可单独配置或组合配置。
+7. 运营计划支持立即执行、定时执行、周期执行。
+8. 周期执行支持配置执行时间范围，范围内可配置每周几的几点、每月几号的几点、每几天的几点。
+9. 用户运营列表展示预估/实际执行人群，点击后跳转至用户中心-用户管理，并按该计划执行人群过滤用户列表。
+
+### 1.2 目标结果
+
+1. 实现用户权益发放。
+2. 实现用户消息通知。
+3. 支持运营计划执行前预估触达人群、执行后查看实际执行人群。
+4. 支持通过用户管理列表核验计划命中的用户范围。
+
+### 1.3 本期范围
+
+1. 用户运营计划列表、搜索、新建、编辑、复制、删除、日志。
+2. 计划执行方式：立即执行、定时执行、周期执行。
+3. 计划人群：指定手机号用户、指定用户群。
+4. 发放权益：优惠券、积分。
+5. 通知渠道：小程序订阅消息、短信通知。
+6. 订阅模板列表、短信模板列表，以及对应新增/编辑弹窗。
+7. 点击预估/实际执行人群跳转用户管理列表并默认过滤。
+
+### 1.4 本期不做
+
+1. 不做发放权益的回收。
+2. 不做用户商品隐藏、商品限购、可购买人群配置，该能力后续作为独立功能评估。
+
+---
+
+## 2. 页面路径与页面结构
+
+### 2.1 用户运营列表
+
+页面路径：用户中心 / 用户运营
+
+列表字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| 计划名称 | 展示计划名称、计划ID、执行状态标签 |
+| 计划类型 | 指定手机号用户 / 指定用户群 |
+| 计划方式 | 立即执行 / 定时执行 / 周期执行 |
+| 计划时间 | 展示立即执行时间、定时执行时间或周期规则 |
+| 发放权益 | 展示优惠券、积分配置 |
+| 通知方式 | 展示小程序订阅消息、短信通知 |
+| 预估/实际执行人群 | 待执行展示预估人数；执行成功/执行失败展示实际人数 |
+| 状态 | 待执行 / 执行失败 / 执行成功 |
+| 操作 | 按状态展示可操作项 |
+
+搜索条件：
+
+1. 计划名称。
+2. 状态：待执行 / 执行失败 / 执行成功。
+3. 更多搜索：计划类型、计划方式。
+
+说明：
+
+1. 列表不提供批量操作。
+2. 点击预估/实际执行人群，进入用户中心-用户管理列表。
+3. 用户管理列表默认带入该计划的人群手机号或用户群过滤条件。
+
+### 2.2 用户管理列表联动
+
+页面路径：用户中心 / 用户管理
+
+从用户运营计划进入用户管理时：
+
+1. 指定手机号用户：默认带入手机号过滤。
+2. 指定用户群：默认按用户群过滤。
+3. 页面不展示额外的来源说明或路径说明。
+4. 用户列表保留用户管理原有样式和操作。
+
+### 2.3 新建/编辑运营计划
+
+页面路径：用户中心 / 用户运营 / 新增计划
+
+表单分区：
+
+1. 基本信息。
+2. 计划人群。
+3. 权益礼包。
+4. 通知配置。
+5. 计划时间。
+
+字段规则：
+
+| 字段 | 规则 |
+| --- | --- |
+| 计划名称 | 必填，最多20个字，不展示额外说明文案 |
+| 计划方式 | 必填，立即执行 / 定时执行 / 周期执行 |
+| 计划类型 | 必填，指定手机号用户 / 指定用户群 |
+| 手机号用户 | 选择指定手机号用户时展示，支持录入手机号 |
+| 用户群 | 选择指定用户群时展示，支持选择已有用户群 |
+| 优惠券配置 | 勾选后展示包含优惠券表格 |
+| 积分配置 | 勾选后填写发放积分数 |
+| 通知渠道 | 小程序订阅消息 / 短信通知 |
+| 计划时间 | 根据计划方式展示对应时间配置 |
+
+---
+
+## 3. 权益礼包规则
+
+### 3.1 优惠券配置
+
+1. 勾选发放优惠券后，展示包含优惠券区域。
+2. 包含优惠券区域默认表格空态。
+3. 点击添加优惠券，打开选择优惠券弹窗。
+4. 选择优惠券弹窗支持设置赠券数。
+5. 赠券数不可小于1，不可超过优惠券剩余发放数量。
+6. 确认后回填至包含优惠券表格。
+7. 回填后可直接编辑赠券数。
+8. 回填后可删除已选优惠券。
+9. 勾选发放优惠券但未添加优惠券时，不允许保存。
+
+### 3.2 积分配置
+
+1. 勾选发放积分后，展示积分数量输入框。
+2. 积分数量必须大于0。
+3. 未勾选发放积分时，不保存积分配置。
+
+---
+
+## 4. 通知模板规则
+
+### 4.1 模板列表
+
+1. 点击用户运营列表右上角订阅模板，进入订阅模板列表页。
+2. 点击用户运营列表右上角短信模板，进入短信模板列表页。
+3. 模板列表页支持搜索、状态筛选、新增、编辑、删除。
+4. 新增/编辑模板仍使用弹窗配置。
+
+### 4.2 订阅模板配置
+
+| 字段 | 规则 |
+| --- | --- |
+| 模板ID | 下拉单选，可选所有已添加的模板ID |
+| 模板字段1 | 选择模板ID后带出可配置字段 |
+| 模板字段2 | 选择模板ID后带出可配置字段 |
+| 详情 | 只可填写小程序路径 |
+| 状态 | 默认开启，可选开启、禁用 |
+
+校验规则：
+
+1. 模板ID必填。
+2. 详情必填。
+3. 详情必须为小程序路径，路径以 /pages/ 开头。
+
+### 4.3 短信模板配置
+
+| 字段 | 规则 |
+| --- | --- |
+| 模板CODE | 下拉单选，可选所有已添加的模板CODE |
+| 模板内容 | 500字内，选择模板CODE后带出可配置内容 |
+| 状态 | 默认开启，可选开启、禁用 |
+
+短信条数规则：
+
+1. 模板内容最多500字。
+2. 120个字算1条短信。
+3. 输入模板内容时实时展示当前字数和预计短信条数。
+
+---
+
+## 5. 执行方式规则
+
+### 5.1 立即执行
+
+1. 保存后立即进入执行队列。
+2. 执行完成后状态为执行成功或执行失败。
+3. 列表展示实际执行人群。
+
+### 5.2 定时执行
+
+1. 需配置执行时间。
+2. 执行前状态为待执行。
+3. 到达执行时间后进入执行队列。
+4. 执行完成后状态为执行成功或执行失败。
+
+### 5.3 周期执行
+
+1. 需配置执行时间范围。
+2. 周期规则支持每周、每月、每几天。
+3. 周期内按配置时间执行。
+4. 执行前状态为待执行。
+5. 执行完成后状态为执行成功或执行失败。
+
+---
+
+## 6. 状态与操作
+
+### 6.1 业务状态
+
+| 状态 | 说明 |
+| --- | --- |
+| 待执行 | 定时或周期计划尚未执行，或立即计划尚未进入执行完成态 |
+| 执行成功 | 计划已完成权益发放或消息通知 |
+| 执行失败 | 计划执行失败，可重新执行 |
+
+### 6.2 状态-操作矩阵
+
+| 状态 | 可执行操作 | 备注 |
+| --- | --- | --- |
+| 待执行 | 复制、编辑、立即结束、立即执行、日志、删除 | 可提前执行或结束 |
+| 执行成功 | 复制、日志、删除 | 不可编辑，不可重新执行 |
+| 执行失败 | 复制、重新执行、日志、删除 | 重新执行后进入执行成功或执行失败 |
+
+---
+
+## 7. 异常与校验
+
+1. 计划名称为空时，不允许保存。
+2. 未配置权益且未配置通知时，不允许保存。
+3. 勾选发放优惠券但未添加优惠券时，不允许保存。
+4. 勾选发放积分但未填写积分数量时，不允许保存。
+5. 勾选通知渠道但未选择对应模板时，不允许保存。
+6. 周期执行结束时间不得早于开始时间。
+7. 已执行成功计划不可编辑。
+8. 删除、立即结束需二次确认。
+
+---
+
+## 8. 日志与数据
+
+### 8.1 操作日志
+
+以下操作需记录日志：
+
+1. 新建计划。
+2. 编辑计划。
+3. 删除计划。
+4. 立即结束。
+5. 立即执行。
+6. 重新执行。
+7. 新增/编辑/删除订阅模板。
+8. 新增/编辑/删除短信模板。
+
+### 8.2 数据来源
+
+1. 用户群来源于用户中心-用户群。
+2. 手机号用户由运营人员录入。
+3. 优惠券来源于营销中心-优惠券。
+4. 订阅模板来源于已添加的小程序订阅模板。
+5. 短信模板来源于已添加的短信模板CODE。
+6. 执行人群数据联动用户中心-用户管理。
+
+---
+
+## 9. 补充说明
+
+1. 用户运营模块只负责权益发放与消息通知，不承载商品隐藏、商品限购、可购买人群配置。
+2. 商品对用户隐藏、限购、可购买人群属于独立的用户商品权限/用户限购能力，后续单独设计。`;
+    const LS_DOC='user_operation_logic_doc_v2', LS_DOC_NAME='user_operation_logic_name_v2', LS_DATA='user_operation_plans_v1';
+    let currentPage='list', editId=null, moreTimer=null, pendingAction=null, formSelectedCoupons=[], currentTemplateType='subscribe', currentUserFilter=null;
+    const menus=[
+      ['首页',['首页']],
+      ['商品中心',['商品管理','品牌管理']],
+      ['订单中心',['订单管理','售后管理']],
+      ['积分中心',['积分规则','积分明细']],
+      ['营销中心',['优惠券','秒杀活动','抽奖活动']],
+      ['用户中心',['用户管理','标签','用户群','用户运营']],
+      ['内容中心',['素材管理','文章管理']],
+      ['系统配置',['订阅消息模板','短信模板']]
+    ];
+    const seedPlans=[
+      {id:377,name:'积分兑换',type:'指定手机号用户',way:'定时执行',time:'2026-06-18 10:14:04',target:'13800001111 等 8 人',benefits:['积分 100'],notices:['短信通知'],status:'待执行',created:'2026-06-10 09:30:12'},
+      {id:376,name:'新用户首单激活',type:'指定用户群',way:'周期执行',time:'2026-06-01 至 2026-07-31 每周三 10:00',target:'新用户-7天内',benefits:['优惠券：满100减20'],notices:['小程序订阅消息','短信通知'],status:'执行成功',created:'2026-06-01 12:10:24'},
+      {id:375,name:'沉睡用户召回',type:'指定用户群',way:'立即执行',time:'2026-05-30 15:00:00',target:'30天未下单用户',benefits:['优惠券：无门槛5元'],notices:['短信通知'],status:'执行成功',created:'2026-05-30 14:50:00'},
+      {id:374,name:'会员日积分补贴',type:'指定用户群',way:'周期执行',time:'2026-06-01 至 2026-12-31 每月8号 09:00',target:'高价值会员',benefits:['积分 50','优惠券：会员日礼券'],notices:['小程序订阅消息'],status:'执行失败',created:'2026-05-28 10:33:18'},
+      {id:373,name:'雅培ugc5.13',type:'指定手机号用户',way:'定时执行',time:'2026-05-13 14:50:24',target:'152****2243 等 12 人',benefits:['积分 20'],notices:['短信通知'],status:'执行失败',created:'2026-05-12 18:21:11'}
+    ];
+    const userRows=[
+      {id:135352,nick:'KD68i8kk5g',phone:'138****1111',rawPhone:'13800001111',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'13800001111 等 8 人'},
+      {id:135351,nick:'KDi2c3x37a',phone:'147****0610',rawPhone:'14700000610',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'小红书',group:'新用户-7天内'},
+      {id:135350,nick:'KDen8xcj2u',phone:'152****0806',rawPhone:'15200000806',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'小红书',group:'新用户-7天内'},
+      {id:135349,nick:'KDkatn2okj',phone:'139****7040',rawPhone:'13900007040',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'30天未下单用户'},
+      {id:135348,nick:'KD6n4kg6sz',phone:'186****7284',rawPhone:'18600007284',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'高价值会员'},
+      {id:135347,nick:'KD5cxc10mz',phone:'188****5193',rawPhone:'18800005193',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'小红书',group:'高价值会员'},
+      {id:135346,nick:'KDvvohtxuh',phone:'133****2262',rawPhone:'13300002262',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'沉睡高潜用户'},
+      {id:135345,nick:'KDtzpv8ezu',phone:'139****5197',rawPhone:'13900005197',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'小红书',group:'沉睡高潜用户'},
+      {id:135344,nick:'KD8trnh5i8',phone:'180****6353',rawPhone:'18000006353',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'152****2243 等 12 人'},
+      {id:135343,nick:'KD8ymzz43f',phone:'185****3323',rawPhone:'18500003323',gender:'未知',birth:'-',stage:'已出生',source:'后台导入',invite:'其他',group:'152****2243 等 12 人'}
+    ];
+    const templates={
+      subscribe:[{id:'S001',name:'权益到账提醒',scene:'优惠券发放',status:'开启',path:'/pages/coupon/detail',fields:{first:'优惠券名称',second:'到账时间'}},{id:'S002',name:'积分到账提醒',scene:'积分发放',status:'开启',path:'/pages/points/index',fields:{first:'积分数量',second:'变动原因'}},{id:'S003',name:'活动开始提醒',scene:'定时触达',status:'禁用',path:'/pages/activity/detail',fields:{first:'活动名称',second:'开始时间'}}],
+      sms:[{id:'SMS_COUPON_001',name:'优惠券到账短信',scene:'优惠券发放',status:'开启',content:'您有一张优惠券已到账，请进入小程序查看并使用。'},{id:'SMS_POINT_002',name:'积分变动短信',scene:'积分发放',status:'开启',content:'您的积分已到账，可进入会员中心查看积分明细。'},{id:'SMS_RECALL_003',name:'活动召回短信',scene:'用户召回',status:'禁用',content:'专属福利已为您准备好，点击小程序查看活动详情。'}]
+    };
+    const subscribeTemplateCatalog=[
+      {id:'TMPL_COUPON_001',name:'优惠券到账通知',scene:'优惠券发放',fields:{first:'优惠券名称',second:'券有效期'}},
+      {id:'TMPL_POINT_002',name:'积分到账通知',scene:'积分发放',fields:{first:'积分数量',second:'到账时间'}},
+      {id:'TMPL_ACTIVITY_003',name:'活动提醒通知',scene:'运营触达',fields:{first:'活动名称',second:'活动时间'}},
+      {id:'TMPL_TASK_004',name:'任务完成通知',scene:'会员运营',fields:{first:'任务名称',second:'奖励内容'}}
+    ];
+    const smsTemplateCatalog=[
+      {code:'SMS_COUPON_001',name:'优惠券到账短信',scene:'优惠券发放',content:'您有一张优惠券已到账，请进入小程序查看并使用。'},
+      {code:'SMS_POINT_002',name:'积分到账短信',scene:'积分发放',content:'您的积分已到账，可进入会员中心查看积分明细。'},
+      {code:'SMS_RECALL_003',name:'用户召回短信',scene:'用户召回',content:'专属福利已为您准备好，点击小程序查看活动详情。'},
+      {code:'SMS_ACTIVITY_004',name:'活动通知短信',scene:'活动提醒',content:'您关注的活动即将开始，请及时进入小程序参与。'}
+    ];
+    const couponPool=[
+      {id:'100151',name:'cesshi过期（复制）',type:'无门槛券',info:'立减 2 元',time:'2026-06-05 00:00:00<br>~<br>2026-06-20 00:00:00',bear:'平台承担100%',valid:'2026-06-10 00:00:00<br>~<br>2026-06-19 00:00:00',issued:1111,claimed:0,count:1},
+      {id:'100095',name:'手动券-无门槛减1.1',type:'无门槛券',info:'立减 1.1 元',time:'2026-04-15 00:00:00<br>~<br>2026-06-30 00:00:00',bear:'平台承担50%',valid:'领取后 3 天有效',issued:50,claimed:11,count:1}
+    ];
+    function normalizeStatus(status){
+      return ({'待开始':'待执行','进行中':'待执行','已结束':'执行成功'}[status]||status);
+    }
+    function plans(){
+      const raw=JSON.parse(localStorage.getItem(LS_DATA)||'null')||seedPlans;
+      const list=raw.map(p=>({...p,status:normalizeStatus(p.status)}));
+      if(JSON.stringify(raw)!==JSON.stringify(list)) savePlans(list);
+      return list;
+    }
+    function savePlans(list){localStorage.setItem(LS_DATA,JSON.stringify(list))}
+    function init(){
+      renderDoc(localStorage.getItem(LS_DOC)||defaultDoc);
+      if(localStorage.getItem(LS_DOC_NAME)) sourceNote.textContent='来源：本地缓存 + '+localStorage.getItem(LS_DOC_NAME);
+      renderMenu(); renderTabs(); renderList();
+      docFile.addEventListener('change',syncDoc);
+      document.addEventListener('keydown',e=>{if(e.key==='Escape') closeModal()});
+    }
+    function mdToHtml(md){
+      const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+      const lines=md.split(/\r?\n/); let html='', inUl=false, inOl=false, inTable=false;
+      lines.forEach(line=>{
+        const t=line.trim();
+        if(!t){ if(inUl){html+='</ul>';inUl=false} if(inOl){html+='</ol>';inOl=false} if(inTable){html+='</table>';inTable=false} return; }
+        if(t.startsWith('|')){
+          const cells=t.split('|').slice(1,-1).map(c=>esc(c.trim()));
+          if(cells.every(c=>/^:?-+:?$/.test(c))) return;
+          if(!inTable){html+='<table>';inTable=true}
+          html+='<tr>'+cells.map(c=>`<td>${c}</td>`).join('')+'</tr>'; return;
+        } else if(inTable){html+='</table>';inTable=false}
+        if(t.startsWith('# ')) html+=`<h1>${esc(t.slice(2))}</h1>`;
+        else if(t.startsWith('## ')) html+=`<h2>${esc(t.slice(3))}</h2>`;
+        else if(t.startsWith('### ')) html+=`<h3>${esc(t.slice(4))}</h3>`;
+        else if(t.startsWith('>')) html+=`<blockquote>${esc(t.replace(/^>\s?/,''))}</blockquote>`;
+        else if(/^- /.test(t)){ if(!inUl){html+='<ul>';inUl=true} html+=`<li>${esc(t.slice(2))}</li>`; }
+        else if(/^\d+\./.test(t)){ if(!inOl){html+='<ol>';inOl=true} html+=`<li>${esc(t.replace(/^\d+\.\s*/,''))}</li>`; }
+        else html+=`<p>${esc(t)}</p>`;
+      });
+      if(inUl) html+='</ul>'; if(inOl) html+='</ol>'; if(inTable) html+='</table>';
+      return html;
+    }
+    function renderDoc(md){logicDoc.innerHTML=mdToHtml(md)}
+    function syncDoc(e){
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{localStorage.setItem(LS_DOC,r.result);localStorage.setItem(LS_DOC_NAME,f.name);renderDoc(r.result);sourceNote.textContent='来源：本地缓存 + '+f.name;toast('左侧逻辑已同步')};
+      r.readAsText(f);
+    }
+    function toggleLogic(){workbench.classList.toggle('logic-open')}
+    function toggleSidebar(){admin.classList.toggle('collapsed')}
+    function folderSvg(){return '<svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9h18"/></svg>'}
+    function renderMenu(){
+      const q=(menuSearch?.value||'').trim(); let html='', hits=0;
+      menus.forEach(([g,items])=>{
+        const show=items.filter(x=>!q||x.includes(q));
+        if(!show.length) return; hits+=show.length;
+        const open=g==='用户中心'||q;
+        html+=`<div><div class="m1 ${open?'open':''} ${g==='用户中心'?'active':''}" onclick="this.classList.toggle('open')">${folderSvg()}<span class="m1-label">${g}</span><span class="m1-arrow">›</span></div><div class="m2-wrap">${show.map(i=>`<div class="m2-item ${(i==='用户运营'&&currentPage==='list')||(i==='用户管理'&&currentPage==='user')?'active':''}" onclick="${i==='用户运营'?'openList()':i==='用户管理'?'openUserList()':''}">${i}</div>`).join('')}</div></div>`;
+      });
+      menuScroll.innerHTML=hits?html:'<div style="padding:20px 12px;color:#999;font-size:12px">暂无匹配报表</div>';
+    }
+    function searchMenu(){renderMenu()}
+    function getTabs(){return [{key:'home',name:'首页',fixed:true},{key:'list',name:'用户运营',fixed:true},{key:'user',name:'用户管理'},{key:'form',name:editId?'编辑计划':'新增计划'},{key:'detail',name:'计划详情'},{key:'template',name:currentTemplateType==='subscribe'?'订阅模板':'短信模板'}].filter(t=>t.fixed||t.key===currentPage)}
+    function renderTabs(){document.getElementById('tabs').innerHTML=getTabs().map(t=>`<div class="tab ${currentPage===t.key?'active':''}" onclick="switchPage('${t.key}')">${t.name}${t.fixed?'':' <span class="x" onclick="event.stopPropagation();closeTab()">&times;</span>'}</div>`).join('')}
+    function switchPage(k){ if(k==='home') return toast('首页为固定页签'); if(k==='list') openList(); if(k==='user') openUserList(currentUserFilter); if(k==='form') openForm(editId); if(k==='detail') openDetail(editId||plans()[0].id); if(k==='template') openTemplateList(currentTemplateType) }
+    function closeTab(){openList()}
+    function setPage(name){currentPage=name;['list','form','detail','template','user'].forEach(p=>document.getElementById('page-'+p).classList.toggle('active',p===name));renderTabs();renderMenu()}
+    function statusClass(s){return s==='执行成功'?'run':s==='待执行'?'wait':s==='执行失败'?'fail':'end'}
+    function filteredPlans(){
+      let list=plans(); const n=qName.value.trim(), st=qStatus.value, ty=qType.value, wy=qWay.value;
+      return list.filter(p=>(!n||p.name.includes(n)||String(p.id).includes(n))&&(!st||p.status===st)&&(!ty||p.type===ty)&&(!wy||p.way===wy));
+    }
+    function renderList(){
+      const list=filteredPlans();
+      planRows.innerHTML=list.map(p=>`<tr data-id="${p.id}">
+        <td><div class="name-main" onclick="openDetail(${p.id})">${p.name}</div><div class="name-id">ID：${p.id}</div><span class="tag ${statusClass(p.status)}">${p.status}</span></td>
+        <td>${p.type}</td><td>${p.way}</td><td>${p.time}</td><td>${p.benefits.join('<br>')}</td><td>${p.notices.join('<br>')}</td><td>${executionCrowdCell(p)}</td><td><span class="tag ${statusClass(p.status)}">${p.status}</span></td>
+        <td>${rowActions(p)}</td>
+      </tr>`).join('');
+      emptyList.style.display=list.length?'none':'flex'; totalText.textContent='共 '+list.length+' 条';
+    }
+    function openList(){editId=null;setPage('list');renderList()}
+    function crowdCount(p){return p.type==='指定手机号用户'?(p.target.includes('12')?12:8):(p.target==='新用户-7天内'?3286:p.target==='30天未下单用户'?1860:p.target==='高价值会员'?642:p.target==='沉睡高潜用户'?420:1200)}
+    function executionCrowdCell(p){
+      const label=p.status==='待执行'?'预估':'实际';
+      return `<button class="text-link" onclick="openUserList({planId:${p.id},type:'${p.type}',target:'${p.target.replace(/'/g,'')}'} )">${label} ${crowdCount(p)} 人</button><div class="hint">${p.target}</div>`;
+    }
+    function toggleMoreSearch(){[moreType,moreWay].forEach(el=>el.classList.toggle('show'));moreSearchBtn.textContent=moreType.classList.contains('show')?'收起搜索 ▴':'更多搜索 ▾'}
+    function resetSearch(){qName.value='';qStatus.value='';qType.value='';qWay.value='';renderList()}
+    function openUserList(filter=null){
+      currentUserFilter=filter;
+      const target=filter?.target||'';
+      document.getElementById('page-user').innerHTML=`<div class="toolbar"><div class="search-grid"><label class="field">用户ID/手机号：<input class="input" id="uKeyword" placeholder="输入用户ID或手机号" value="${filter?.type==='指定手机号用户'?target.replace(/ 等 .*/,''):''}" oninput="renderUserRows()"></label><label class="field">用户昵称：<input class="input" id="uNick" placeholder="输入用户昵称" oninput="renderUserRows()"></label><label class="field">用户性别：<select class="select" id="uGender" onchange="renderUserRows()"><option value="">全部</option><option>未知</option><option>男</option><option>女</option></select></label><button class="search-btn" onclick="renderUserRows()">⌕</button><button class="text-link" onclick="uKeyword.value='';uNick.value='';uGender.value='';renderUserRows()">清空</button></div><div class="right-actions"><button class="btn-secondary">导出</button></div></div><div class="table-wrap"><table><colgroup><col style="width:5%"><col style="width:10%"><col style="width:13%"><col style="width:14%"><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:11%"><col style="width:11%"><col style="width:8%"></colgroup><thead><tr><th></th><th>用户ID</th><th>用户昵称</th><th>用户手机号</th><th>性别</th><th>生日</th><th>当前阶段</th><th>来源渠道</th><th>邀请渠道</th><th>操作</th></tr></thead><tbody id="userRows"></tbody></table><div class="empty" id="userEmpty" style="display:none">暂无匹配用户</div></div><div class="pager"><label class="check"><input type="checkbox"><span class="box"></span><span>已选 (0)</span><button class="btn-secondary" style="height:28px">对选中的人加标签</button><button class="btn-secondary" style="height:28px">刷新</button></label><div><span id="userTotal">共 0 条</span>　&lt; <b style="background:#f5f5f5;padding:8px 12px;border-radius:4px;color:#333">1</b>　2　3　4　5　...　1767 &gt;　<select class="select" style="width:92px"><option>20条/页</option></select></div></div>`;
+      setPage('user'); renderUserRows();
+    }
+    function userFilteredRows(){
+      const keyword=(document.getElementById('uKeyword')?.value||'').trim();
+      const nick=(document.getElementById('uNick')?.value||'').trim();
+      const gender=document.getElementById('uGender')?.value||'';
+      let rows=userRows;
+      if(currentUserFilter?.type==='指定用户群') rows=rows.filter(u=>u.group===currentUserFilter.target);
+      if(currentUserFilter?.type==='指定手机号用户') rows=rows.filter(u=>u.group===currentUserFilter.target||currentUserFilter.target.includes(u.phone.slice(0,3)));
+      return rows.filter(u=>(!keyword||String(u.id).includes(keyword)||u.rawPhone.includes(keyword)||u.phone.includes(keyword))&&(!nick||u.nick.includes(nick))&&(!gender||u.gender===gender));
+    }
+    function renderUserRows(){
+      const rows=userFilteredRows();
+      document.getElementById('userRows').innerHTML=rows.map(u=>`<tr><td><label class="check"><input type="checkbox"><span class="box"></span></label></td><td>${u.id}</td><td><span class="name-main">${u.nick}</span></td><td>${u.phone} <span class="muted">▣</span></td><td>${u.gender}</td><td>${u.birth}</td><td>${u.stage}</td><td>${u.source}</td><td>${u.invite}</td><td><div class="op"><button>给积分</button><button>打标签</button></div></td></tr>`).join('');
+      document.getElementById('userEmpty').style.display=rows.length?'none':'flex';
+      document.getElementById('userTotal').textContent='共 '+(currentUserFilter?crowdCount(plans().find(p=>p.id===currentUserFilter.planId)||{}):35337)+' 条';
+    }
+    function rowActions(p){
+      if(p.status==='待执行') return `<div class="op"><button onclick="copyPlan(${p.id})">复制</button><button onclick="openForm(${p.id})">编辑</button><span class="more" onmouseenter="showMore(event,${p.id})" onmouseleave="hideMore()">···</span></div>`;
+      if(p.status==='执行失败') return `<div class="op"><button onclick="copyPlan(${p.id})">复制</button><button onclick="executePlan(${p.id},'重新执行')">重新执行</button><span class="more" onmouseenter="showMore(event,${p.id})" onmouseleave="hideMore()">···</span></div>`;
+      return `<div class="op"><button onclick="copyPlan(${p.id})">复制</button><button onclick="openLogs(${p.id})">日志</button><span class="more" onmouseenter="showMore(event,${p.id})" onmouseleave="hideMore()">···</span></div>`;
+    }
+    function showMore(e,id){
+      clearTimeout(moreTimer);
+      const p=plans().find(x=>x.id===id), rect=e.target.getBoundingClientRect();
+      let actions='';
+      if(p.status==='待执行') actions=`<button onclick="askConfirm('end',${id});hideMore(true)">立即结束</button><button onclick="executePlan(${id},'立即执行');hideMore(true)">立即执行</button><button onclick="openLogs(${id});hideMore(true)">日志</button><button class="danger" onclick="askConfirm('delete',${id});hideMore(true)">删除</button>`;
+      if(p.status==='执行成功') actions=`<button class="danger" onclick="askConfirm('delete',${id});hideMore(true)">删除</button>`;
+      if(p.status==='执行失败') actions=`<button onclick="openLogs(${id});hideMore(true)">日志</button><button class="danger" onclick="askConfirm('delete',${id});hideMore(true)">删除</button>`;
+      morePop.innerHTML=actions;
+      morePop.style.left=rect.left-34+'px'; morePop.style.top=rect.bottom+6+'px'; morePop.style.display='block';
+      morePop.onmouseenter=()=>clearTimeout(moreTimer); morePop.onmouseleave=()=>hideMore();
+    }
+    function hideMore(now){clearTimeout(moreTimer); moreTimer=setTimeout(()=>morePop.style.display='none',now?0:80)}
+    function formHtml(p){
+      p=p||{name:'',type:'指定手机号用户',way:'立即执行',target:'',benefits:[],notices:[],status:'待执行'};
+      formSelectedCoupons=(p.coupons&&p.coupons.length?p.coupons:parseCouponsFromBenefits(p.benefits||[]));
+      const coupon=formSelectedCoupons.length||p.benefits?.some(x=>x.includes('优惠券')), points=p.benefits?.find(x=>x.includes('积分'));
+      const sub=p.notices?.includes('小程序订阅消息'), sms=p.notices?.includes('短信通知');
+      return `<div class="page-titlebar"><div class="back" onclick="openList()">‹ ${editId?'编辑运营计划':'新增运营计划'}</div><div class="right-actions"><button class="btn-secondary" onclick="openList()">取消</button><button class="btn-primary" onclick="saveForm()">保存</button></div></div>
+        <div class="form-layout"><div class="form-sections">
+          <section class="section" id="base"><h3 class="section-title">基本信息</h3>
+            <div class="form-row"><div class="label req">计划名称</div><div class="control"><input id="fName" class="input" maxlength="20" placeholder="最多可输入20个字" value="${p.name||''}"></div></div>
+            <div class="form-row"><div class="label req">计划方式</div><div class="control"><div class="seg" id="waySeg">${['立即执行','定时执行','周期执行'].map(w=>`<button class="${p.way===w?'active':''}" onclick="setWay('${w}')">${w}</button>`).join('')}</div></div></div>
+          </section>
+          <section class="section" id="target"><h3 class="section-title">计划人群</h3>
+            <div class="form-row"><div class="label req">计划类型</div><div class="control"><div class="radio-line"><label class="radio"><input type="radio" name="fType" value="指定手机号用户" ${p.type==='指定手机号用户'?'checked':''} onchange="toggleTarget()">指定手机号用户</label><label class="radio"><input type="radio" name="fType" value="指定用户群" ${p.type==='指定用户群'?'checked':''} onchange="toggleTarget()">选择用户群</label></div></div></div>
+            <div class="form-row" id="phoneRow"><div class="label req">手机号用户</div><div class="control"><textarea id="fPhones" class="textarea" placeholder="请输入手机号，一行一个">${p.type==='指定手机号用户'?(p.target||''):''}</textarea><div class="hint">提交时系统按手机号匹配用户。</div></div></div>
+            <div class="form-row" id="groupRow"><div class="label req">用户群</div><div class="control"><select id="fGroup" class="select"><option ${p.target==='新用户-7天内'?'selected':''}>新用户-7天内</option><option ${p.target==='30天未下单用户'?'selected':''}>30天未下单用户</option><option ${p.target==='高价值会员'?'selected':''}>高价值会员</option><option ${p.target==='沉睡高潜用户'?'selected':''}>沉睡高潜用户</option></select><div class="hint">预计覆盖用户：3,286 人，按计划执行时实时取数。</div></div></div>
+          </section>
+          <section class="section" id="benefit"><h3 class="section-title">权益礼包</h3>
+            <div class="form-row"><div class="label">优惠券配置</div><div class="control w100"><label class="check"><input id="fCouponOn" type="checkbox" ${coupon?'checked':''} onchange="toggleBenefit()"><span class="box"></span><span>发放优惠券</span></label><div class="coupon-area" id="couponBox"><div class="coupon-add"><span>包含优惠券：</span><button class="text-link" onclick="openCouponModal()"><span class="plus">＋</span> 添加优惠券</button></div><div id="selectedCouponTable"></div></div></div></div>
+            <div class="form-row"><div class="label">积分配置</div><div class="control"><label class="check"><input id="fPointsOn" type="checkbox" ${points?'checked':''} onchange="toggleBenefit()"><span class="box"></span><span>发放积分</span></label> <input id="fPoints" class="input" style="width:120px;height:32px" type="number" min="1" value="${points?points.replace(/\\D/g,''):''}"> 个</div></div>
+          </section>
+          <section class="section" id="notice"><h3 class="section-title">通知配置</h3>
+            <div class="form-row"><div class="label">通知渠道</div><div class="control"><div class="check-line"><label class="check"><input id="fSubOn" type="checkbox" ${sub?'checked':''} onchange="toggleNotice()"><span class="box"></span><span>小程序订阅消息</span></label><label class="check"><input id="fSmsOn" type="checkbox" ${sms?'checked':''} onchange="toggleNotice()"><span class="box"></span><span>短信通知</span></label></div></div></div>
+            <div class="form-row" id="subTplRow"><div class="label req">订阅模板</div><div class="control"><select id="fSubTpl" class="select"><option>权益到账提醒</option><option>积分到账提醒</option><option>活动开始提醒</option></select> <button class="text-link" onclick="openTemplateList('subscribe')">编辑模板</button></div></div>
+            <div class="form-row" id="smsTplRow"><div class="label req">短信模板</div><div class="control"><select id="fSmsTpl" class="select"><option>优惠券到账短信</option><option>积分变动短信</option><option>活动召回短信</option></select> <button class="text-link" onclick="openTemplateList('sms')">编辑模板</button></div></div>
+          </section>
+          <section class="section" id="schedule"><h3 class="section-title">计划时间</h3>
+            <div id="scheduleBody"></div>
+          </section>
+        </div><nav class="anchor-nav"><a class="active" href="#base">基本信息</a><a href="#target">计划人群</a><a href="#benefit">权益礼包</a><a href="#notice">通知配置</a><a href="#schedule">计划时间</a></nav></div>`;
+    }
+    function openForm(id){
+      editId=id||null; const p=id?plans().find(x=>x.id===id):null; document.getElementById('page-form').innerHTML=formHtml(p); setPage('form'); toggleTarget(); toggleBenefit(); toggleNotice(); renderSchedule(p);
+    }
+    function getWay(){return document.querySelector('#waySeg .active')?.textContent||'立即执行'}
+    function setWay(w){document.querySelectorAll('#waySeg button').forEach(b=>b.classList.toggle('active',b.textContent===w));renderSchedule()}
+    function toggleTarget(){const t=document.querySelector('input[name=fType]:checked')?.value; phoneRow.style.display=t==='指定手机号用户'?'grid':'none'; groupRow.style.display=t==='指定用户群'?'grid':'none'}
+    function parseCouponsFromBenefits(benefits){
+      return benefits.filter(x=>x.includes('优惠券')).map((name,i)=>({...couponPool[i%couponPool.length],name:name.replace('优惠券：',''),count:1}));
+    }
+    function toggleBenefit(){couponBox.style.display=fCouponOn.checked?'block':'none'; fPoints.style.display=fPointsOn.checked?'inline-block':'none'; renderSelectedCoupons()}
+    function renderSelectedCoupons(){
+      const box=document.getElementById('selectedCouponTable'); if(!box) return;
+      if(!formSelectedCoupons.length){
+        box.innerHTML=`<table class="coupon-table"><colgroup><col style="width:10%"><col style="width:25%"><col style="width:17%"><col style="width:14%"><col style="width:20%"><col style="width:13%"><col style="width:8%"></colgroup><thead><tr><th>赠券数</th><th>优惠券名称</th><th>优惠信息</th><th>优惠承担</th><th>券有效期</th><th>发券量/领取数</th><th>操作</th></tr></thead><tbody><tr><td colspan="7"><div class="coupon-empty">暂无数据</div></td></tr></tbody></table>`;
+        return;
+      }
+      box.innerHTML=`<table class="coupon-table"><colgroup><col style="width:10%"><col style="width:25%"><col style="width:17%"><col style="width:14%"><col style="width:20%"><col style="width:13%"><col style="width:8%"></colgroup><thead><tr><th>赠券数</th><th>优惠券名称</th><th>优惠信息</th><th>优惠承担</th><th>券有效期</th><th>发券量/领取数</th><th>操作</th></tr></thead><tbody>${formSelectedCoupons.map(c=>`<tr><td><input class="coupon-count" type="number" min="1" value="${c.count||1}" onchange="updateCouponCount('${c.id}',this.value)"></td><td class="left"><span class="coupon-tag">${c.type}</span><span class="coupon-name">${c.name} × ${c.count||1}</span><div class="hint">ID: ${c.id}</div></td><td>${c.name}</td><td>${c.bear}</td><td>${c.valid}</td><td><b>${c.issued}</b> / ${c.claimed}</td><td><button class="text-link" onclick="removeCoupon('${c.id}')">删除</button></td></tr>`).join('')}</tbody></table>`;
+    }
+    function updateCouponCount(id,value){
+      const count=Math.max(1,Number(value)||1);
+      formSelectedCoupons=formSelectedCoupons.map(c=>c.id===id?{...c,count}:c);
+      renderSelectedCoupons();
+    }
+    function removeCoupon(id){formSelectedCoupons=formSelectedCoupons.filter(c=>c.id!==id);renderSelectedCoupons()}
+    function openCouponModal(){
+      modalMask.innerHTML=`<div class="modal lg" style="width:990px"><div class="modal-head"><span>选择优惠券</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><div class="info-alert"><span class="info-dot">i</span><span>只可选择手动发放类型的券，赠券数不可超过优惠券剩余发放数量</span></div><div class="coupon-search"><label class="field">优惠券名称：<input class="input" id="couponQName" placeholder="请输入名称" oninput="renderCouponModalRows()"></label><label class="field">优惠券ID：<input class="input" id="couponQId" placeholder="请输入ID" oninput="renderCouponModalRows()"></label><button class="search-btn" onclick="renderCouponModalRows()">⌕</button><button class="btn-secondary" onclick="toast('刷新成功')">刷新数据</button><label class="field">券类型：<select class="select"><option>全部</option><option>无门槛券</option></select></label><label class="field">时间：<input class="date" type="date"> 至 <input class="date" type="date"></label></div><div class="coupon-modal-table"><table><colgroup><col style="width:8%"><col style="width:10%"><col style="width:24%"><col style="width:16%"><col style="width:19%"><col style="width:13%"><col style="width:16%"></colgroup><thead><tr><th></th><th>赠券数</th><th>优惠券名称</th><th>优惠信息</th><th>发券时间</th><th>优惠承担</th><th>券有效期</th></tr></thead><tbody id="couponModalRows"></tbody></table></div><div class="pager" style="margin:0"><span></span><div>共 2 条　&lt; <b style="background:#f5f5f5;padding:8px 12px;border-radius:4px;color:#333">1</b> &gt;　<select class="select" style="width:92px"><option>10条/页</option></select></div></div></div><div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">取消</button><button class="btn-primary" onclick="confirmCouponSelect()">确定</button></div></div>`;
+      modalMask.classList.add('show'); renderCouponModalRows();
+    }
+    function renderCouponModalRows(){
+      const name=(document.getElementById('couponQName')?.value||'').trim();
+      const id=(document.getElementById('couponQId')?.value||'').trim();
+      const rows=couponPool.filter(c=>(!name||c.name.includes(name))&&(!id||c.id.includes(id)));
+      document.getElementById('couponModalRows').innerHTML=rows.map(c=>`<tr><td><label class="check"><input type="checkbox" class="coupon-select" data-id="${c.id}" ${formSelectedCoupons.some(x=>x.id===c.id)?'checked':''}><span class="box"></span></label></td><td><input class="coupon-count" id="couponCount${c.id}" type="number" min="1" max="${Math.max(1,c.issued-c.claimed)}" value="${formSelectedCoupons.find(x=>x.id===c.id)?.count||c.count||1}"></td><td class="left"><span class="coupon-tag">${c.type}</span><span class="coupon-name">${c.name}</span><div class="hint">ID: ${c.id}</div></td><td><b>${c.info}</b></td><td>${c.time}</td><td>${c.bear}</td><td>${c.valid}</td></tr>`).join('');
+    }
+    function confirmCouponSelect(){
+      const ids=[...document.querySelectorAll('.coupon-select:checked')].map(el=>el.dataset.id);
+      formSelectedCoupons=ids.map(id=>{
+        const base=couponPool.find(c=>c.id===id), input=document.getElementById('couponCount'+id);
+        const max=Math.max(1,base.issued-base.claimed), count=Math.min(max,Math.max(1,Number(input?.value)||1));
+        return {...base,count};
+      });
+      closeModal(); renderSelectedCoupons(); toast('优惠券已添加');
+    }
+    function toggleNotice(){subTplRow.style.display=fSubOn.checked?'grid':'none'; smsTplRow.style.display=fSmsOn.checked?'grid':'none'}
+    function renderSchedule(p){
+      const w=getWay();
+      if(w==='立即执行') scheduleBody.innerHTML='<div class="form-row"><div class="label">执行说明</div><div class="control"><div class="hint" style="margin-top:8px">保存后立即进入执行队列，系统按当前人群发放权益或发送通知。</div></div></div>';
+      if(w==='定时执行') scheduleBody.innerHTML='<div class="form-row"><div class="label req">执行时间</div><div class="control"><input id="fRunAt" type="datetime-local" class="date" style="width:240px;height:36px"></div></div>';
+      if(w==='周期执行') scheduleBody.innerHTML='<div class="form-row"><div class="label req">执行范围</div><div class="control"><input id="fStart" type="date" class="date" style="width:160px;height:36px"> 至 <input id="fEnd" type="date" class="date" style="width:160px;height:36px"></div></div><div class="form-row"><div class="label req">周期规则</div><div class="control"><select id="fPeriod" class="select"><option>每周</option><option>每月</option><option>每几天</option></select> <input id="fPeriodValue" class="input" style="width:160px;height:36px" placeholder="周三 / 8号 / 3天"> <input id="fPeriodTime" type="time" class="date" style="width:120px;height:36px"></div></div>';
+    }
+    function saveForm(){
+      const name=fName.value.trim(); if(!name) return toast('请填写计划名称','error');
+      if(fCouponOn.checked&&!formSelectedCoupons.length) return toast('请添加优惠券','error');
+      const benefit=[]; if(fCouponOn.checked) formSelectedCoupons.forEach(c=>benefit.push('优惠券：'+c.name+' × '+(c.count||1))); if(fPointsOn.checked&&fPoints.value) benefit.push('积分 '+fPoints.value);
+      const notice=[]; if(fSubOn.checked) notice.push('小程序订阅消息'); if(fSmsOn.checked) notice.push('短信通知');
+      if(!benefit.length&&!notice.length) return toast('请至少配置一种权益或通知','error');
+      const type=document.querySelector('input[name=fType]:checked').value;
+      const way=getWay(); const now=new Date(); const list=plans();
+      let time=now.toISOString().slice(0,19).replace('T',' ');
+      if(way==='定时执行'&&document.getElementById('fRunAt')?.value) time=fRunAt.value.replace('T',' ')+':00';
+      if(way==='周期执行') time=(fStart.value||'2026-06-01')+' 至 '+(fEnd.value||'2026-12-31')+' '+fPeriod.value+(fPeriodValue.value||'周三')+' '+(fPeriodTime.value||'10:00');
+      const data={id:editId||Math.max(...list.map(p=>p.id))+1,name,type,way,time,target:type==='指定手机号用户'?(fPhones.value.trim()||'指定手机号用户'):(fGroup.value),benefits:benefit,notices:notice,coupons:fCouponOn.checked?formSelectedCoupons:[],status:way==='立即执行'?'执行成功':'待执行',created:time};
+      if(editId){const i=list.findIndex(x=>x.id===editId); list[i]={...list[i],...data};} else list.unshift(data);
+      savePlans(list); toast(editId?'保存成功':'创建成功'); openList();
+    }
+    function copyPlan(id){const p={...plans().find(x=>x.id===id)}; p.id=Math.max(...plans().map(x=>x.id))+1; p.name=p.name+'-复制'; p.status='待执行'; savePlans([p,...plans()]); toast('复制成功'); renderList()}
+    function executePlan(id,action){
+      const list=plans().map(p=>p.id===id?{...p,status:'执行成功',time:new Date().toISOString().slice(0,19).replace('T',' ')}:p);
+      savePlans(list); toast(action+'成功');
+      if(currentPage==='detail') openDetail(id); else renderList();
+    }
+    function openDetail(id){
+      editId=id; const p=plans().find(x=>x.id===id); if(!p) return;
+      document.getElementById('page-detail').innerHTML=`<div class="page-titlebar"><div class="back" onclick="openList()">‹ 运营计划详情</div><div class="right-actions">${p.status==='待执行'?`<button class="btn-secondary" onclick="openForm(${p.id})">编辑</button><button class="btn-primary" onclick="executePlan(${p.id},'立即执行')">立即执行</button>`:p.status==='执行失败'?`<button class="btn-primary" onclick="executePlan(${p.id},'重新执行')">重新执行</button>`:''}</div></div><div class="form-layout"><div class="form-sections"><section class="section"><h3 class="section-title">基本信息</h3><div class="detail-grid"><div><span>计划名称：</span>${p.name}</div><div><span>ID：</span>${p.id}</div><div><span>状态：</span><em class="tag ${statusClass(p.status)}">${p.status}</em></div><div><span>创建时间：</span>${p.created}</div><div><span>计划类型：</span>${p.type}</div><div><span>计划方式：</span>${p.way}</div><div><span>计划时间：</span>${p.time}</div><div><span>计划人群：</span>${p.target}</div></div></section><section class="section"><h3 class="section-title">执行配置</h3><div class="detail-grid"><div><span>发放权益：</span>${p.benefits.join('、')||'-'}</div><div><span>通知方式：</span>${p.notices.join('、')||'-'}</div><div><span>预计触达：</span>3,286 人</div><div><span>执行结果：</span>${p.status==='执行成功'?'成功 2,918 / 失败 18':p.status==='执行失败'?'成功 0 / 失败 3,286':'待生成'}</div></div></section><section class="section"><h3 class="section-title">执行记录</h3><table><thead><tr><th>批次</th><th>执行时间</th><th>触达人数</th><th>成功</th><th>失败</th></tr></thead><tbody><tr><td>001</td><td>${p.time}</td><td>3286</td><td>${p.status==='执行成功'?'2918':'0'}</td><td>${p.status==='执行失败'?'3286':'18'}</td></tr></tbody></table></section></div><nav class="anchor-nav"><a class="active">基本信息</a><a>执行配置</a><a>执行记录</a></nav></div>`;
+      setPage('detail');
+    }
+    function askConfirm(type,id){pendingAction={type,id}; const title=type==='delete'?'删除':'立即结束'; const desc=type==='delete'?'是否确认删除':'是否立即结束，结束后计划将不再等待执行'; modalMask.innerHTML=`<div class="modal sm"><div class="confirm-body"><div class="confirm-title-row"><span class="confirm-icon">!</span><span class="confirm-title">${title}</span></div><div class="confirm-desc">${desc}</div></div><div class="confirm-foot"><button class="btn-secondary" onclick="closeModal()">取消</button><button class="btn-primary" onclick="confirmAction()">确定</button></div></div>`;modalMask.classList.add('show')}
+    function confirmAction(){
+      let list=plans();
+      if(pendingAction.type==='delete') list=list.filter(p=>p.id!==pendingAction.id);
+      if(pendingAction.type==='end') list=list.map(p=>p.id===pendingAction.id?{...p,status:'执行成功'}:p);
+      savePlans(list); closeModal(); toast('操作成功'); openList();
+    }
+    function openLogs(id){modalMask.innerHTML=`<div class="modal lg"><div class="modal-head"><span>操作日志</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><table><thead><tr><th>日志ID</th><th>操作人</th><th>操作描述</th><th>提示信息</th><th>操作时间</th></tr></thead><tbody><tr><td>L${id}03</td><td>管理员</td><td>查看计划详情</td><td>-</td><td>2026-06-12 10:18:22</td></tr><tr><td>L${id}02</td><td>系统</td><td>执行计划任务</td><td>状态更新为【执行成功】或【执行失败】</td><td>2026-06-10 10:00:00</td></tr><tr><td>L${id}01</td><td>管理员</td><td>新建运营计划</td><td>-</td><td>2026-06-08 15:44:31</td></tr></tbody></table></div></div>`;modalMask.classList.add('show')}
+    function openTemplateList(type){
+      currentTemplateType=type;
+      const title=type==='subscribe'?'订阅模板':'短信模板';
+      document.getElementById('page-template').innerHTML=`<div class="page-titlebar"><div class="back" onclick="openList()">‹ ${title}</div><div class="right-actions"><button class="btn-primary" onclick="addTemplate('${type}')">⊕ 新增模板</button></div></div><div class="toolbar"><div class="search-grid"><label class="field">模板名称：<input class="input" id="tplQName" placeholder="请输入" oninput="renderTemplateTable('${type}')"></label><label class="field">状态：<select class="select" id="tplQStatus" onchange="renderTemplateTable('${type}')"><option value="">请选择</option><option>开启</option><option>禁用</option></select></label><button class="search-btn" onclick="renderTemplateTable('${type}')">⌕</button><button class="text-link" onclick="tplQName.value='';tplQStatus.value='';renderTemplateTable('${type}')">清空</button></div></div><div class="table-wrap"><table><colgroup>${type==='subscribe'?'<col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:20%"><col style="width:10%"><col style="width:18%">':'<col style="width:22%"><col style="width:16%"><col style="width:34%"><col style="width:10%"><col style="width:18%">'}</colgroup><thead>${type==='subscribe'?'<tr><th>模板名称</th><th>模板ID</th><th>适用场景</th><th>详情</th><th>状态</th><th>操作</th></tr>':'<tr><th>模板名称</th><th>模板CODE</th><th>模板内容</th><th>状态</th><th>操作</th></tr>'}</thead><tbody id="templateRows"></tbody></table><div class="empty" id="templateEmpty" style="display:none">暂无匹配数据</div></div><div class="pager only-pagination"><div><span id="templateTotal">共 0 条</span>　&lt; <b style="background:#f5f5f5;padding:8px 12px;border-radius:4px;color:#333">1</b> &gt;　<select class="select" style="width:92px"><option>20条/页</option></select></div></div>`;
+      setPage('template'); renderTemplateTable(type);
+    }
+    function renderTemplateTable(type){
+      const q=(document.getElementById('tplQName')?.value||'').trim();
+      const st=document.getElementById('tplQStatus')?.value||'';
+      const list=templates[type].filter(t=>(!q||t.name.includes(q)||String(t.id).includes(q))&&(!st||t.status===st));
+      document.getElementById('templateRows').innerHTML=list.map(t=>type==='subscribe'?`<tr><td><div class="name-main">${t.name}</div><div class="name-id">字段：${t.field1||t.fields?.first||'-'} / ${t.field2||t.fields?.second||'-'}</div></td><td>${t.id}</td><td>${t.scene}</td><td>${t.path||'-'}</td><td><span class="tag ${t.status==='禁用'?'end':'run'}">${t.status}</span></td><td><div class="op"><button onclick="openSubscribeTemplateForm('${t.id}')">编辑</button><button class="danger" onclick="deleteTemplate('${type}','${t.id}')">删除</button></div></td></tr>`:`<tr><td><div class="name-main">${t.name}</div><div class="name-id">${Math.ceil((t.content||'').length/120)} 条短信</div></td><td>${t.id}</td><td>${t.content||'-'}</td><td><span class="tag ${t.status==='禁用'?'end':'run'}">${t.status}</span></td><td><div class="op"><button onclick="openSmsTemplateForm('${t.id}')">编辑</button><button class="danger" onclick="deleteTemplate('${type}','${t.id}')">删除</button></div></td></tr>`).join('');
+      document.getElementById('templateEmpty').style.display=list.length?'none':'flex';
+      document.getElementById('templateTotal').textContent='共 '+list.length+' 条';
+    }
+    function deleteTemplate(type,id){
+      templates[type]=templates[type].filter(t=>t.id!==id);
+      renderTemplateTable(type); toast('删除成功');
+    }
+    function openTemplateModal(type){
+      const title=type==='subscribe'?'小程序订阅模板':'短信模板';
+      modalMask.innerHTML=`<div class="modal md"><div class="modal-head"><span>${title}</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><div style="display:flex;justify-content:space-between;margin-bottom:12px"><input class="input" style="width:220px" placeholder="搜索模板名称"><button class="btn-primary" onclick="addTemplate('${type}')">⊕ 新增模板</button></div><div class="tpl-list" id="tplList">${templates[type].map(t=>tplItem(t,type)).join('')}</div></div><div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">关闭</button><button class="btn-primary" onclick="closeModal();toast('模板配置已保存')">保存</button></div></div>`;
+      modalMask.classList.add('show');
+    }
+    function tplItem(t,type){return `<div class="tpl-item"><label class="check"><input type="checkbox" ${t.status==='禁用'?'':'checked'}><span class="box"></span></label><div><b>${t.name}</b><div class="hint">${t.id} / ${t.scene}${type==='subscribe'&&t.path?' / '+t.path:''}${type==='sms'&&t.content?' / '+Math.ceil(t.content.length/120)+'条短信':''}</div></div><span class="tag ${(t.status==='开启'||t.status==='启用')?'run':'end'}">${t.status}</span><div class="op"><button onclick="${type==='subscribe'?`openSubscribeTemplateForm('${t.id}')`:type==='sms'?`openSmsTemplateForm('${t.id}')`:`toast('进入模板编辑态')`}">编辑</button><button class="danger" onclick="this.closest('.tpl-item').remove();toast('删除成功')">删除</button></div></div>`}
+    function addTemplate(type){
+      if(type==='subscribe') return openSubscribeTemplateForm();
+      if(type==='sms') return openSmsTemplateForm();
+      const t={id:'S'+Date.now().toString().slice(-3),name:'新订阅模板',scene:'运营触达',status:'启用'};
+      document.getElementById('tplList').insertAdjacentHTML('afterbegin',tplItem(t,type));toast('新增模板成功');
+    }
+    function openSubscribeTemplateForm(id){
+      const old=id?templates.subscribe.find(t=>t.id===id):null;
+      const current=subscribeTemplateCatalog.find(t=>t.id===(old?.sourceId||old?.id))||subscribeTemplateCatalog[0];
+      modalMask.innerHTML=`<div class="modal md"><div class="modal-head"><span>${old?'编辑订阅模版':'新增订阅模版'}</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body">
+        <div class="form-row"><div class="label req">模版ID</div><div class="control"><select id="subTemplateId" class="select" style="width:500px;height:36px" onchange="renderSubscribeFields()">${subscribeTemplateCatalog.map(t=>`<option value="${t.id}" ${(old?.sourceId||old?.id||current.id)===t.id?'selected':''}>${t.id} - ${t.name}</option>`).join('')}</select></div></div>
+        <div id="subscribeFieldRows"></div>
+        <div class="form-row"><div class="label req">详情</div><div class="control"><input id="subTemplatePath" class="input" style="width:500px;height:36px" placeholder="请输入小程序路径，如 /pages/coupon/detail" value="${old?.path||''}"><div class="hint">只可填写小程序路径。</div></div></div>
+        <div class="form-row"><div class="label req">状态</div><div class="control"><div class="radio-line"><label class="radio"><input type="radio" name="subTemplateStatus" value="开启" ${old?.status==='禁用'?'':'checked'}>开启</label><label class="radio"><input type="radio" name="subTemplateStatus" value="禁用" ${old?.status==='禁用'?'checked':''}>禁用</label></div></div></div>
+      </div><div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">取消</button><button class="btn-primary" onclick="saveSubscribeTemplate('${old?.id||''}')">保存</button></div></div>`;
+      modalMask.classList.add('show'); renderSubscribeFields(old);
+    }
+    function renderSubscribeFields(old){
+      const selected=subscribeTemplateCatalog.find(t=>t.id===document.getElementById('subTemplateId').value)||subscribeTemplateCatalog[0];
+      document.getElementById('subscribeFieldRows').innerHTML=`<div class="form-row"><div class="label">模版字段1</div><div class="control"><input id="subTemplateField1" class="input" style="width:500px;height:36px" value="${old?.field1||selected.fields.first}" placeholder="${selected.fields.first}"></div></div><div class="form-row"><div class="label">模版字段2</div><div class="control"><input id="subTemplateField2" class="input" style="width:500px;height:36px" value="${old?.field2||selected.fields.second}" placeholder="${selected.fields.second}"></div></div>`;
+    }
+    function saveSubscribeTemplate(oldId){
+      const catalog=subscribeTemplateCatalog.find(t=>t.id===subTemplateId.value);
+      const path=subTemplatePath.value.trim();
+      if(!path) return toast('请填写小程序路径','error');
+      if(!path.startsWith('/pages/')) return toast('详情只可填写小程序路径','error');
+      const data={id:oldId||catalog.id,name:catalog.name,scene:catalog.scene,status:document.querySelector('input[name=subTemplateStatus]:checked').value,path,sourceId:catalog.id,field1:subTemplateField1.value.trim(),field2:subTemplateField2.value.trim(),fields:catalog.fields};
+      const i=templates.subscribe.findIndex(t=>t.id===oldId);
+      if(i>-1) templates.subscribe[i]=data; else templates.subscribe.unshift(data);
+      toast('订阅模板已保存'); closeModal(); openTemplateList('subscribe');
+    }
+    function openSmsTemplateForm(id){
+      const old=id?templates.sms.find(t=>t.id===id):null;
+      const current=smsTemplateCatalog.find(t=>t.code===(old?.sourceCode||old?.id))||smsTemplateCatalog[0];
+      modalMask.innerHTML=`<div class="modal md"><div class="modal-head"><span>${old?'编辑短信模版':'新增短信模版'}</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body">
+        <div class="form-row"><div class="label req">模版CODE</div><div class="control"><select id="smsTemplateCode" class="select" style="width:500px;height:36px" onchange="renderSmsContent()">${smsTemplateCatalog.map(t=>`<option value="${t.code}" ${(old?.sourceCode||old?.id||current.code)===t.code?'selected':''}>${t.code} - ${t.name}</option>`).join('')}</select></div></div>
+        <div class="form-row"><div class="label req">模版内容</div><div class="control"><textarea id="smsTemplateContent" class="textarea" maxlength="500" oninput="updateSmsCounter()" placeholder="请输入短信模版内容，500字内">${old?.content||current.content}</textarea><div class="hint" id="smsCounter">0/500，预计 1 条短信</div></div></div>
+        <div class="form-row"><div class="label req">状态</div><div class="control"><div class="radio-line"><label class="radio"><input type="radio" name="smsTemplateStatus" value="开启" ${old?.status==='禁用'?'':'checked'}>开启</label><label class="radio"><input type="radio" name="smsTemplateStatus" value="禁用" ${old?.status==='禁用'?'checked':''}>禁用</label></div></div></div>
+      </div><div class="modal-foot"><button class="btn-secondary" onclick="closeModal()">取消</button><button class="btn-primary" onclick="saveSmsTemplate('${old?.id||''}')">保存</button></div></div>`;
+      modalMask.classList.add('show'); updateSmsCounter();
+    }
+    function renderSmsContent(){
+      const selected=smsTemplateCatalog.find(t=>t.code===smsTemplateCode.value)||smsTemplateCatalog[0];
+      smsTemplateContent.value=selected.content;
+      updateSmsCounter();
+    }
+    function updateSmsCounter(){
+      const len=(document.getElementById('smsTemplateContent')?.value||'').length;
+      const count=Math.max(1,Math.ceil(len/120));
+      const el=document.getElementById('smsCounter');
+      if(el) el.textContent=`${len}/500，预计 ${count} 条短信`;
+    }
+    function saveSmsTemplate(oldId){
+      const catalog=smsTemplateCatalog.find(t=>t.code===smsTemplateCode.value);
+      const content=smsTemplateContent.value.trim();
+      if(!content) return toast('请填写模版内容','error');
+      if(content.length>500) return toast('模版内容不能超过500字','error');
+      const data={id:oldId||catalog.code,name:catalog.name,scene:catalog.scene,status:document.querySelector('input[name=smsTemplateStatus]:checked').value,content,sourceCode:catalog.code};
+      const i=templates.sms.findIndex(t=>t.id===oldId);
+      if(i>-1) templates.sms[i]=data; else templates.sms.unshift(data);
+      toast('短信模版已保存'); closeModal(); openTemplateList('sms');
+    }
+    function maskClose(e){if(e.target===modalMask) closeModal()}
+    function closeModal(){modalMask.classList.remove('show'); modalMask.innerHTML=''}
+    function toast(msg,type='success'){const el=document.createElement('div'); el.className='toast'; if(type==='error'){el.style.borderColor='#ffccc7';el.style.color='#a8071a'} el.textContent=(type==='error'?'✕ ':'✓ ')+msg; toastWrap.appendChild(el); setTimeout(()=>el.remove(),type==='error'?5000:2000)}
+    init();
+  </script>
+</body>
+</html>
