@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运费模版-按金额计费原型</title>
+  <style>
+    :root {
+      --primary:#051D86;
+      --primary-hover:#3347a8;
+      --primary-light:#EBF0FF;
+      --text-title:#17233d;
+      --text-main:#515a6e;
+      --text-sub:rgba(0,0,0,.45);
+      --text-hint:#c5c8ce;
+      --error:#ed4014;
+      --warning:#ff9900;
+      --border:#dcdee2;
+      --border-inner:#e8eaec;
+      --bg-page:#f5f7f9;
+      --bg-white:#fff;
+      --bg-head:#f8f8f9;
+      --divider:#f2f2f2;
+      --nav-h:48px;
+      --sidebar-w:160px;
+      --sidebar-mini:44px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Helvetica Neue",Helvetica,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--text-main);background:var(--bg-page);font-size:14px;letter-spacing:0}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .prototype-workbench{display:flex;width:100vw;height:100vh;overflow:hidden;background:var(--bg-page)}
+    .logic-panel{width:56px;flex:0 0 56px;background:#fff;border-right:1px solid var(--border-inner);transition:width .22s ease;overflow:hidden;position:relative;z-index:5}
+    .logic-panel.expanded{width:40vw;flex-basis:40vw}
+    .logic-collapsed{height:100%;display:flex;align-items:center;justify-content:center;color:var(--primary);writing-mode:vertical-rl;letter-spacing:2px;cursor:pointer;background:#fff}
+    .logic-panel.expanded .logic-collapsed{display:none}
+    .logic-expanded{display:none;height:100%;flex-direction:column}
+    .logic-panel.expanded .logic-expanded{display:flex}
+    .logic-toolbar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border-inner);flex-shrink:0}
+    .logic-title{font-size:16px;font-weight:600;color:var(--text-title)}
+    .logic-actions{display:flex;gap:12px;align-items:center}
+    .logic-link{border:0;background:transparent;color:var(--primary);padding:0;font-size:13px}
+    .logic-source{padding:10px 18px;color:var(--text-sub);font-size:12px;border-bottom:1px solid var(--border-inner);background:#fbfcff}
+    .logic-doc{padding:24px 34px;overflow:auto;line-height:1.72;background:#fff;height:calc(100vh - 85px)}
+    .logic-doc h1{font-size:22px;color:var(--text-title);margin:0 0 18px}
+    .logic-doc h2{font-size:17px;color:var(--text-title);margin:26px 0 10px;border-left:3px solid var(--primary);padding-left:10px}
+    .logic-doc h3{font-size:15px;color:var(--text-title);margin:18px 0 8px}
+    .logic-doc p,.logic-doc li{font-size:13px;margin:6px 0}
+    .logic-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12px}
+    .logic-doc th,.logic-doc td{border:1px solid var(--border-inner);padding:8px;text-align:left}
+    .preview-stage{flex:1;min-width:0;height:100vh;overflow:hidden;background:var(--bg-page)}
+    .app{height:100%;display:flex;flex-direction:column;min-width:980px}
+    .topnav{height:48px;background:#fff;border-bottom:1px solid var(--border-inner);display:flex;align-items:stretch;flex-shrink:0}
+    .nav-logo{width:160px;flex:0 0 160px;border-right:1px solid var(--border-inner);display:flex;align-items:center;padding-left:26px;font-size:15px;font-weight:700;color:var(--primary)}
+    .nav-toggle{width:44px;display:flex;align-items:center;justify-content:center;color:#666;border-right:1px solid #f1f1f1;cursor:pointer}
+    .nav-tabs{display:flex;align-items:stretch;gap:0;min-width:0;flex:1;overflow-x:auto}
+    .nav-tab{position:relative;display:flex;align-items:center;gap:8px;padding:0 18px;color:#666;white-space:nowrap;border-right:1px solid #f3f3f3;font-size:13px;cursor:pointer}
+    .nav-tab.active{color:var(--primary);font-weight:600}
+    .nav-tab.active:after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--primary)}
+    .tab-close{font-size:13px;color:inherit}
+    .nav-right{width:116px;display:flex;align-items:center;justify-content:center;gap:12px;color:#333}
+    .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(180deg,#2f67ff,#dae5ff);border:1px solid var(--primary);position:relative}
+    .avatar:after{content:"";position:absolute;left:8px;top:7px;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 9px 0 3px #fff}
+    .app-body{flex:1;display:flex;min-height:0}
+    .sidebar{width:160px;flex:0 0 160px;background:#fff;border-right:1px solid var(--border-inner);transition:width .22s ease;overflow:hidden}
+    .app.collapsed .sidebar{width:44px;flex-basis:44px}
+    .sb-search{height:54px;display:flex;align-items:center;padding:12px 12px}
+    .sb-search input{width:100%;height:30px;border:1px solid #f0f0f0;border-radius:15px;background:#f7f7f7;padding:0 12px;font-size:12px;outline:none}
+    .app.collapsed .sb-search{display:none}
+    .menu-scroll{height:calc(100vh - 102px);overflow:auto;padding:4px 0}
+    .m1{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#333;cursor:pointer}
+    .m1:hover,.m1.active{background:#F0F3FF;color:var(--primary)}
+    .m1 svg{width:14px;height:14px;stroke:#999;fill:none;stroke-width:1.7}
+    .m1:hover svg,.m1.active svg{stroke:var(--primary)}
+    .m1-label{flex:1;white-space:nowrap}
+    .m1-arrow{transition:transform .2s;color:#aaa}
+    .m1.open .m1-arrow{transform:rotate(90deg)}
+    .m2-wrap{overflow:hidden}
+    .m2-grid{display:flex;flex-direction:column;padding:2px 8px 8px}
+    .m2-item{height:32px;display:flex;align-items:center;padding:0 8px;color:#666;font-size:12px;border-radius:4px;cursor:pointer;white-space:nowrap}
+    .m2-item:hover,.m2-item.active{background:var(--primary-light);color:var(--primary);font-weight:500}
+    .app.collapsed .m1{justify-content:center;padding:0}
+    .app.collapsed .m1-label,.app.collapsed .m1-arrow,.app.collapsed .m2-wrap{display:none}
+    .main{flex:1;min-width:0;overflow:auto;background:#f7f8fa;padding:22px 26px}
+    .page-card{background:#fff;border-radius:6px;min-height:calc(100vh - 92px);padding:24px 28px;box-shadow:0 1px 0 1px #efeded}
+    .filter-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .filter-row label{font-size:13px;color:#666}
+    .input,.select{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text-main);padding:0 8px;outline:none}
+    .input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.12)}
+    .w150{width:150px}.w240{width:240px}.w500{width:500px}
+    .multi-select{width:500px;position:relative}
+    .multi-control{min-height:36px;border:1px solid var(--border);border-radius:4px;background:#fff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 34px 4px 8px;cursor:pointer;position:relative}
+    .multi-control.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.12)}
+    .multi-control:after{content:"⌄";position:absolute;right:10px;top:7px;color:#aaa;font-size:14px}
+    .multi-placeholder{color:var(--text-hint);font-size:13px}
+    .chip{height:24px;display:inline-flex;align-items:center;gap:4px;background:#f5f5f5;border-radius:3px;padding:0 8px;color:#555;font-size:12px}
+    .chip button{border:0;background:transparent;color:#999;padding:0;font-size:13px;line-height:1}
+    .multi-menu{position:absolute;top:40px;left:0;width:100%;background:#fff;border:1px solid var(--border-inner);border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50;display:none;overflow:hidden}
+    .multi-menu.show{display:block}
+    .multi-search{height:36px;padding:6px 8px;border-bottom:1px solid var(--border-inner)}
+    .multi-search input{width:100%;height:24px;border:0;outline:none;font-size:13px}
+    .multi-option{height:36px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px}
+    .multi-option:hover,.multi-option.checked{background:#eef3ff;color:var(--primary)}
+    .multi-footer{height:38px;border-top:1px solid var(--border-inner);display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 14px}
+    .icon-btn{width:34px;height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#333;display:inline-flex;align-items:center;justify-content:center}
+    .icon-btn:hover{border-color:var(--primary);color:var(--primary)}
+    .spacer{flex:1}
+    .btn-primary,.btn-default{height:32px;border-radius:4px;padding:0 15px;font-size:14px}
+    .btn-primary{background:var(--primary);border:0;color:#fff}
+    .btn-primary:hover{background:var(--primary-hover)}
+    .btn-default{background:#fff;border:1px solid var(--border);color:var(--text-main)}
+    .btn-default:hover{border-color:var(--primary);color:var(--primary)}
+    .text-btn{border:0;background:transparent;color:var(--primary);padding:0;font-size:13px}
+    .danger{color:#ff0000}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th{height:40px;background:#f2f2f2;color:#515a6e;font-weight:500;text-align:left;padding:0 14px;font-size:13px;border-bottom:1px solid var(--border-inner)}
+    td{height:68px;padding:10px 14px;border-bottom:1px solid var(--divider);font-size:13px;color:#333;vertical-align:middle}
+    tbody tr:hover{background:#f9fbff}
+    .tag{display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:44px;padding:0 7px;border-radius:3px;background:#f5f5f5;color:#666;font-size:12px}
+    .tag-on{color:#14C45A;background:#E8FFF0}
+    .tag-warn{color:#FF8A00;background:#FFF3E5}
+    .op-links{display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .pager{height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;color:#666;font-size:13px;border-top:1px solid var(--border-inner)}
+    .page-num{width:30px;height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#333}
+    .form-head{height:32px;display:flex;align-items:center;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border-inner)}
+    .back{color:#333;display:flex;align-items:center;gap:6px;cursor:pointer}
+    .form-grid{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:18px;align-items:start}
+    .form-content{max-width:100%}
+    .form-section{scroll-margin-top:18px;margin-bottom:18px}
+    .section-title{font-size:15px;font-weight:600;color:#333;border-left:3px solid var(--primary);padding-left:10px;margin:0 0 14px}
+    .form-card{border:1px solid var(--border-inner);border-radius:6px;background:#fff;padding:20px 24px}
+    .form-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:start;margin-bottom:16px}
+    .form-row:last-child{margin-bottom:0}
+    .label{min-height:36px;display:flex;align-items:center;justify-content:flex-end;color:#666;font-size:14px}
+    .required:after{content:"*";color:#ed4014;margin-left:4px}
+    .radio-line{min-height:36px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .radio{display:inline-flex;align-items:center;gap:6px;color:#333}
+    .radio input{appearance:none;width:14px;height:14px;border:1px solid var(--border);border-radius:50%;margin:0;position:relative}
+    .radio input:checked{border-color:var(--primary)}
+    .radio input:checked:after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:var(--primary);left:3px;top:3px}
+    .muted{color:#999;font-size:12px;margin-top:6px}
+    .rule-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .rule-table{border:1px solid var(--border-inner);border-bottom:0}
+    .rule-table input{width:100%;height:32px;border:1px solid var(--border-inner);border-radius:4px;padding:0 8px}
+    .anchor-nav{position:sticky;top:0;align-self:start;justify-self:end;width:100px;border-left:1px solid var(--divider);padding:4px 0}
+    .anchor-nav a{display:block;height:32px;line-height:32px;padding-left:12px;color:#666;text-decoration:none;font-size:13px;border-left:2px solid transparent}
+    .anchor-nav a.active{border-left-color:var(--primary);color:var(--primary);font-weight:600}
+    .empty{height:142px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#aaa;background:#fbfbfd;border:1px solid var(--border-inner);border-top:0}
+    .empty-icon{width:38px;height:28px;border:1px solid #ddd;border-radius:4px;margin-bottom:10px;position:relative}
+    .empty-icon:before{content:"";position:absolute;left:8px;top:-8px;width:20px;height:12px;border:1px solid #ddd;border-bottom:0;border-radius:8px 8px 0 0;background:#fbfbfd}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:1000;display:none;align-items:center;justify-content:center}
+    .overlay.show{display:flex}
+    .modal{background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);max-width:calc(100vw - 80px)}
+    .modal-md{width:520px}.modal-lg{width:680px}.modal-xl{width:880px}.modal-sm{width:388px}
+    .modal-hd{height:52px;border-bottom:1px solid var(--border-inner);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:16px;color:#333;font-weight:600}
+    .modal-close{font-size:20px;color:#999;cursor:pointer}
+    .modal-bd{padding:20px;max-height:560px;overflow:auto}
+    .modal-ft{height:56px;border-top:1px solid var(--border-inner);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 20px}
+    .region-cascader{border:1px solid var(--border-inner);display:grid;grid-template-columns:1fr 1fr 1fr;height:468px;overflow:hidden}
+    .region-col{border-right:1px solid var(--border-inner);min-width:0;display:flex;flex-direction:column}
+    .region-col:last-child{border-right:0}
+    .region-col-hd{height:40px;background:#f8f8f9;border-bottom:1px solid var(--border-inner);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:600;color:#333;font-size:13px}
+    .region-col-hd input{appearance:none;width:16px;height:16px;border:1px solid #C9D0E0;border-radius:3px;margin:0;position:relative}
+    .region-col-hd input:checked{background:var(--primary);border-color:var(--primary)}
+    .region-col-hd input:checked:after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+    .region-items{overflow:auto;flex:1}
+    .region-row{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;cursor:pointer;font-size:13px}
+    .region-row:hover,.region-row.active{background:#eef3ff;color:var(--primary);font-weight:500}
+    .region-row.disabled{color:#c5c8ce;cursor:not-allowed}
+    .region-row input{appearance:none;width:16px;height:16px;border:1px solid #C9D0E0;border-radius:3px;margin:0;position:relative;flex-shrink:0}
+    .region-row input:checked{background:var(--primary);border-color:var(--primary)}
+    .region-row input:checked:after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+    .region-selected{min-height:38px;border:1px solid var(--border-inner);border-top:0;padding:9px 12px;color:#666;font-size:13px}
+    .region-selected span{color:var(--primary)}
+    .region-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .check{display:flex;align-items:center;gap:8px;height:32px}
+    .check input{appearance:none;width:16px;height:16px;border:1px solid #C9D0E0;border-radius:3px;margin:0;position:relative}
+    .check input:checked{background:var(--primary);border-color:var(--primary)}
+    .check input:checked:after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+    .confirm .modal-hd{display:none}
+    .confirm-body{padding:18px 22px 16px}
+    .confirm-title-row{display:flex;align-items:center;gap:8px}
+    .confirm-icon{width:20px;height:20px;border-radius:50%;background:#ff9900;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+    .confirm-title{font-weight:600;color:#333}
+    .confirm-desc{margin:8px 0 0 28px;color:#666;font-size:13px;line-height:22px}
+    .confirm .modal-ft{height:48px;border-top:0;padding:0 20px 16px}
+    .toast-stack{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:8px}
+    .toast{background:#fff;border:1px solid #B7EB8F;color:#135200;border-radius:6px;padding:9px 14px;box-shadow:0 4px 16px rgba(0,0,0,.08);font-size:13px}
+    .toast.error{border-color:#FFCCC7;color:#A8071A}
+    .log-table th,.log-table td{height:44px}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+  <div class="prototype-workbench">
+    <aside class="logic-panel" id="logicPanel">
+      <div class="logic-collapsed" onclick="toggleLogic()">展开逻辑</div>
+      <div class="logic-expanded">
+        <div class="logic-toolbar">
+          <div class="logic-title">运费模版需求逻辑</div>
+          <div class="logic-actions">
+            <button class="logic-link" onclick="document.getElementById('docFile').click()">同步本地文档</button>
+            <button class="logic-link" onclick="toggleLogic()">收起逻辑</button>
+            <input id="docFile" type="file" accept=".md,.markdown,.txt" hidden>
+          </div>
+        </div>
+        <div class="logic-source" id="logicSource">来源：同目录《运费模版需求文档.md》</div>
+        <div class="logic-doc" id="logicDoc"></div>
+      </div>
+    </aside>
+    <main class="preview-stage">
+      <div class="app" id="app">
+        <nav class="topnav">
+          <div class="nav-logo">私域运营平台</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="nav-tabs" id="tabs"></div>
+          <div class="nav-right"><span>⇩</span><span class="avatar"></span><span>⌄</span></div>
+        </nav>
+        <div class="app-body">
+          <aside class="sidebar">
+            <div class="sb-search"><input id="menuSearch" placeholder="搜索关键字" oninput="searchMenu(this.value)"></div>
+            <div class="menu-scroll" id="menu"></div>
+          </aside>
+          <section class="main">
+            <div class="page-card" id="page"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="toast-stack" id="toasts"></div>
+  <div class="overlay" id="regionModal">
+    <div class="modal modal-xl">
+      <div class="modal-hd"><span>选择可配送区域</span><span class="modal-close" onclick="closeModal('regionModal')">×</span></div>
+      <div class="modal-bd">
+        <div class="region-cascader">
+          <div class="region-col">
+            <div class="region-col-hd"><span>省份/直辖市</span><input type="checkbox" onchange="toggleRegionLevel('province', this.checked)"></div>
+            <div class="region-items" id="provinceList"></div>
+          </div>
+          <div class="region-col">
+            <div class="region-col-hd"><span>城市</span><input type="checkbox" onchange="toggleRegionLevel('city', this.checked)"></div>
+            <div class="region-items" id="cityList"></div>
+          </div>
+          <div class="region-col">
+            <div class="region-col-hd"><span>区县</span><input type="checkbox" onchange="toggleRegionLevel('district', this.checked)"></div>
+            <div class="region-items" id="districtList"></div>
+          </div>
+        </div>
+        <div class="region-selected" id="regionSelectedText">已选：<span>0</span> 个区域</div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-default" onclick="closeModal('regionModal')">取消</button>
+        <button class="btn-primary" onclick="saveRegions()">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="logModal">
+    <div class="modal modal-xl">
+      <div class="modal-hd"><span>操作日志</span><span class="modal-close" onclick="closeModal('logModal')">×</span></div>
+      <div class="modal-bd">
+        <table class="log-table">
+          <thead><tr><th style="width:110px">日志ID</th><th style="width:120px">操作人</th><th>操作描述</th><th>提示信息</th><th style="width:170px">操作时间</th></tr></thead>
+          <tbody id="logContent"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="confirmModal">
+    <div class="modal modal-sm confirm">
+      <div class="confirm-body">
+        <div class="confirm-title-row"><span class="confirm-icon">!</span><span class="confirm-title" id="confirmTitle">删除</span></div>
+        <div class="confirm-desc" id="confirmDesc">是否确认删除</div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-default" onclick="closeModal('confirmModal')">取消</button>
+        <button class="btn-primary" onclick="runConfirm()">确定</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const baseDoc = "# 需求模版\n\n> 填写说明：只填业务内容，删掉不需要的占位项即可。\n\n---\n\n## 1. 业务背景\n\n> 需求描述：要解决什么问题\n> 目标结果：希望达成什么业务效果\n> 本期范围：本期明确要做什么\n> 本期不做：明确范围外的内容\n\n### 1.1 需求描述\n\n现有运费模板已支持商品批次运费、统一运费、按重量计费、按件计费。本期需要补齐运费模板新增/编辑页的多种计费方式配置能力，并新增“按金额计费”方式，支持按配送区域配置金额门槛、未达门槛运费和达到门槛后的运费。\n\n同时，运费模板列表需按最终枚举展示计费方式，不再提供计费方式筛选框，仅保留模板名称搜索。\n\n### 1.3 目标结果\n\n1. 运营可在运费模板新增/编辑页选择不同计费方式，并看到对应的运费设置表单。\n2. 快递公司支持多选，满足一个运费模板关联多个快递公司的配置需求。\n3. 按重量计费、按件计费、按金额计费均支持按省/市/区三级配送区域配置差异化运费。\n4. 运费模板列表按统一文案展示计费方式：商品批次、统一运费、按件数、按重量、按金额。\n\n### 1.4 本期范围\n\n- 运费模板列表：保留模板名称搜索，去掉计费方式搜索框。\n- 运费模板列表：计费方式展示文案统一为商品批次、统一运费、按件数、按重量、按金额。\n- 运费模板新增/编辑：快递公司改为多选下拉，支持搜索、全选、取消选择。\n- 运费模板新增/编辑：支持商品批次运费、统一运费、按重量计费、按件计费、按金额计费五种计费方式。\n- 运费模板新增/编辑：按重量计费、按件计费、按金额计费支持配置可配送区域和运费规则。\n- 配送区域弹窗：支持省份/直辖市、城市、区县三级联动选择。\n- 操作日志：新建、编辑、删除运费模板需记录操作日志。\n\n### 1.5 本期不做\n\n- 不调整前台下单页展示样式。\n- 不调整商品批次运费在商品/批次侧的维护逻辑。\n- 不新增运费模板启用/停用状态。\n- 不做真实快递公司、行政区划接口联调，原型内使用模拟数据。\n\n---\n\n## 2. 关键业务规则\n\n### 4.1 唯一性 / 并发性\n\n- 模板名称不可重复。\n- 同一运费模板内，同一配送区域不可重复配置在多条运费规则中。\n- 新增模板 ID 按当前最大模板 ID 加 1 生成。\n- 编辑模板保存时，以当前编辑页数据覆盖原模板数据。\n\n### 4.2 字段定义\n\n- 模板名称：运费模板名称。\n  - 是否必填：是\n  - 默认值：无\n  - 范围 / 长度：50 字以内\n  - 不允许：不允许为空，不允许与已有模板名称重复\n\n- 计费方式：运费计算方式。\n  - 是否必填：是\n  - 默认值：无\n  - 范围 / 长度：商品批次运费 / 统一运费 / 按重量计费 / 按件计费 / 按金额计费\n  - 不允许：不允许为空\n\n- 快递公司：模板关联快递公司。\n  - 是否必填：是\n  - 默认值：无\n  - 范围 / 长度：普通快递、EMS邮政速递、YTO圆通速递、顺丰、中通、STO申通快递、韵达\n  - 不允许：不允许为空\n\n- 统一运费：统一运费模式下的固定运费。\n  - 是否必填：计费方式为统一运费时必填\n  - 默认值：无\n  - 范围 / 长度：金额，单位元，最多两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 可配送区域：按区域配置运费规则时的适用区域。\n  - 是否必填：按重量计费、按件计费、按金额计费时必填\n  - 默认值：无\n  - 范围 / 长度：省份/直辖市、城市、区县三级区域\n  - 不允许：不允许为空，同一模板内不允许重复覆盖\n\n- 首重（KG）：按重量计费的首重。\n  - 是否必填：按重量计费时必填\n  - 默认值：1.00\n  - 范围 / 长度：数字，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 首重费（元）：按重量计费的首重费用。\n  - 是否必填：按重量计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 续重（KG）：按重量计费的续重单位。\n  - 是否必填：按重量计费时必填\n  - 默认值：1.00\n  - 范围 / 长度：数字，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 续费（元）：按重量计费的续重费用。\n  - 是否必填：按重量计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 首件（件）：按件计费的首件数量。\n  - 是否必填：按件计费时必填\n  - 默认值：1\n  - 范围 / 长度：数字，建议整数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 首件费（元）：按件计费的首件费用。\n  - 是否必填：按件计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 续件（件）：按件计费的续件数量。\n  - 是否必填：按件计费时必填\n  - 默认值：1\n  - 范围 / 长度：数字，建议整数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 续费（元）：按件计费的续件费用。\n  - 是否必填：按件计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 金额门槛（元）：按金额计费的订单金额判断门槛。\n  - 是否必填：按金额计费时必填\n  - 默认值：1.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 不满金额运费（元）：订单金额未达到金额门槛时收取的运费。\n  - 是否必填：按金额计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n- 满金额运费（元）：订单金额达到金额门槛时收取的运费。\n  - 是否必填：按金额计费时必填\n  - 默认值：0.00\n  - 范围 / 长度：金额，单位元，支持两位小数，大于等于 0\n  - 不允许：不允许为空，不允许小于 0\n\n### 4.3 计算规则\n\n- 商品批次运费：\n  - 规则：运费由商品批次侧维护，运费模板仅维护模板名称、计费方式、快递公司。\n  - 示例：模板选择商品批次运费后，不展示运费规则表。\n  - 边界说明：保存时仍需校验模板名称、计费方式、快递公司。\n\n- 统一运费：\n  - 规则：订单使用该模板时，统一收取配置的固定运费。\n  - 示例：统一运费配置为 6.00 元，则订单运费为 6.00 元。\n  - 边界说明：运费可配置为 0，表示统一免运费。\n\n- 按重量计费：\n  - 规则：按可配送区域配置首重、首重费、续重、续费。\n  - 示例：首重 1KG、首重费 8 元、续重 1KG、续费 3 元；订单重量超过首重后按续重规则加收。\n  - 边界说明：实际生产计算需结合订单重量向上取整规则，取整口径待接口实现时确认。\n\n- 按件计费：\n  - 规则：按可配送区域配置首件、首件费、续件、续费。\n  - 示例：首件 1 件、首件费 8 元、续件 1 件、续费 3 元；订单件数超过首件后按续件规则加收。\n  - 边界说明：实际生产计算需结合商品件数统计口径，统计口径待接口实现时确认。\n\n- 按金额计费：\n  - 规则：按可配送区域配置金额门槛、不满金额运费、满金额运费。\n  - 示例：金额门槛 99 元，不满金额运费 8 元，满金额运费 0 元；订单金额 88 元收取 8 元运费，订单金额 99 元收取 0 元运费。\n  - 边界说明：订单金额等于金额门槛时，按满金额运费计算。\n\n### 4.4 关键联动逻辑\n\n- 切换计费方式后，运费设置区即时切换：\n  - 商品批次运费：不展示规则表，仅提示由商品批次侧维护。\n  - 统一运费：展示统一运费金额输入。\n  - 按重量计费：展示可配送区域、首重、首重费、续重、续费、操作。\n  - 按件计费：展示可配送区域、首件、首件费、续件、续费、操作。\n  - 按金额计费：展示可配送区域、金额门槛、不满金额运费、满金额运费、操作。\n- 按重量计费、按件计费、按金额计费下，点击“设置可配送区域和运费”新增一行规则。\n- 点击规则行“修改区域”，打开省/市/区三级区域选择弹窗。\n- 区域弹窗点击保存后，将已选区域回填到当前规则行。\n- 删除规则行后，当前规则立即从页面移除。\n- 快递公司多选下拉支持搜索、全选、刷新/取消选择，选择结果以标签形式展示。\n\n### 4.5 异常处理规则\n\n- 模板名称为空时，禁止保存并提示“请输入模板名称”。\n- 模板名称重复时，禁止保存并提示“模板名称不可重复”。\n- 计费方式为空时，禁止保存并提示“请选择计费方式”。\n- 快递公司为空时，禁止保存并提示“请选择快递公司”。\n- 统一运费为空或小于 0 时，禁止保存并提示“请输入统一运费”。\n- 按重量计费、按件计费、按金额计费未配置规则时，禁止保存并提示“请至少设置一条运费规则”。\n- 运费规则未选择可配送区域时，禁止保存并提示“请选择可配送区域”。\n- 金额、重量、件数类字段为空或小于 0 时，禁止保存并提示对应字段填写错误。\n- 同一模板内配送区域重复时，禁止保存并提示重复区域名称。\n\n### 4.6 权限规则（按需）\n\n- 当前原型默认当前账号具备新增、编辑、删除、查看日志权限。\n- 实际开发可按权限点控制“新增”“编辑”“删除”“日志”入口显隐。\n\n### 4.7 时效与有效期（按需）\n\n- 运费模板无有效期配置。\n- 创建时间、最后更新时间按操作发生时间记录，格式为 YYYY-MM-DD HH:mm:ss。\n\n### 4.8 数据来源（按需）\n\n- 运费模板列表数据来源：运费模板主表。\n- 快递公司选项来源：快递公司配置表。\n- 区域选择数据来源：行政区划数据。\n- 操作日志来源：运费模板操作日志表。\n\n### 4.9 通知机制（按需）\n\n- 本期无站内信、短信、微信消息等通知。\n- 保存、删除、同步文档等操作使用页面 Toast 反馈。\n\n### 4.10 上限与极限（按需）\n\n- 模板名称最多 50 字。\n- 快递公司至少选择 1 个，上限以后端配置为准。\n- 运费规则至少配置 1 条；单模板内规则数量上限待后端接口确认。\n- 金额字段单位为元，最多两位小数。\n\n---\n\n## 5. 状态与异常\n\n### 5.1 业务状态\n\n- 运费模板：无启用/停用状态。\n- 页面流程：列表查看 / 新增 / 编辑 / 删除确认 / 日志查看。\n\n### 5.2 页面默认态\n\n- 列表页默认展示全部运费模板，按创建时间倒序排列。\n- 列表页默认仅展示模板名称搜索，不展示计费方式搜索。\n- 新增页默认不预选计费方式；用户选择计费方式后展示对应运费设置。\n- 编辑页按当前模板数据回填模板名称、计费方式、快递公司和运费规则。\n\n### 5.3 空态\n\n- 列表无数据或搜索无结果时，展示“暂无数据”。\n- 按重量计费、按件计费、按金额计费未配置规则时，规则表展示“暂无数据”。\n\n### 5.4 异常态 / 失败态\n\n- 保存校验失败时，顶部 Toast 展示具体错误原因。\n- 删除确认取消时，不改变任何数据。\n- 日志无提示信息时，提示信息列展示“-”。\n\n### 5.5 权限态 / 不可操作态\n\n- 无新增权限时，不展示“新增”按钮。\n- 无编辑权限时，不展示“编辑”入口。\n- 无删除权限时，不展示“删除”入口。\n- 无日志权限时，不展示“日志”入口。\n\n### 5.6 状态-操作矩阵（按需）\n\n| 状态 | 可执行操作 | 备注 |\n| --- | --- | --- |\n| 列表查看 | 搜索、清空、新增、编辑、删除、日志 | 根据权限控制入口显隐 |\n| 新增 | 填写表单、选择区域、保存、取消 | 保存成功后返回列表 |\n| 编辑 | 修改表单、选择区域、保存、取消 | 保存成功后更新列表 |\n| 删除确认 | 取消、确定 | 确定后删除模板并记录日志 |\n| 日志查看 | 关闭 | 按操作时间倒序展示 |\n\n### 5.7 状态流转（按需）\n\n- 列表查看 → 新增：点击“新增”。\n- 列表查看 → 编辑：点击“编辑”。\n- 新增 → 列表查看：保存成功或点击取消。\n- 编辑 → 列表查看：保存成功或点击取消。\n- 列表查看 → 删除确认：点击“删除”。\n- 删除确认 → 列表查看：点击取消或确定。\n- 列表查看 → 日志查看：点击“日志”。\n- 日志查看 → 列表查看：关闭日志弹窗。\n\n---\n\n## 6. 衍生需求与默认授权项\n\n### 6.1 导出\n\n- 本期不涉及导出。\n\n### 6.2 日志\n\n- 运费模板新建 / 编辑 / 删除需记录操作日志。\n- 日志字段包含：日志ID、操作人、操作描述、提示信息、操作时间。\n- 日志按操作时间倒序展示。\n\n### 6.3 ID 规则\n\n- 新增模板 ID 按当前最大模板 ID 加 1 生成。\n- 操作日志 ID 按日志生成时间戳生成。\n\n### 6.4 通知\n\n- 本期无外部通知。\n- 页面内操作反馈使用 Toast。\n\n### 6.5 端能力限制\n\n- 本需求仅涉及 PC 后台。\n- 不涉及小程序、H5、App 前台页面调整。\n\n### 6.6 默认授权项\n\n- 运费模板查看。\n- 运费模板新增。\n- 运费模板编辑。\n- 运费模板删除。\n- 运费模板日志查看。\n\n---\n\n## 附件 / 补充材料\n\n### A. 参考图\n\n- 运费模板列表页参考图。\n- 运费模板新增/编辑页参考图。\n- 快递公司多选下拉参考图。\n- 配送区域三级选择弹窗参考图。\n- 按重量计费、按件计费、按金额计费运费设置表格参考图。\n\n### B. 历史页面\n\n- 现有运费模板列表页。\n- 现有运费模板新增/编辑页。\n\n### C. 相关文档\n\n- 原型文件：freight-template-amount-prototype.html";
+
+    const menus = [
+      {group:'首页',items:['首页']},
+      {group:'商城装修',items:['页面装修']},
+      {group:'用户中心',items:['会员管理']},
+      {group:'商品中心',items:['商品管理','品牌管理','分类管理','SPU','商品属性','商品API','商品服务','运费模板','物流时效','供应商管理']},
+      {group:'订单中心',items:['订单管理','售后管理']},
+      {group:'积分中心',items:['积分任务']},
+      {group:'营销中心',items:['优惠券','活动管理']},
+      {group:'内容中心',items:['内容管理']},
+      {group:'系统配置',items:['快递公司','权限配置']},
+      {group:'基础中心',items:['基础数据']}
+    ];
+    const expressOptions = ['普通快递','EMS邮政速递','YTO圆通速递','顺丰','中通','STO申通快递','韵达'];
+    const provinceData = [
+      {name:'全国', cities:[{name:'全国', districts:['全国']}]},
+      {name:'北京市', cities:[{name:'北京市', districts:['和平区','沈河区','大东区','皇姑区','铁西区','苏家屯区','浑南区','沈北新区','于洪区','辽中区']}]},
+      {name:'天津市', cities:[{name:'天津市', districts:['和平区','河东区','河西区','南开区','河北区','红桥区','滨海新区']}]},
+      {name:'河北省', cities:[{name:'石家庄市', districts:['长安区','桥西区','新华区','裕华区']},{name:'唐山市', districts:['路南区','路北区','古冶区','开平区']},{name:'秦皇岛市', districts:['海港区','山海关区','北戴河区']} ]},
+      {name:'山西省', cities:[{name:'太原市', districts:['小店区','迎泽区','杏花岭区','万柏林区']},{name:'大同市', districts:['平城区','云冈区','新荣区']} ]},
+      {name:'辽宁省', cities:[{name:'沈阳市', districts:['和平区','沈河区','大东区','皇姑区','铁西区','苏家屯区','浑南区','沈北新区','于洪区','辽中区']},{name:'大连市', districts:['中山区','西岗区','沙河口区','甘井子区']},{name:'鞍山市', districts:['铁东区','铁西区','立山区']} ]},
+      {name:'吉林省', cities:[{name:'长春市', districts:['南关区','宽城区','朝阳区','二道区']},{name:'吉林市', districts:['昌邑区','龙潭区','船营区']} ]},
+      {name:'黑龙江省', cities:[{name:'哈尔滨市', districts:['道里区','南岗区','道外区','香坊区']},{name:'齐齐哈尔市', districts:['龙沙区','建华区','铁锋区']} ]},
+      {name:'上海市', cities:[{name:'上海市', districts:['黄浦区','徐汇区','长宁区','静安区','浦东新区']}]},
+      {name:'江苏省', cities:[{name:'南京市', districts:['玄武区','秦淮区','建邺区','鼓楼区']},{name:'苏州市', districts:['姑苏区','虎丘区','吴中区','相城区']} ]},
+      {name:'浙江省', cities:[{name:'杭州市', districts:['上城区','拱墅区','西湖区','滨江区']},{name:'宁波市', districts:['海曙区','江北区','北仑区']} ]},
+      {name:'广东省', cities:[{name:'广州市', districts:['越秀区','海珠区','荔湾区','天河区']},{name:'深圳市', districts:['福田区','罗湖区','南山区','宝安区']} ]}
+    ];
+    let templates = JSON.parse(localStorage.getItem('freightTemplatesV1') || 'null') || [
+      {id:100003,name:'满99包邮运费模板',charge:'按金额计费',express:['普通快递','EMS邮政速递'],creator:'测试-薛苗苗',created:'2026-06-24 15:30:12',updater:'测试-薛苗苗',updated:'2026-06-24 15:30:12',rules:[{areas:['北京市'],thresholdFee:99,underFee:8,fullFee:0},{areas:['天津市','河北省','山西省'],thresholdFee:199,underFee:12,fullFee:0}]},
+      {id:100002,name:'全国统一运费1元',charge:'统一运费',express:['普通快递','EMS邮政速递'],creator:'测试-薛苗苗',created:'2026-05-12 13:56:53',updater:'测试-薛苗苗',updated:'2026-05-25 18:03:54',uniformFee:1,rules:[]},
+      {id:100001,name:'批次运费模版',charge:'商品批次',express:['普通快递'],creator:'xzj',created:'2026-05-12 12:11:39',updater:'xzj',updated:'2026-05-12 12:11:39',rules:[]},
+      {id:100000,name:'偏远地区运费-按件计费',charge:'按件数',express:['普通快递'],creator:'xzj',created:'2026-05-08 11:28:44',updater:'测试-薛苗苗',updated:'2026-05-12 15:22:56',rules:[{areas:['北京市'],first:1,firstFee:8,next:1,nextFee:3}]}
+    ];
+    let logs = JSON.parse(localStorage.getItem('freightLogsV1') || 'null') || [
+      {id:'LOG20260624001',operator:'测试-薛苗苗',desc:'新建运费模版【满99包邮运费模板】',tip:'按金额计费',time:'2026-06-24 15:30:12'},
+      {id:'LOG20260525001',operator:'测试-薛苗苗',desc:'编辑运费模版【全国统一运费1元】',tip:'-',time:'2026-05-25 18:03:54'}
+    ];
+    let tabs = JSON.parse(localStorage.getItem('freightTabsV1') || 'null') || [{page:'home',label:'首页',fixed:true},{page:'list',label:'运费模板'}];
+    let currentPage = localStorage.getItem('freightCurrentPageV1') || 'list';
+    let editId = null;
+    let form = null;
+    let activeRuleIndex = 0;
+    let regionDraft = new Set();
+    let activeProvince = 0;
+    let activeCity = 0;
+    let confirmAction = null;
+
+    function saveState(){
+      localStorage.setItem('freightTemplatesV1', JSON.stringify(templates));
+      localStorage.setItem('freightLogsV1', JSON.stringify(logs));
+      localStorage.setItem('freightTabsV1', JSON.stringify(tabs));
+      localStorage.setItem('freightCurrentPageV1', currentPage);
+    }
+    function migrateTemplates(){
+      let changed = false;
+      templates.forEach(t => {
+        if(normalizeCharge(t.charge) !== '按金额计费') return;
+        t.rules = (t.rules || []).map(r => {
+          if('thresholdFee' in r && 'fullFee' in r) return r;
+          changed = true;
+          return {
+            areas: r.areas || [],
+            thresholdFee: r.freeAmount ?? r.underAmount ?? 1,
+            underFee: r.underFee ?? 0,
+            fullFee: r.freeFee ?? 0
+          };
+        });
+      });
+      if(changed) saveState();
+    }
+    function now(){
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function addLog(desc, tip='-'){
+      logs.unshift({id:'LOG'+Date.now(),operator:'测试-薛苗苗',desc,tip,time:now()});
+      saveState();
+    }
+    function showToast(msg,type='success'){
+      const el = document.createElement('div');
+      el.className = 'toast ' + (type === 'error' ? 'error' : '');
+      el.textContent = (type === 'error' ? '✕ ' : '✓ ') + msg;
+      document.getElementById('toasts').appendChild(el);
+      setTimeout(()=>el.remove(), type === 'error' ? 5000 : 2000);
+    }
+    function mdToHtml(md){
+      const lines = md.split(/\r?\n/);
+      let html = '';
+      let inUl = false, inTable = false;
+      const closeUl = () => { if(inUl){ html += '</ul>'; inUl=false; } };
+      const closeTable = () => { if(inTable){ html += '</table>'; inTable=false; } };
+      lines.forEach(line => {
+        if (/^\|/.test(line.trim())) {
+          closeUl();
+          if (/^\|\s*-/.test(line)) return;
+          const cells = line.split('|').slice(1,-1).map(s=>s.trim());
+          if(!inTable){ html += '<table>'; inTable=true; }
+          html += '<tr>' + cells.map(c=>`<td>${escapeHtml(c)}</td>`).join('') + '</tr>';
+          return;
+        }
+        closeTable();
+        if(/^###\s+/.test(line)){ closeUl(); html += `<h3>${escapeHtml(line.replace(/^###\s+/,''))}</h3>`; return; }
+        if(/^##\s+/.test(line)){ closeUl(); html += `<h2>${escapeHtml(line.replace(/^##\s+/,''))}</h2>`; return; }
+        if(/^#\s+/.test(line)){ closeUl(); html += `<h1>${escapeHtml(line.replace(/^#\s+/,''))}</h1>`; return; }
+        if(/^\-\s+/.test(line)){ if(!inUl){ html += '<ul>'; inUl=true; } html += `<li>${escapeHtml(line.replace(/^\-\s+/,''))}</li>`; return; }
+        if(/^---/.test(line)){ closeUl(); html += '<hr>'; return; }
+        if(line.trim()){ closeUl(); html += `<p>${escapeHtml(line).replace(/^&gt;\s?/,'')}</p>`; }
+      });
+      closeUl(); closeTable();
+      return html;
+    }
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+    function initLogic(){
+      const logicVersion = 'freight-template-format-20260624';
+      const cachedVersion = localStorage.getItem('freightLogicDocVersion');
+      if(cachedVersion !== logicVersion){
+        localStorage.setItem('freightLogicDoc', baseDoc);
+        localStorage.setItem('freightLogicName', '运费模版需求文档.md');
+        localStorage.setItem('freightLogicDocVersion', logicVersion);
+      }
+      const cached = localStorage.getItem('freightLogicDoc');
+      const name = localStorage.getItem('freightLogicName');
+      document.getElementById('logicDoc').innerHTML = mdToHtml(cached || baseDoc);
+      if(cached) document.getElementById('logicSource').textContent = '来源：本地缓存 + ' + name;
+      document.getElementById('docFile').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          localStorage.setItem('freightLogicDoc', reader.result);
+          localStorage.setItem('freightLogicName', file.name);
+          localStorage.setItem('freightLogicDocVersion', logicVersion);
+          document.getElementById('logicDoc').innerHTML = mdToHtml(reader.result);
+          document.getElementById('logicSource').textContent = '来源：本地缓存 + ' + file.name;
+          showToast('左侧逻辑已同步');
+        };
+        reader.readAsText(file);
+      });
+    }
+    function toggleLogic(){document.getElementById('logicPanel').classList.toggle('expanded')}
+    function toggleSidebar(){document.getElementById('app').classList.toggle('collapsed')}
+    function folderIcon(){return '<svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v9H3z"></path></svg>'}
+    function renderMenu(){
+      document.getElementById('menu').innerHTML = menus.map((m,i)=>`
+        <div class="m-group">
+          <div class="m1 ${m.group==='商品中心'?'open active':''}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+            ${folderIcon()}<span class="m1-label">${m.group}</span><span class="m1-arrow">›</span>
+          </div>
+          <div class="m2-wrap ${m.group==='商品中心'?'':'hidden'}">
+            <div class="m2-grid">${m.items.map(item=>`<div class="m2-item ${item==='运费模板'?'active':''}" data-label="${item}" onclick="${item==='运费模板'?'openList()':'showToast(&quot;当前原型聚焦运费模板模块&quot;)'}">${item}</div>`).join('')}</div>
+          </div>
+        </div>`).join('');
+    }
+    function searchMenu(q){
+      document.querySelectorAll('.m-group').forEach(g=>{
+        let hit = false;
+        g.querySelectorAll('.m2-item').forEach(item=>{
+          const ok = item.dataset.label.includes(q.trim());
+          item.style.display = ok ? '' : 'none';
+          if(ok) hit = true;
+        });
+        g.style.display = hit || !q.trim() ? '' : 'none';
+        if(q.trim() && hit) g.querySelector('.m2-wrap').classList.remove('hidden');
+      });
+    }
+    function renderTabs(){
+      document.getElementById('tabs').innerHTML = tabs.map(t=>`<div class="nav-tab ${t.page===currentPage?'active':''}" oncontextmenu="tabMenu(event,'${t.page}')" onclick="switchTab('${t.page}')">${t.label}${t.fixed?'':`<span class="tab-close" onclick="closeTab(event,'${t.page}')">×</span>`}</div>`).join('');
+    }
+    function ensureTab(page,label){
+      if(!tabs.some(t=>t.page===page)) tabs.push({page,label});
+      currentPage = page; saveState(); renderTabs();
+    }
+    function switchTab(page){currentPage=page;saveState();render()}
+    function closeTab(e,page){
+      e.stopPropagation();
+      const idx = tabs.findIndex(t=>t.page===page);
+      if(idx>=0 && !tabs[idx].fixed) tabs.splice(idx,1);
+      if(currentPage===page) currentPage = tabs[Math.max(0,idx-1)]?.page || 'list';
+      saveState(); render();
+    }
+    function tabMenu(e,page){e.preventDefault();showToast('支持关闭当前、关闭其他、关闭全部：当前原型已保留页签状态')}
+    function openList(){ensureTab('list','运费模板');render()}
+    function render(){
+      renderTabs();
+      if(currentPage==='home') renderHome();
+      if(currentPage==='list') renderList();
+      if(currentPage==='form') renderForm();
+    }
+    function renderHome(){
+      document.getElementById('page').innerHTML = '<div style="font-size:16px;color:#333">首页</div><p style="color:#999">当前原型聚焦商品中心 / 运费模板。</p>';
+    }
+    function renderList(){
+      const page = document.getElementById('page');
+      page.innerHTML = `
+        <div class="filter-row">
+          <label>模板名称：</label><input class="input w240" id="kw" placeholder="支持模糊搜索" oninput="filterList()">
+          <button class="icon-btn" onclick="filterList()">⌕</button><button class="text-btn" onclick="clearFilter()">清空</button>
+          <div class="spacer"></div><button class="btn-primary" onclick="newTemplate()">⊕ 新增</button>
+        </div>
+        <table>
+          <thead><tr><th style="width:90px">ID</th><th style="width:26%">模板名称</th><th style="width:110px">计费方式</th><th style="width:110px">关联快递</th><th>创建时间</th><th>最后更新</th><th style="width:150px">操作</th></tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+        <div class="pager"><span id="totalText"></span><span>&lt;</span><span class="page-num">1</span><span>&gt;</span><select class="select"><option>10 条/页</option></select></div>`;
+      filterList();
+    }
+    function filterList(){
+      const kw = document.getElementById('kw')?.value.trim() || '';
+      const rows = templates.filter(t=>(!kw || t.name.includes(kw) || String(t.id).includes(kw)));
+      document.getElementById('listBody').innerHTML = rows.map(t=>`
+        <tr>
+          <td>${t.id}</td><td>${t.name}</td><td>${formatChargeForList(t.charge)}</td><td>${toExpressList(t.express).map(x=>`<span class="tag" style="margin:2px 4px 2px 0">${x}</span>`).join('')}</td>
+          <td><div>${t.creator}</div><div style="margin-top:8px">${t.created}</div></td>
+          <td><div>${t.updater}</div><div style="margin-top:8px">${t.updated}</div></td>
+          <td><div class="op-links"><button class="text-btn" onclick="editTemplate(${t.id})">编辑</button><button class="text-btn danger" onclick="askDelete(${t.id})">删除</button><button class="text-btn" onclick="openLogs(${t.id})">日志</button></div></td>
+        </tr>`).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-icon"></div><div>暂无数据</div></div></td></tr>';
+      document.getElementById('totalText').textContent = `共 ${rows.length} 条`;
+    }
+    function clearFilter(){document.getElementById('kw').value='';filterList()}
+    function formatChargeForList(value){
+      const charge = normalizeCharge(value);
+      const map = {'商品批次运费':'商品批次','统一运费':'统一运费','按件计费':'按件数','按重量计费':'按重量','按金额计费':'按金额'};
+      return map[charge] || value;
+    }
+    function newTemplate(){
+      editId = null;
+      form = {name:'',charge:'',express:[],uniformFee:'',rules:[]};
+      ensureTab('form','新增运费模板');
+      render();
+    }
+    function editTemplate(id){
+      editId = id;
+      const t = templates.find(x=>x.id===id);
+      form = JSON.parse(JSON.stringify({name:t.name,charge:t.charge,express:toExpressList(t.express),uniformFee:t.uniformFee ?? '',rules:t.rules || []}));
+      normalizeAmountRules();
+      ensureTab('form','编辑运费模板');
+      render();
+    }
+    function renderForm(){
+      if(!form) newTemplate();
+      const page = document.getElementById('page');
+      const title = editId ? '编辑运费模板' : '新增运费模板';
+      page.innerHTML = `
+        <div class="form-head">
+          <div class="back" onclick="openList()">‹ ${title}</div>
+          <div class="spacer"></div>
+          <button class="text-btn" onclick="openList()">取消</button>
+          <button class="btn-primary" style="margin-left:18px" onclick="saveForm()">保存</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-content">
+            <section class="form-section" id="baseSec">
+              <h3 class="section-title">基本信息</h3>
+              <div class="form-card">
+                <div class="form-row"><div class="label required">模板名称</div><div><input class="input w500" id="tplName" value="${escapeHtml(form.name)}" placeholder="请输入运费，50个字内" oninput="form.name=this.value"></div></div>
+                <div class="form-row"><div class="label required">计费方式</div><div class="radio-line">
+                  ${['商品批次运费','统一运费','按重量计费','按件计费','按金额计费'].map(v=>`<label class="radio"><input type="radio" name="charge" value="${v}" ${normalizeCharge(form.charge)===v?'checked':''} onchange="changeCharge(this.value)"> ${v}</label>`).join('')}
+                </div></div>
+                <div class="form-row"><div class="label required">快递公司</div><div id="expressBox"></div></div>
+              </div>
+            </section>
+            <section class="form-section" id="ruleSec">
+              <h3 class="section-title">运费设置</h3>
+              <div class="form-card">
+                <div id="ruleToolbar"></div>
+                <div id="ruleBox"></div>
+              </div>
+            </section>
+          </div>
+          <aside class="anchor-nav"><a href="#baseSec" class="active">基本信息</a><a href="#ruleSec">运费设置</a></aside>
+        </div>`;
+      renderExpressSelect();
+      renderRules();
+    }
+    function toExpressList(value){
+      if(Array.isArray(value)) return value;
+      if(!value) return [];
+      return String(value).split('、').map(x=>x.trim()).filter(Boolean);
+    }
+    function renderExpressSelect(){
+      const box = document.getElementById('expressBox');
+      if(!box) return;
+      const selected = new Set(toExpressList(form.express));
+      box.innerHTML = `
+        <div class="multi-select" id="expressSelect">
+          <div class="multi-control" onclick="toggleExpressMenu(event)">
+            ${selected.size ? [...selected].map(x=>`<span class="chip">${x}<button onclick="removeExpress(event,'${x}')">×</button></span>`).join('') : '<span class="multi-placeholder">请选择快递公司</span>'}
+          </div>
+          <div class="multi-menu" id="expressMenu">
+            <div class="multi-search"><input placeholder="搜索快递公司" oninput="renderExpressOptions(this.value)" onclick="event.stopPropagation()"></div>
+            <div id="expressOptions"></div>
+            <div class="multi-footer"><button class="text-btn" onclick="selectAllExpress(event)">全选</button><button class="text-btn" onclick="renderExpressSelect()">刷新</button></div>
+          </div>
+        </div>`;
+      renderExpressOptions('');
+    }
+    function renderExpressOptions(q=''){
+      const el = document.getElementById('expressOptions');
+      if(!el) return;
+      const selected = new Set(toExpressList(form.express));
+      el.innerHTML = expressOptions.filter(x=>!q || x.includes(q)).map(x=>`<div class="multi-option ${selected.has(x)?'checked':''}" onclick="toggleExpress(event,'${x}')"><span>${x}</span><span>${selected.has(x)?'✓':''}</span></div>`).join('');
+    }
+    function toggleExpressMenu(e){
+      e.stopPropagation();
+      document.querySelector('.multi-control')?.classList.toggle('active');
+      document.getElementById('expressMenu')?.classList.toggle('show');
+    }
+    function toggleExpress(e,name){
+      e.stopPropagation();
+      const selected = new Set(toExpressList(form.express));
+      selected.has(name) ? selected.delete(name) : selected.add(name);
+      form.express = [...selected];
+      renderExpressSelect();
+      document.getElementById('expressMenu')?.classList.add('show');
+      document.querySelector('.multi-control')?.classList.add('active');
+    }
+    function removeExpress(e,name){
+      e.stopPropagation();
+      form.express = toExpressList(form.express).filter(x=>x!==name);
+      renderExpressSelect();
+    }
+    function selectAllExpress(e){
+      e.stopPropagation();
+      form.express = [...expressOptions];
+      renderExpressSelect();
+      document.getElementById('expressMenu')?.classList.add('show');
+      document.querySelector('.multi-control')?.classList.add('active');
+    }
+    function normalizeCharge(v){return v==='按件数'?'按件计费':(v==='商品批次'?'商品批次运费':v)}
+    function denormalizeCharge(v){return v==='按件计费'?'按件数':v}
+    function normalizeAmountRules(){
+      if(!form || normalizeCharge(form.charge) !== '按金额计费') return;
+      form.rules = (form.rules || []).map(r => ({
+        areas: r.areas || [],
+        thresholdFee: r.thresholdFee ?? r.freeAmount ?? r.underAmount ?? 1,
+        underFee: r.underFee ?? 0,
+        fullFee: r.fullFee ?? r.freeFee ?? 0
+      }));
+    }
+    function changeCharge(v){
+      form.charge = denormalizeCharge(v);
+      form.rules = [];
+      if(v === '统一运费') form.uniformFee = form.uniformFee || '';
+      if(['按重量计费','按件计费','按金额计费'].includes(v)) form.rules = createDefaultRules(v);
+      renderRules();
+    }
+    function createDefaultRules(charge){
+      const make = areas => {
+        const row = {areas};
+        getRuleColumns(charge).forEach(c => row[c.key] = c.defaultValue);
+        return row;
+      };
+      return [make(['北京市']), make(['天津市','河北省','山西省'])];
+    }
+    function renderRules(){
+      const box = document.getElementById('ruleBox');
+      const toolbar = document.getElementById('ruleToolbar');
+      if(!box) return;
+      const charge = normalizeCharge(form.charge);
+      normalizeAmountRules();
+      if(!charge){
+        toolbar.innerHTML = '';
+        box.innerHTML = '<div class="empty"><div class="empty-icon"></div><div>请选择计费方式</div></div>';
+        return;
+      }
+      if(charge === '商品批次运费'){
+        toolbar.innerHTML = '';
+        box.innerHTML = '<div class="muted" style="height:36px;display:flex;align-items:center">商品批次运费由商品批次侧维护，本模板仅配置适用快递公司。</div>';
+        return;
+      }
+      if(charge === '统一运费'){
+        toolbar.innerHTML = '';
+        box.innerHTML = `<div class="form-row" style="margin:0"><div class="label required">运费设置</div><div><input class="input" style="width:180px" type="number" min="0" step="0.01" value="${form.uniformFee ?? ''}" placeholder="请输入统一运费，只能填数字" oninput="form.uniformFee=this.value"></div></div>`;
+        return;
+      }
+      const tipMap = {
+        '按重量计费':'按重量计费：按配送区域配置首重、首重费、续重、续费',
+        '按件计费':'按件计费：按配送区域配置首件、首件费、续件、续费',
+        '按金额计费':'按金额计费：满金额默认包邮，不满金额收取运费'
+      };
+      toolbar.innerHTML = `<div class="rule-toolbar"><button class="text-btn" onclick="addRule()">＋ 设置可配送区域和运费</button><span class="muted">${tipMap[charge]}</span></div>`;
+      const columns = getRuleColumns(charge);
+      const head = `<table class="rule-table"><thead><tr><th style="width:22%">可配送区域</th>${columns.map(c=>`<th>${c.label}</th>`).join('')}<th style="width:150px">操作</th></tr></thead>`;
+      if(!form.rules.length){
+        box.innerHTML = head + '</table><div class="empty"><div class="empty-icon"></div><div>暂无数据</div></div>';
+        return;
+      }
+      box.innerHTML = `${head}<tbody>
+        ${form.rules.map((r,i)=>`<tr>
+          <td>${r.areas.length ? r.areas.join('、') : '<span style="color:#aaa">请选择区域</span>'}</td>
+          ${columns.map(c=>`<td><input type="number" min="0" step="${c.step}" value="${r[c.key] ?? c.defaultValue}" onchange="form.rules[${i}].${c.key}=this.value"></td>`).join('')}
+          <td><div class="op-links"><button class="text-btn" onclick="openRegion(${i})">修改区域</button><button class="text-btn danger" onclick="removeRule(${i})">删除</button></div></td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+    function getRuleColumns(charge){
+      if(charge === '按重量计费') return [
+        {key:'first',label:'首重（KG）',defaultValue:1,step:'0.01'},
+        {key:'firstFee',label:'首重费（元）',defaultValue:0,step:'0.01'},
+        {key:'next',label:'续重（KG）',defaultValue:1,step:'0.01'},
+        {key:'nextFee',label:'续费（元）',defaultValue:0,step:'0.01'}
+      ];
+      if(charge === '按件计费') return [
+        {key:'first',label:'首件（件）',defaultValue:1,step:'1'},
+        {key:'firstFee',label:'首件费（元）',defaultValue:0,step:'0.01'},
+        {key:'next',label:'续件（件）',defaultValue:1,step:'1'},
+        {key:'nextFee',label:'续费（元）',defaultValue:0,step:'0.01'}
+      ];
+      return [
+        {key:'thresholdFee',label:'金额门槛（元）',defaultValue:1,step:'0.01'},
+        {key:'underFee',label:'不满金额运费（元）',defaultValue:0,step:'0.01'},
+        {key:'fullFee',label:'满金额运费（元）',defaultValue:0,step:'0.01'}
+      ];
+    }
+    function addRule(){
+      const charge = normalizeCharge(form.charge);
+      if(!['按重量计费','按件计费','按金额计费'].includes(charge)){showToast('当前计费方式无需设置配送区域运费','error');return}
+      const row = {areas:[]};
+      getRuleColumns(charge).forEach(c => row[c.key] = c.defaultValue);
+      form.rules.push(row);
+      renderRules();
+    }
+    function removeRule(i){form.rules.splice(i,1);renderRules()}
+    function openRegion(i){
+      activeRuleIndex = i;
+      regionDraft = new Set(form.rules[i].areas || []);
+      activeProvince = 0;
+      activeCity = 0;
+      renderRegionCascader();
+      openModal('regionModal');
+    }
+    function renderRegionCascader(){
+      const province = provinceData[activeProvince] || provinceData[0];
+      const city = province.cities[activeCity] || province.cities[0];
+      document.getElementById('provinceList').innerHTML = provinceData.map((p,i)=>regionRow(p.name, regionDraft.has(p.name), i===activeProvince, `selectProvince(${i})`, `toggleRegion(event,'${p.name}')`)).join('');
+      document.getElementById('cityList').innerHTML = province.cities.map((c,i)=>regionRow(c.name, regionDraft.has(c.name), i===activeCity, `selectCity(${i})`, `toggleRegion(event,'${c.name}')`)).join('');
+      document.getElementById('districtList').innerHTML = city.districts.map(d=>regionRow(d, regionDraft.has(d), false, `toggleRegionByName('${d}')`, `toggleRegion(event,'${d}')`)).join('');
+      document.getElementById('regionSelectedText').innerHTML = `已选：<span>${regionDraft.size}</span> 个区域${regionDraft.size ? '，' + [...regionDraft].slice(0,8).join('、') + (regionDraft.size>8 ? '...' : '') : ''}`;
+    }
+    function regionRow(name, checked, active, rowClick, checkClick){
+      return `<div class="region-row ${active?'active':''}" onclick="${rowClick}"><span>${name}</span><input type="checkbox" ${checked?'checked':''} onclick="${checkClick}"></div>`;
+    }
+    function selectProvince(i){activeProvince=i;activeCity=0;renderRegionCascader()}
+    function selectCity(i){activeCity=i;renderRegionCascader()}
+    function toggleRegionByName(name){regionDraft.has(name) ? regionDraft.delete(name) : regionDraft.add(name);renderRegionCascader()}
+    function toggleRegion(e,name){e.stopPropagation();toggleRegionByName(name)}
+    function toggleRegionLevel(level, checked){
+      let names = [];
+      const province = provinceData[activeProvince] || provinceData[0];
+      const city = province.cities[activeCity] || province.cities[0];
+      if(level === 'province') names = provinceData.map(p=>p.name);
+      if(level === 'city') names = province.cities.map(c=>c.name);
+      if(level === 'district') names = city.districts;
+      names.forEach(n => checked ? regionDraft.add(n) : regionDraft.delete(n));
+      renderRegionCascader();
+    }
+    function saveRegions(){
+      form.rules[activeRuleIndex].areas = [...regionDraft];
+      closeModal('regionModal');
+      renderRules();
+      showToast('配送区域已更新');
+    }
+    function validateForm(){
+      if(!form.name.trim()) return '请输入模板名称';
+      if(templates.some(t=>t.name===form.name.trim() && t.id!==editId)) return '模板名称不可重复';
+      if(!form.charge) return '请选择计费方式';
+      if(!toExpressList(form.express).length) return '请选择快递公司';
+      const charge = normalizeCharge(form.charge);
+      if(charge === '统一运费' && (form.uniformFee === '' || Number(form.uniformFee) < 0)) return '请输入统一运费';
+      if(['按重量计费','按件计费','按金额计费'].includes(charge)){
+        if(!form.rules.length) return '请至少设置一条运费规则';
+        const seen = new Set();
+        for(const r of form.rules){
+          if(!r.areas.length) return '请选择可配送区域';
+          for(const c of getRuleColumns(charge)){
+            if(r[c.key] === '' || Number(r[c.key]) < 0) return `请正确填写${c.label}`;
+          }
+          for(const a of r.areas){ if(seen.has(a)) return `配送区域重复：${a}`; seen.add(a); }
+        }
+      }
+      return '';
+    }
+    function saveForm(){
+      form.name = document.getElementById('tplName').value.trim();
+      form.express = toExpressList(form.express);
+      const err = validateForm();
+      if(err){showToast(err,'error');return}
+      const tnow = now();
+      if(editId){
+        const t = templates.find(x=>x.id===editId);
+        Object.assign(t,{name:form.name,charge:form.charge,express:form.express,uniformFee:form.uniformFee,rules:form.rules,updater:'测试-薛苗苗',updated:tnow});
+        addLog(`编辑运费模版【${form.name}】`, form.charge);
+      }else{
+        const id = Math.max(...templates.map(t=>t.id)) + 1;
+        templates.unshift({id,name:form.name,charge:form.charge,express:form.express,uniformFee:form.uniformFee,rules:form.rules,creator:'测试-薛苗苗',created:tnow,updater:'测试-薛苗苗',updated:tnow});
+        addLog(`新建运费模版【${form.name}】`, form.charge);
+      }
+      saveState();
+      showToast('保存成功');
+      openList();
+    }
+    function askDelete(id){
+      const t = templates.find(x=>x.id===id);
+      document.getElementById('confirmTitle').textContent = '删除';
+      document.getElementById('confirmDesc').textContent = '是否确认删除';
+      confirmAction = () => {
+        templates = templates.filter(x=>x.id!==id);
+        addLog(`删除运费模版【${t.name}】`);
+        saveState(); closeModal('confirmModal'); renderList(); showToast('删除成功');
+      };
+      openModal('confirmModal');
+    }
+    function runConfirm(){ if(confirmAction) confirmAction(); }
+    function openLogs(){
+      document.getElementById('logContent').innerHTML = logs.map(l=>`<tr><td>${l.id}</td><td>${l.operator}</td><td>${l.desc}</td><td>${l.tip}</td><td>${l.time}</td></tr>`).join('');
+      openModal('logModal');
+    }
+    function openModal(id){document.getElementById(id).classList.add('show')}
+    function closeModal(id){document.getElementById(id).classList.remove('show')}
+    document.addEventListener('click', e => {
+      if(!e.target.closest('.multi-select')){
+        document.getElementById('expressMenu')?.classList.remove('show');
+        document.querySelector('.multi-control')?.classList.remove('active');
+      }
+    });
+    document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.overlay.show').forEach(x=>x.classList.remove('show')); });
+    document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('show'); }));
+    migrateTemplates();
+    initLogic();
+    renderMenu();
+    render();
+  </script>
+</body>
+</html>
