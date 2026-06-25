@@ -1,0 +1,2983 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>商品分组原型</title>
+  <style>
+    :root {
+      --primary:#051D86;
+      --primary-hover:#3347a8;
+      --primary-active:#040f5c;
+      --primary-light:#EBF0FF;
+      --text-title:#17233d;
+      --text-main:#515a6e;
+      --text-sub:#666;
+      --text-hint:#aaa;
+      --text-price:#FF4100;
+      --text-error:#FF0000;
+      --success:#14C45A;
+      --border:#dcdee2;
+      --border-inner:#e8eaec;
+      --divider:#F2F2F2;
+      --bg-page:#f5f7f9;
+      --bg-white:#fff;
+      --bg-table-head:#f8f8f9;
+      --bg-hover:#F9FBFF;
+      --sidebar-w:160px;
+      --sidebar-mini:44px;
+      --nav-h:48px;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:"Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      color:var(--text-main);
+      background:var(--bg-page);
+      font-size:14px;
+    }
+    button, input, select, textarea { font-family:inherit; }
+    button { cursor:pointer; }
+    .prototype-workbench { display:flex; height:100vh; min-width:1200px; overflow:hidden; background:var(--bg-page); }
+    .logic-panel {
+      width:40%;
+      min-width:480px;
+      background:#fff;
+      border-right:1px solid var(--border-inner);
+      transition:width .22s ease, min-width .22s ease;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .logic-panel.collapsed { width:52px; min-width:52px; }
+    .logic-bar {
+      display:none;
+      width:52px;
+      height:100%;
+      align-items:center;
+      justify-content:center;
+      writing-mode:vertical-rl;
+      letter-spacing:4px;
+      color:var(--primary);
+      background:#fff;
+      border-right:1px solid var(--border-inner);
+      cursor:pointer;
+      font-weight:500;
+    }
+    .logic-panel.collapsed .logic-bar { display:flex; }
+    .logic-panel.collapsed .logic-expanded { display:none; }
+    .logic-expanded { display:flex; min-height:0; flex-direction:column; height:100%; }
+    .logic-toolbar {
+      height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 18px;
+      border-bottom:1px solid var(--border-inner);
+      background:#fff;
+    }
+    .logic-title { font-weight:600; color:var(--text-title); }
+    .logic-actions { display:flex; align-items:center; gap:12px; }
+    .logic-source { color:var(--text-hint); font-size:12px; }
+    .text-btn { border:0; background:transparent; color:var(--primary); font-size:13px; padding:0; }
+    .logic-paper {
+      margin:18px auto;
+      width:calc(100% - 36px);
+      max-width:794px;
+      min-height:calc(100vh - 88px);
+      padding:26px 34px;
+      background:#fff;
+      border:1px solid var(--border-inner);
+      overflow:auto;
+      line-height:1.75;
+    }
+    .logic-doc h1,.logic-doc h2,.logic-doc h3 { color:var(--text-title); margin:18px 0 10px; }
+    .logic-doc h1 { font-size:20px; }
+    .logic-doc h2 { font-size:17px; border-left:3px solid var(--primary); padding-left:10px; }
+    .logic-doc h3 { font-size:15px; }
+    .logic-doc p { margin:6px 0; }
+    .logic-doc ul { margin:6px 0 12px 20px; padding:0; }
+    .preview-stage { flex:1; min-width:0; overflow:auto; background:var(--bg-page); }
+    .admin-shell { min-height:100vh; display:flex; flex-direction:column; }
+    .topnav {
+      height:43px;
+      background:#fff;
+      border-bottom:0;
+      display:flex;
+      align-items:stretch;
+      position:sticky;
+      top:0;
+      z-index:30;
+    }
+    .nav-logo {
+      width:180px;
+      display:flex;
+      align-items:center;
+      padding:0 32px;
+      color:var(--primary);
+      font-size:20px;
+      font-weight:700;
+      border-right:0;
+      background:#f5f5f5;
+      white-space:nowrap;
+    }
+    .nav-toggle {
+      width:38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#666;
+      border-right:1px solid #eeeeee;
+      cursor:pointer;
+      font-size:15px;
+    }
+    .nav-tabs { display:flex; align-items:stretch; flex:1; overflow:auto; }
+    .nav-tab {
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding:0 18px;
+      color:#666;
+      border-right:1px solid #eeeeee;
+      white-space:nowrap;
+      font-size:13px;
+      cursor:pointer;
+      background:#fff;
+    }
+    .nav-tab.active { color:var(--primary); font-weight:600; }
+    .nav-tab.active:after { display:none; }
+    .tab-close { color:var(--primary); font-size:14px; margin-left:2px; }
+    .nav-right { width:128px; display:flex; align-items:center; justify-content:flex-end; gap:12px; padding-right:22px; color:#666; }
+    .avatar { width:30px; height:30px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 0 0 2px #b9c7ff inset; }
+    .admin-body { flex:1; display:flex; min-height:0; }
+    .sidebar {
+      width:180px;
+      background:#f5f5f5;
+      border-right:0;
+      transition:width .22s ease;
+      overflow:hidden;
+      flex:0 0 auto;
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar.collapsed { width:44px; }
+    .sb-search { padding:22px 14px 16px; }
+    .sb-search input {
+      width:100%;
+      height:30px;
+      border:0;
+      border-radius:15px;
+      padding:0 14px;
+      color:#777;
+      outline:none;
+      background:#eeeeee;
+      font-size:12px;
+    }
+    .sidebar.collapsed .sb-search { display:none; }
+    .menu-scroll { overflow:auto; flex:1; min-height:0; padding-bottom:16px; }
+    .m1 {
+      height:40px;
+      padding:0 24px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:#333;
+      cursor:pointer;
+    }
+    .m1:hover,.m1.active { background:transparent; color:var(--primary); }
+    .m1 svg { width:14px; height:14px; stroke:#333; fill:none; stroke-width:1.7; }
+    .m1:hover svg,.m1.active svg { stroke:var(--primary); }
+    .m1-label { flex:1; white-space:nowrap; }
+    .m1-arrow { color:#b7b7b7; font-size:13px; }
+    .m1-arrow { transition:transform .18s ease; }
+    .m1.open .m1-arrow { transform:rotate(90deg); }
+    .m2-wrap { overflow:hidden; max-height:260px; transition:max-height .18s ease; }
+    .m2-grid { display:flex; flex-direction:column; padding:2px 8px 8px 48px; }
+    .m2-item {
+      height:40px;
+      display:flex;
+      align-items:center;
+      padding:0;
+      color:#666;
+      font-size:14px;
+      border-radius:0;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .m2-item:hover,.m2-item.active { background:transparent; color:var(--primary); font-weight:600; }
+    .sidebar.collapsed .m1 { justify-content:center; padding:0; }
+    .sidebar.collapsed .m1-label,.sidebar.collapsed .m1-arrow,.sidebar.collapsed .m2-wrap { display:none; }
+    .mini-entry-wrap { padding:10px 18px 16px 48px; border-top:1px solid #ececec; background:#f5f5f5; }
+    .mini-entry {
+      height:36px;
+      display:flex;
+      align-items:center;
+      color:#666;
+      font-size:14px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .mini-entry:before {
+      content:"";
+      width:7px;
+      height:7px;
+      border:1px solid currentColor;
+      border-radius:2px;
+      margin-right:8px;
+    }
+    .mini-entry:hover,.mini-entry.active { color:var(--primary); font-weight:600; }
+    .sidebar.collapsed .mini-entry-wrap { padding:10px 0 16px; display:flex; justify-content:center; }
+    .sidebar.collapsed .mini-entry { width:28px; justify-content:center; font-size:0; }
+    .sidebar.collapsed .mini-entry:before { margin-right:0; width:14px; height:14px; }
+    .sb-empty { display:none; padding:14px; color:#aaa; font-size:12px; }
+    .content { flex:1; min-width:0; overflow:auto; background:var(--bg-page); }
+    .page { padding:20px 24px 28px; min-width:980px; }
+    .page.list-page { padding:0; min-height:calc(100vh - 43px); background:#fff; }
+    .page-head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .page-title { color:var(--text-title); font-size:20px; font-weight:600; margin-bottom:6px; }
+    .breadcrumb { color:#999; font-size:12px; }
+    .card {
+      background:#fff;
+      border:1px solid var(--border-inner);
+      border-radius:0;
+      box-shadow:0 1px 0 1px #EFEDED;
+    }
+    .list-board {
+      min-height:calc(100vh - 43px);
+      margin:0;
+      padding:22px 26px 0;
+      background:#fff;
+      border-radius:6px 6px 0 0;
+      display:flex;
+      flex-direction:column;
+    }
+    .list-board > div:last-child { flex:1; display:flex; flex-direction:column; }
+    .filter-card { padding:16px 16px 14px; margin-bottom:14px; }
+    .list-filter { padding:0 0 16px; border:0; box-shadow:none; margin:0; }
+    .filter-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .field { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+    .field label { color:#666; font-size:13px; }
+    .input,.select {
+      height:32px;
+      border:1px solid var(--border);
+      border-radius:4px;
+      padding:0 8px;
+      outline:none;
+      background:#fff;
+      color:var(--text-main);
+      font-size:13px;
+    }
+    .input:focus,.select:focus { border-color:var(--primary); box-shadow:0 0 0 2px rgba(5,29,134,.12); }
+    .w150 { width:150px; }
+    .w180 { width:180px; }
+    .w500 { width:500px; }
+    .search-icon {
+      width:28px;
+      height:28px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:0;
+      background:transparent;
+      color:#333;
+      padding:0;
+    }
+    .filter-actions { margin-left:auto; display:flex; gap:8px; }
+    .btn-primary,.btn-secondary,.btn-small {
+      height:32px;
+      padding:0 15px;
+      border-radius:4px;
+      font-size:14px;
+      border:1px solid transparent;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      background:#fff;
+    }
+    .btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .btn-primary:hover { background:var(--primary-hover); border-color:var(--primary-hover); }
+    .btn-secondary { color:var(--text-main); border-color:var(--border); }
+    .btn-secondary:hover { color:var(--primary); border-color:var(--primary); }
+    .btn-small { height:28px; padding:0 10px; font-size:13px; color:var(--text-main); border-color:var(--border); }
+    .table-wrap { overflow:auto; }
+    .list-board .table-wrap { border-top:0; }
+    table { border-collapse:collapse; width:100%; table-layout:fixed; }
+    th {
+      height:40px;
+      background:#ECECEC;
+      color:#666;
+      font-size:13px;
+      font-weight:500;
+      padding:0 14px;
+      text-align:left;
+    }
+    td {
+      height:68px;
+      padding:10px 14px;
+      border-bottom:1px solid var(--divider);
+      color:var(--text-main);
+      font-size:13px;
+      vertical-align:middle;
+    }
+    tbody tr:hover { background:var(--bg-hover); }
+    tbody tr.selected { background:var(--primary-light); }
+    .link { color:var(--primary); cursor:pointer; }
+    .link:hover { text-decoration:underline; }
+    .danger { color:var(--text-error); }
+    .status {
+      display:inline-flex;
+      min-width:44px;
+      height:22px;
+      padding:0 6px;
+      border-radius:3px;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      font-size:13px;
+    }
+    .status.on { color:#14C45A; background:#E8FFF0; }
+    .status.off { color:#999; background:#F5F5F5; }
+    .sub-lines { line-height:1.55; }
+    .subgroup-cell { position:relative; display:inline-block; max-width:100%; }
+    .subgroup-summary { display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+    .subgroup-popover {
+      display:none;
+      position:absolute;
+      left:0;
+      top:26px;
+      z-index:80;
+      width:220px;
+      max-height:220px;
+      overflow:auto;
+      padding:10px 12px;
+      background:#fff;
+      border:1px solid #E8ECF0;
+      border-radius:4px;
+      box-shadow:0 4px 16px rgba(0,0,0,.12);
+      color:#515a6e;
+      line-height:24px;
+    }
+    .subgroup-cell:hover .subgroup-popover,
+    .subgroup-cell.active .subgroup-popover { display:block; }
+    .switch {
+      width:30px;
+      height:16px;
+      border:0;
+      border-radius:10px;
+      background:#cfcfcf;
+      padding:0;
+      position:relative;
+      vertical-align:middle;
+      transition:background .18s ease;
+    }
+    .switch:before {
+      content:"";
+      position:absolute;
+      width:14px;
+      height:14px;
+      left:1px;
+      top:1px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:0 1px 2px rgba(0,0,0,.18);
+      transition:left .18s ease;
+    }
+    .switch.on { background:var(--primary); }
+    .switch.on:before { left:15px; }
+    .muted { color:#999; font-size:12px; }
+    .ops { display:flex; gap:10px; align-items:center; white-space:nowrap; }
+    .table-footer {
+      height:48px;
+      border-top:1px solid var(--border-inner);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+      background:#fff;
+      color:#666;
+      font-size:13px;
+    }
+    .table-footer.pagination-only { justify-content:flex-end; margin-top:auto; min-height:48px; }
+    .tag-blue {
+      display:inline-flex;
+      height:22px;
+      align-items:center;
+      padding:0 6px;
+      border-radius:3px;
+      background:#EAF0FF;
+      color:var(--primary);
+      font-size:12px;
+      margin-left:8px;
+    }
+    .pager { display:flex; align-items:center; gap:8px; }
+    .page-no {
+      min-width:24px;
+      height:24px;
+      border:1px solid var(--border-inner);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:3px;
+      background:#fff;
+    }
+    .page-no.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .check {
+      appearance:none;
+      width:16px;
+      height:16px;
+      border:1px solid #C9D0E0;
+      border-radius:3px;
+      background:#fff;
+      position:relative;
+      vertical-align:middle;
+      cursor:pointer;
+    }
+    .check:checked { background:var(--primary); border-color:var(--primary); }
+    .check:checked:after {
+      content:"";
+      position:absolute;
+      left:4px;
+      top:1px;
+      width:5px;
+      height:9px;
+      border:solid #fff;
+      border-width:0 2px 2px 0;
+      transform:rotate(45deg);
+    }
+    .check.indeterminate { background:var(--primary); border-color:var(--primary); }
+    .check.indeterminate:after {
+      content:"";
+      position:absolute;
+      left:3px;
+      top:7px;
+      width:8px;
+      height:2px;
+      background:#fff;
+    }
+    .edit-page { padding:0; background:#fff; min-height:calc(100vh - 48px); }
+    .edit-top {
+      height:72px;
+      border-bottom:1px solid var(--border-inner);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 28px;
+      background:#fff;
+    }
+    .back-title { color:var(--primary); cursor:pointer; font-weight:500; }
+    .edit-note { margin-top:8px; color:#8c95a6; font-size:12px; }
+    .editor-layout {
+      display:grid;
+      grid-template-columns:390px minmax(620px,1fr);
+      min-height:calc(100vh - 120px);
+    }
+    .preview-pane {
+      border-right:1px solid var(--border-inner);
+      background:#fff;
+      padding:26px 26px 40px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+    .phone {
+      width:320px;
+      height:812px;
+      background:#fff;
+      border-radius:0;
+      border:1px solid #f0f0f0;
+      overflow:hidden;
+      box-shadow:0 4px 16px rgba(0,0,0,.05);
+    }
+    .mp-page {
+      width:100%;
+      min-height:100%;
+      background:#fff;
+      color:#333;
+      position:relative;
+    }
+    .mp-statusbar { height:20px; background:#fff; position:relative; }
+    .mp-notch {
+      position:absolute;
+      top:0;
+      left:50%;
+      transform:translateX(-50%);
+      width:92px;
+      height:18px;
+      background:#000;
+      border-radius:0 0 12px 12px;
+    }
+    .mp-nav {
+      height:44px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      font-size:14px;
+      font-weight:600;
+    }
+    .mp-back {
+      position:absolute;
+      left:12px;
+      top:15px;
+      width:12px;
+      height:12px;
+      border-left:2px solid #858585;
+      border-bottom:2px solid #858585;
+      transform:rotate(45deg);
+    }
+    .mp-capsule {
+      position:absolute;
+      right:10px;
+      top:7px;
+      width:68px;
+      height:28px;
+      border:1px solid #ededed;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-around;
+      color:#222;
+      background:#fff;
+      font-size:16px;
+    }
+    .mp-capsule-dot {
+      width:15px;
+      height:15px;
+      border:2px solid #4c4c4c;
+      border-radius:50%;
+      display:inline-block;
+    }
+    .mp-search-wrap {
+      padding:4px 14px 8px;
+      background:inherit;
+      background-size:cover;
+      background-position:center;
+    }
+    .mp-search {
+      height:28px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      padding:0 4px 0 14px;
+      background:#fff;
+      border:1px solid #e8e8e8;
+      box-shadow:none;
+      color:#555;
+      font-size:13px;
+    }
+    .mp-search-placeholder { flex:1; color:#999; min-width:0; }
+    .mp-search-btn {
+      min-width:50px;
+      height:26px;
+      border:0;
+      border-radius:15px;
+      color:#fff;
+      font-size:12px;
+      background:#b45be0;
+      background-size:cover;
+      background-position:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .mp-search-btn.has-image span { visibility:hidden; }
+    .mp-group-horizontal {
+      display:flex;
+      gap:32px;
+      overflow:hidden;
+      padding:8px 18px 0;
+      height:40px;
+      font-size:14px;
+      white-space:nowrap;
+    }
+    .mp-group-horizontal span.active { color:var(--primary); font-weight:600; }
+    .mp-group-horizontal span { cursor:pointer; }
+    .mp-group-horizontal span.active:after {
+      content:"";
+      display:block;
+      width:22px;
+      height:3px;
+      margin:4px auto 0;
+      background:#b45be0;
+      border-radius:2px;
+    }
+    .mp-main { display:flex; }
+    .mp-left-tabs {
+      width:88px;
+      background:#f4f4f4;
+      flex-shrink:0;
+      padding-top:8px;
+      min-height:520px;
+    }
+    .mp-left-tabs div {
+      height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      color:#555;
+      cursor:pointer;
+    }
+    .mp-left-tabs div.active { background:#fff; color:var(--primary); font-weight:600; }
+    .mp-content { flex:1; min-width:0; }
+    .mp-sort {
+      display:flex;
+      height:42px;
+      align-items:center;
+      justify-content:space-around;
+      font-size:14px;
+      background:#fff;
+    }
+    .mp-sort span.active { color:var(--primary); font-weight:600; }
+    .mp-products {
+      padding:8px 4px 20px;
+      background:#f8f8f8;
+      display:grid;
+      gap:6px;
+      min-height:360px;
+    }
+    .mp-products.double { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .mp-products.single,.mp-products.scroll { grid-template-columns:1fr; }
+    .mp-products.scroll { max-height:310px; overflow:auto; }
+    .mp-product {
+      background:#fff;
+      border-radius:7px;
+      overflow:hidden;
+      min-width:0;
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
+      position:relative;
+    }
+    .mp-product.single { display:grid; grid-template-columns:88px 1fr; min-height:96px; align-items:stretch; }
+    .mp-img {
+      height:164px;
+      background:#f1f1f1;
+      position:relative;
+    }
+    .mp-img:before,.mp-img:after { content:none; }
+    .mp-main.vertical .mp-products.double .mp-img { height:136px; }
+    .mp-product.single .mp-img { width:76px; height:76px; margin:10px; }
+    .mp-info { padding:10px 8px 12px; min-width:0; }
+    .mp-product.single .mp-info { padding:12px 44px 10px 0; display:flex; flex-direction:column; justify-content:space-between; }
+    .mp-name { font-size:13px; color:#333; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mp-price-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .mp-product.single .mp-price-row { align-items:flex-end; }
+    .mp-price { color:#ff414d; font-weight:600; font-size:13px; }
+    .buy-btn {
+      width:22px;
+      height:22px;
+      min-width:22px;
+      padding:0;
+      border:0;
+      color:#fff;
+      border-radius:50%;
+      background:#ff414d;
+      font-size:0;
+      position:relative;
+      flex:0 0 auto;
+    }
+    .buy-btn:before {
+      content:"";
+      position:absolute;
+      left:6px;
+      top:7px;
+      width:9px;
+      height:6px;
+      border:1.5px solid #fff;
+      border-top:0;
+      border-radius:1px;
+    }
+    .buy-btn:after {
+      content:"";
+      position:absolute;
+      left:8px;
+      top:15px;
+      width:3px;
+      height:3px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:5px 0 0 #fff;
+    }
+    .mp-product.single .buy-btn { position:absolute; right:10px; bottom:12px; width:24px; height:24px; }
+    .config-pane { padding:28px 28px 60px; overflow:auto; background:#fff; }
+    .config-title { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:20px; }
+    .config-name { font-weight:600; color:#333; font-size:16px; margin-bottom:8px; }
+    .config-tabs {
+      height:42px;
+      border-bottom:1px solid var(--border-inner);
+      display:flex;
+      gap:26px;
+      margin-bottom:22px;
+    }
+    .config-tab {
+      height:42px;
+      display:flex;
+      align-items:center;
+      color:#666;
+      cursor:pointer;
+      position:relative;
+    }
+    .config-tab.active { color:var(--primary); font-weight:600; }
+    .config-tab.active:after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--primary); }
+    .section-title {
+      border-left:3px solid var(--primary);
+      padding-left:10px;
+      font-size:15px;
+      color:#333;
+      font-weight:600;
+      margin:22px 0 16px;
+    }
+    .form-card {
+      border:1px solid var(--border-inner);
+      border-radius:6px;
+      padding:20px 24px;
+      max-width:820px;
+      background:#fff;
+    }
+    .form-card.search-config-card { border:0; padding:0; max-width:620px; }
+    .form-card.search-config-card .form-row { grid-template-columns:76px minmax(0,1fr); margin-bottom:20px; }
+    .form-card.search-config-card .upload-box { width:92px; height:92px; }
+    .form-card.search-config-card .upload-wide { width:450px; min-height:124px; }
+    .form-row {
+      display:grid;
+      grid-template-columns:120px minmax(0,1fr);
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:18px;
+    }
+    .form-row:last-child { margin-bottom:0; }
+    .form-label { min-height:36px; display:flex; align-items:center; color:#666; }
+    .radio-row,.check-row,.seg-row { min-height:36px; display:flex; align-items:center; flex-wrap:wrap; gap:18px; }
+    .radio-item,.check-item { display:inline-flex; align-items:center; gap:6px; color:#555; }
+    .radio {
+      appearance:none;
+      width:14px;
+      height:14px;
+      border:1px solid #d9d9d9;
+      border-radius:50%;
+      position:relative;
+      cursor:pointer;
+    }
+    .radio:checked { border-color:var(--primary); }
+    .radio:checked:after { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--primary); }
+    .seg-btn {
+      width:125px;
+      height:36px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:#515a6e;
+      border-radius:4px;
+    }
+    .seg-btn.active { background:var(--primary-light); border-color:var(--primary); color:var(--primary); font-weight:600; }
+    .color-input { display:flex; align-items:center; gap:8px; }
+    .color-field { position:relative; display:flex; align-items:center; gap:8px; }
+    .color-swatch { width:24px; height:24px; border:1px solid var(--border); border-radius:3px; cursor:pointer; }
+    .color-picker-pop {
+      display:none;
+      position:absolute;
+      left:0;
+      top:34px;
+      z-index:120;
+      width:232px;
+      padding:12px;
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:4px;
+      box-shadow:0 10px 28px rgba(0,0,0,.14);
+    }
+    .color-field.open .color-picker-pop { display:block; }
+    .color-plane {
+      height:144px;
+      border-radius:3px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0), #000),
+        linear-gradient(90deg, #fff, var(--picker-color, #8b6cf6));
+      margin-bottom:10px;
+      position:relative;
+    }
+    .color-plane:after {
+      content:"";
+      position:absolute;
+      left:10px;
+      top:24px;
+      width:12px;
+      height:12px;
+      border:1px solid #fff;
+      border-radius:50%;
+      box-shadow:0 0 0 1px rgba(0,0,0,.2);
+    }
+    .color-native {
+      width:100%;
+      height:28px;
+      border:0;
+      padding:0;
+      background:transparent;
+      cursor:pointer;
+    }
+    .color-meta { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .color-meta .input { width:100px; height:32px; text-transform:uppercase; }
+    .upload-box {
+      width:100px;
+      height:100px;
+      border:1px dashed #d8d8d8;
+      border-radius:4px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      color:#999;
+      background:#fbfbfb;
+      gap:8px;
+      cursor:pointer;
+    }
+    .upload-box.has-preview {
+      background-size:cover;
+      background-position:center;
+      color:transparent;
+      border-style:solid;
+      position:relative;
+      overflow:hidden;
+    }
+    .upload-box.has-preview > .upload-placeholder { display:none; }
+    .image-icon-actions {
+      position:absolute;
+      left:0;
+      right:0;
+      top:50%;
+      transform:translateY(-50%);
+      height:22px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      background:rgba(5,29,134,.58);
+      color:#fff;
+    }
+    .image-icon-btn {
+      width:20px;
+      height:20px;
+      border:0;
+      background:transparent;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      cursor:pointer;
+    }
+    .image-icon-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .image-icon-btn.eye svg { width:16px; height:16px; }
+    .image-icon-btn.trash svg { width:16px; height:16px; }
+    .upload-wide {
+      width:430px;
+      min-height:126px;
+      border:1px solid var(--border-inner);
+      border-radius:6px;
+      padding:16px 18px;
+      display:flex;
+      gap:20px;
+      align-items:center;
+    }
+    .size-inputs { display:grid; grid-template-columns:32px 1fr; gap:12px; align-items:center; color:#666; }
+    .disabled-input {
+      height:30px;
+      background:#f5f5f5;
+      border:0;
+      color:#bbb;
+      padding:0 12px;
+      border-radius:3px;
+    }
+    .select-panel {
+      border:1px solid var(--border-inner);
+      border-radius:6px;
+      width:500px;
+      max-height:260px;
+      overflow:auto;
+    }
+    .sub-config-block {
+      border-bottom:1px solid #f2f2f2;
+      padding:0 0 22px;
+      margin-bottom:22px;
+    }
+    .sub-config-block:last-child { border-bottom:0; margin-bottom:0; }
+    .sub-config-title { font-size:14px; color:#333; font-weight:600; margin-bottom:16px; }
+    .sub-config-tabs {
+      width:100%;
+      min-height:30px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      padding:0 0 14px;
+      margin-bottom:16px;
+      border-bottom:1px solid #f2f2f2;
+    }
+    .sub-config-tab {
+      height:28px;
+      padding:0 14px;
+      border:1px solid #dcdee2;
+      border-radius:4px;
+      background:#fff;
+      color:#515a6e;
+      font-size:13px;
+    }
+    .sub-config-tab.active {
+      color:var(--primary);
+      border-color:var(--primary);
+      background:#EBF0FF;
+      font-weight:600;
+    }
+    .selected-goods-list { width:320px; display:flex; flex-direction:column; gap:8px; }
+    .selected-good-card {
+      height:58px;
+      border:1px solid #ececec;
+      border-radius:5px;
+      display:grid;
+      grid-template-columns:18px 48px minmax(0,1fr) 76px;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      background:#fff;
+    }
+    .drag-handle { color:#c8c8c8; font-size:18px; cursor:move; }
+    .good-thumb { width:42px; height:42px; border-radius:3px; background:linear-gradient(180deg,#c7b7ff,#8e52dd); }
+    .good-title { color:#333; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .good-price { color:#ff4100; font-size:12px; margin-top:4px; }
+    .good-tools { display:flex; justify-content:flex-end; gap:8px; color:#999; }
+    .icon-link { border:0; background:transparent; color:#999; padding:0; font-size:16px; line-height:1; }
+    .icon-link:disabled { color:#ddd; cursor:not-allowed; }
+    .add-goods-btn {
+      width:320px;
+      height:30px;
+      border:1px dashed #cfcfcf;
+      border-radius:4px;
+      background:#fff;
+      color:#555;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+    .category-multi { width:320px; position:relative; }
+    .category-select-head {
+      min-height:40px;
+      border:1px solid var(--primary);
+      border-radius:4px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 30px 5px 8px;
+      position:relative;
+      background:#fff;
+      flex-wrap:wrap;
+    }
+    .category-select-head:after { content:"⌄"; position:absolute; right:10px; top:10px; color:#bbb; }
+    .cat-tag { height:26px; display:inline-flex; align-items:center; gap:4px; padding:0 8px; background:#f5f5f5; border-radius:3px; color:#666; font-size:12px; }
+    .category-tree { width:320px; border:1px solid #eee; border-top:0; box-shadow:0 6px 16px rgba(0,0,0,.08); padding:8px 10px; background:#fff; }
+    .category-tree.collapsed { display:none; }
+    .cat-row { height:28px; display:flex; align-items:center; gap:8px; font-size:13px; color:#333; }
+    .cat-row.child { padding-left:30px; }
+    .cat-arrow { color:#666; font-size:10px; width:10px; }
+    .mini-table th { height:34px; background:#f8f8f9; }
+    .mini-table td { height:48px; }
+    .modal-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.42);
+      z-index:1000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+    }
+    .modal-overlay.show { display:flex; }
+    .modal {
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 8px 32px rgba(0,0,0,.16);
+      max-height:calc(100vh - 80px);
+      display:flex;
+      flex-direction:column;
+    }
+    .modal-md { width:520px; }
+    .modal-group { width:612px; }
+    .modal-lg { width:680px; }
+    .modal-xl { width:880px; }
+    .modal-promo { width:920px; max-width:calc(100vw - 80px); }
+    .modal-log { width:800px; max-width:calc(100vw - 80px); }
+    .modal-hd {
+      height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 20px;
+      border-bottom:1px solid var(--border-inner);
+      color:#333;
+      font-size:16px;
+      font-weight:600;
+    }
+    .modal-close { color:#999; font-size:20px; cursor:pointer; font-weight:400; }
+    .modal-bd { padding:20px; overflow:auto; }
+    .modal-ft {
+      height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      padding:0 20px;
+      border-top:1px solid var(--border-inner);
+    }
+    .log-table th { height:44px; background:#f3f3f3; color:#555; }
+    .log-table td { height:44px; padding:8px 14px; }
+    .log-tip { color:#ff7800; }
+    .log-footer {
+      height:48px;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:10px;
+      color:#666;
+      font-size:13px;
+    }
+    .subgroup-editor { display:flex; flex-direction:column; gap:10px; }
+    .sub-row { display:flex; align-items:center; gap:8px; }
+    .sub-row .input { width:324px; }
+    .promo-layout { display:grid; grid-template-columns:150px 1fr; min-height:510px; }
+    .promo-menu { padding:26px 16px 0 14px; border-right:1px solid var(--border-inner); }
+    .promo-menu-item {
+      min-height:44px;
+      padding:8px 10px 8px 16px;
+      display:flex;
+      align-items:center;
+      color:#666;
+      font-size:13px;
+      line-height:20px;
+      cursor:pointer;
+      border-left:3px solid transparent;
+    }
+    .promo-menu-item.active { color:var(--primary); font-weight:600; border-left-color:var(--primary); background:#F7F9FF; }
+    .promo-content { padding:24px 28px; overflow:auto; }
+    .promo-qrcode-page { display:grid; grid-template-columns:250px 1px 1fr; gap:28px; align-items:start; }
+    .promo-poster {
+      width:224px;
+      height:398px;
+      border-radius:7px;
+      overflow:hidden;
+      position:relative;
+      background:linear-gradient(180deg,#d66cea 0%,#f8cdf1 50%,#fff0f4 100%);
+      box-shadow:0 1px 0 rgba(0,0,0,.04);
+    }
+    .promo-poster.has-image { background-size:cover; background-position:center; }
+    .promo-poster-title {
+      position:absolute;
+      left:18px;
+      top:28px;
+      right:18px;
+      color:#fff;
+      font-size:42px;
+      line-height:1.2;
+      font-weight:800;
+      text-shadow:0 3px 0 rgba(100,40,160,.45);
+    }
+    .promo-poster-ticket {
+      position:absolute;
+      left:48px;
+      top:180px;
+      width:132px;
+      height:78px;
+      border-radius:18px;
+      background:rgba(255,255,255,.42);
+      border:2px solid rgba(255,255,255,.75);
+      transform:rotate(-10deg);
+    }
+    .promo-qr {
+      position:absolute;
+      right:16px;
+      bottom:14px;
+      width:92px;
+      height:92px;
+      border-radius:50%;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#555;
+      font-size:12px;
+      box-shadow:0 3px 12px rgba(0,0,0,.12);
+    }
+    .promo-sep { width:1px; height:398px; background:var(--border-inner); }
+    .promo-field { margin:30px 0 36px; }
+    .promo-field:first-child { margin-top:30px; }
+    .promo-field label { display:block; margin-bottom:12px; color:#333; font-weight:600; font-size:14px; }
+    .promo-copy-row { display:flex; width:368px; }
+    .promo-copy-row input { flex:1; border-radius:4px 0 0 4px; }
+    .promo-copy-row button { border-radius:0 4px 4px 0; height:36px; }
+    .promo-downloads { display:flex; gap:16px; margin-top:132px; }
+    .promo-setting-page { display:grid; grid-template-columns:244px 1px 1fr; gap:28px; align-items:start; }
+    .share-preview-title { font-weight:600; margin-bottom:18px; color:#333; }
+    .wechat-preview {
+      width:216px;
+      height:360px;
+      border:1px solid var(--border-inner);
+      border-radius:6px;
+      background:#f4f5f7;
+      padding:58px 16px 16px;
+      position:relative;
+    }
+    .wechat-bubble {
+      width:140px;
+      margin-left:46px;
+      background:#fff;
+      border-radius:6px;
+      padding:12px;
+      box-shadow:0 2px 7px rgba(0,0,0,.05);
+    }
+    .wechat-avatar { position:absolute; left:16px; top:60px; width:36px; height:36px; border-radius:4px; background:#dfe3ea; }
+    .wechat-brand { display:flex; align-items:center; gap:6px; color:#9aa0aa; font-size:11px; margin-bottom:8px; }
+    .wechat-brand:before { content:""; width:16px; height:16px; border-radius:50%; background:#eef1f7; }
+    .wechat-title { color:#333; font-size:13px; line-height:20px; min-height:40px; }
+    .wechat-share-img {
+      height:108px;
+      margin-top:10px;
+      border-radius:3px;
+      background:#dfe2e8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#999;
+      background-size:cover;
+      background-position:center;
+    }
+    .wechat-mini { margin-top:9px; color:#9a9a9a; font-size:11px; }
+    .promo-upload { width:92px; height:92px; border:1px solid #d9d9d9; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#999; background:#fff; cursor:pointer; background-size:cover; background-position:center; position:relative; }
+    .promo-upload.has-image span { display:none; }
+    .promo-poster-thumb { width:82px; height:96px; border-radius:5px; border:1px solid #eee; background:linear-gradient(180deg,#ca59e4,#ffe1f0); background-size:cover; background-position:center; }
+    .promo-required { color:#ff0000; margin-right:4px; }
+    .confirm-modal { width:392px; background:#fff; border-radius:6px; box-shadow:0 8px 32px rgba(0,0,0,.16); }
+    .confirm-body { padding:20px 22px 16px; }
+    .confirm-title-row { display:flex; align-items:center; gap:10px; color:#333; font-weight:600; }
+    .confirm-icon { width:20px; height:20px; border-radius:50%; background:#FF7800; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; }
+    .confirm-desc { margin:8px 0 0 30px; color:#666; line-height:22px; font-size:13px; }
+    .confirm-footer { padding:0 20px 16px; display:flex; justify-content:flex-end; gap:8px; }
+    .toast-wrap { position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:2000; display:flex; flex-direction:column; gap:8px; }
+    .toast { min-width:190px; padding:10px 14px; background:#fff; border:1px solid #C8D4F8; color:var(--primary); border-radius:6px; box-shadow:0 4px 14px rgba(0,0,0,.08); font-size:13px; }
+    .toast.success { color:#135200; border-color:#B7EB8F; }
+    .toast.error { color:#A8071A; border-color:#FFCCC7; }
+    .tab-menu {
+      position:fixed;
+      display:none;
+      z-index:9999;
+      width:120px;
+      background:#fff;
+      border:1px solid var(--border-inner);
+      border-radius:4px;
+      box-shadow:0 4px 16px rgba(0,0,0,.12);
+      padding:4px 0;
+    }
+    .tab-menu div { height:32px; display:flex; align-items:center; padding:0 12px; font-size:13px; cursor:pointer; }
+    .tab-menu div:hover { background:#F0F3FF; color:var(--primary); }
+    .empty { height:190px; display:flex; align-items:center; justify-content:center; color:#aaa; flex-direction:column; gap:8px; }
+    .mini-program-page { min-height:calc(100vh - 43px); background:#fff; padding:0; }
+    .mini-program-head {
+      height:64px;
+      border-bottom:1px solid var(--border-inner);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 28px;
+      background:#fff;
+    }
+    .mini-program-title { font-size:16px; color:#333; font-weight:600; }
+    .mini-program-sub { margin-top:6px; color:#8c95a6; font-size:12px; }
+    .mini-program-body {
+      display:grid;
+      grid-template-columns:260px minmax(520px,1fr);
+      min-height:calc(100vh - 107px);
+    }
+    .mini-group-list { border-right:1px solid var(--border-inner); padding:22px 18px; background:#fafafa; }
+    .mini-list-title { color:#333; font-weight:600; margin-bottom:12px; }
+    .mini-group-card {
+      min-height:58px;
+      border:1px solid #e8e8e8;
+      background:#fff;
+      border-radius:6px;
+      padding:10px 12px;
+      margin-bottom:10px;
+      cursor:pointer;
+    }
+    .mini-group-card.active { border-color:var(--primary); background:#F7F9FF; }
+    .mini-group-name { color:#333; font-weight:600; margin-bottom:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mini-group-meta { color:#999; font-size:12px; display:flex; gap:10px; align-items:center; }
+    .mini-status { color:#14C45A; background:#E8FFF0; height:20px; padding:0 6px; display:inline-flex; align-items:center; border-radius:3px; }
+    .mini-status.off { color:#999; background:#f0f0f0; }
+    .mini-program-stage {
+      padding:28px;
+      background:#f6f7f9;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      overflow:auto;
+    }
+    .mini-program-stage .phone { width:375px; height:812px; border:0; box-shadow:0 6px 22px rgba(0,0,0,.08); }
+    .mini-program-stage .mp-capsule { width:90px; height:30px; right:7px; top:7px; }
+    .mini-program-stage .mp-back { left:15px; top:14px; width:10px; height:10px; }
+    .decor-list-page { padding:0; min-height:calc(100vh - 43px); background:#fff; }
+    .decor-row-menu { position:relative; display:inline-flex; }
+    .decor-row-more { color:var(--primary); cursor:pointer; padding:0 4px; }
+    .decor-row-dropdown {
+      display:none;
+      position:absolute;
+      right:0;
+      top:22px;
+      width:108px;
+      background:#fff;
+      border:1px solid #E8ECF0;
+      box-shadow:0 6px 18px rgba(0,0,0,.13);
+      border-radius:4px;
+      z-index:50;
+      padding:4px 0;
+    }
+    .decor-row-menu:hover .decor-row-dropdown { display:block; }
+    .decor-row-dropdown div { height:34px; display:flex; align-items:center; padding:0 18px; color:var(--primary); cursor:pointer; }
+    .decor-row-dropdown div:hover { background:#F0F3FF; }
+    .decor-editor { background:#fff; min-height:calc(100vh - 43px); }
+    .decor-editor-top {
+      height:50px;
+      border-bottom:1px solid var(--border-inner);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 26px;
+      background:#fff;
+    }
+    .decor-editor-title { display:flex; align-items:center; gap:10px; color:#333; font-weight:600; font-size:16px; }
+    .decor-editor-actions { display:flex; align-items:center; gap:22px; }
+    .decor-editor-actions .link { font-weight:600; }
+    .decor-builder {
+      display:grid;
+      grid-template-columns:320px minmax(520px,1fr) 360px;
+      min-height:calc(100vh - 93px);
+    }
+    .component-lib { border-right:1px solid var(--border-inner); background:#fff; padding:0 14px 22px; overflow:auto; }
+    .component-tabs { height:44px; display:flex; justify-content:center; gap:44px; border-bottom:1px solid var(--border-inner); margin:0 -14px 18px; }
+    .component-tab { height:44px; display:flex; align-items:center; color:#666; position:relative; cursor:pointer; }
+    .component-tab.active { color:var(--primary); font-weight:600; }
+    .component-tab.active:after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--primary); }
+    .component-section-title { margin:18px 0 12px; color:#333; font-weight:600; display:flex; align-items:center; gap:6px; }
+    .component-section-title:before { content:"⌄"; color:#999; font-size:12px; }
+    .component-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 10px; }
+    .component-card {
+      height:72px;
+      border:1px solid #eee;
+      border-radius:5px;
+      background:#fafafa;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:#333;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .component-card:hover,.component-card.active { border-color:var(--primary); color:var(--primary); background:#F7F9FF; }
+    .component-icon { width:22px; height:22px; border:2px solid currentColor; border-radius:4px; opacity:.7; position:relative; }
+    .component-icon.search:after { content:""; position:absolute; width:8px; height:2px; background:currentColor; right:-6px; bottom:1px; transform:rotate(45deg); }
+    .component-icon.nav { border-radius:50%; }
+    .component-icon.nav:after { content:""; position:absolute; left:6px; top:4px; width:7px; height:10px; border-left:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); }
+    .decor-preview-area { background:#fff; display:flex; flex-direction:column; align-items:center; padding:38px 24px; position:relative; }
+    .decor-preview-title { color:#333; margin-bottom:20px; }
+    .decor-phone-frame { width:375px; height:600px; border:1px solid #eee; border-radius:6px; background:#fff; overflow:hidden; }
+    .decor-banner-placeholder {
+      height:136px;
+      border:1px solid var(--primary);
+      margin:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f1f1f1;
+      color:#666;
+    }
+    .decor-config-panel { border-left:1px solid var(--border-inner); background:#fff; padding:18px 28px; overflow:auto; }
+    .decor-config-tools { display:flex; justify-content:flex-end; margin-bottom:20px; }
+    .decor-config-title { font-weight:600; margin:22px 0 12px; color:#333; font-size:15px; }
+    .decor-config-card { border:1px solid #eee; border-radius:4px; padding:14px; background:#fff; margin-bottom:14px; }
+    .decor-image-box { width:96px; height:96px; border:1px solid #ddd; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#999; flex-direction:column; margin:10px 0; }
+    .decor-add-image { height:40px; border:1px dashed #d6d6d6; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#666; margin-top:10px; cursor:pointer; }
+    .decor-link-extra { margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toastWrap"></div>
+  <div class="prototype-workbench">
+    <aside class="logic-panel collapsed" id="logicPanel">
+      <div class="logic-bar" onclick="toggleLogic()">展开逻辑</div>
+      <div class="logic-expanded">
+        <div class="logic-toolbar">
+          <div>
+            <div class="logic-title">商品分组业务逻辑</div>
+            <div class="logic-source" id="logicSource">来源：商品分组需求文档.md</div>
+          </div>
+          <div class="logic-actions">
+            <label class="text-btn" for="docFile">同步本地文档</label>
+            <input id="docFile" type="file" accept=".md,.markdown,.txt" style="display:none">
+            <button class="text-btn" onclick="toggleLogic()">收起逻辑</button>
+          </div>
+        </div>
+        <div class="logic-paper">
+          <div class="logic-doc" id="logicDoc"></div>
+        </div>
+      </div>
+    </aside>
+    <main class="preview-stage">
+      <div class="admin-shell">
+        <nav class="topnav">
+          <div class="nav-logo">私域运营平台</div>
+          <div class="nav-toggle" onclick="toggleSidebar()">☰</div>
+          <div class="nav-tabs" id="navTabs"></div>
+          <div class="nav-right"><span class="muted">运营管理员</span><span class="avatar">管</span></div>
+        </nav>
+        <div class="admin-body">
+          <aside class="sidebar" id="sidebar">
+            <div class="sb-search"><input id="menuSearch" placeholder="搜索关键字" oninput="searchMenu(this.value)"></div>
+            <div class="sb-empty" id="sbEmpty">暂无匹配报表</div>
+            <div class="menu-scroll" id="menuScroll">
+              <div class="m-group" data-group="商城装修">
+                <div class="m1 open active" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">商城装修</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="页面装修">页面装修</div>
+                    <div class="m2-item active" data-label="商品分组">商品分组</div>
+                    <div class="m2-item" data-label="前台分类">前台分类</div>
+                    <div class="m2-item" data-label="底部导航">底部导航</div>
+                    <div class="m2-item" data-label="商品推荐">商品推荐</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="商品中心">
+                <div class="m1 open" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">商品中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="商品管理">商品管理</div>
+                    <div class="m2-item" data-label="品牌管理">品牌管理</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="订单中心">
+                <div class="m1" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">订单中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap" style="max-height:0">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="订单列表">订单列表</div>
+                    <div class="m2-item" data-label="售后管理">售后管理</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="用户中心">
+                <div class="m1" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">用户中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap" style="max-height:0">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="用户列表">用户列表</div>
+                    <div class="m2-item" data-label="会员等级">会员等级</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="积分中心">
+                <div class="m1" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">积分中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap" style="max-height:0">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="积分任务">积分任务</div>
+                    <div class="m2-item" data-label="积分明细">积分明细</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="营销中心">
+                <div class="m1" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">营销中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap" style="max-height:0">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="优惠券">优惠券</div>
+                    <div class="m2-item" data-label="活动管理">活动管理</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="内容中心">
+                <div class="m1 open" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">内容中心</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="商品评价">商品评价</div>
+                    <div class="m2-item" data-label="内容分类管理">内容分类管理</div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-group" data-group="系统配置">
+                <div class="m1" onclick="toggleMenu(this)">
+                  <svg viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  <span class="m1-label">系统配置</span><span class="m1-arrow">›</span>
+                </div>
+                <div class="m2-wrap" style="max-height:0">
+                  <div class="m2-grid">
+                    <div class="m2-item" data-label="角色权限">角色权限</div>
+                    <div class="m2-item" data-label="操作日志">操作日志</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mini-entry-wrap">
+              <div class="m2-item mini-entry" data-label="小程序分组">小程序分组</div>
+            </div>
+          </aside>
+          <section class="content" id="content"></section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="groupModal">
+    <div class="modal modal-group">
+      <div class="modal-hd"><span id="groupModalTitle">编辑分组</span><span class="modal-close" onclick="closeModal('groupModal')">×</span></div>
+      <div class="modal-bd">
+        <div class="form-row">
+          <div class="form-label">分组名 <span class="danger">*</span></div>
+          <div><input class="input" style="width:450px" id="groupNameInput" maxlength="20" placeholder="请输入分组名称"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">子分组</div>
+          <div>
+            <div class="subgroup-editor" id="subgroupEditor"></div>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <button class="btn-secondary" onclick="addSubgroup()">添加子分组</button>
+              <button class="btn-secondary" onclick="clearSubgroups()">全部删除</button>
+            </div>
+            <div class="muted" style="margin-top:8px;">子分组非必填，用于前端二级筛选展示，最多添加20个。</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-secondary" onclick="closeModal('groupModal')">取消</button>
+        <button class="btn-primary" onclick="saveGroupModal()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="productModal">
+    <div class="modal modal-xl">
+      <div class="modal-hd"><span>选择商品</span><span class="modal-close" onclick="closeModal('productModal')">×</span></div>
+      <div class="modal-bd">
+        <div class="filter-row" style="margin-bottom:12px;">
+          <input class="input" style="width:180px" id="productKeyword" placeholder="搜索商品名称" oninput="renderProductPicker()">
+          <select class="select" style="width:180px" id="productTypeFilter" onchange="renderProductPicker()"><option value="">全部商品类型</option><option value="直邮">直邮</option></select>
+          <button class="btn-secondary" style="width:32px;padding:0;border-color:var(--primary);color:var(--primary)" onclick="renderProductPicker()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          </button>
+        </div>
+        <div class="select-panel" style="width:100%;max-height:350px;">
+          <table class="mini-table">
+            <thead><tr><th style="width:38px"><input class="check" type="checkbox" id="productAllHeadCheck" onchange="toggleAllProducts()"></th><th style="width:80px">ID</th><th style="width:90px">商品图片</th><th>商品名称</th><th style="width:90px">类型</th><th style="width:100px">价格</th><th style="width:150px">分类</th></tr></thead>
+            <tbody id="productPickerBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-ft" style="justify-content:space-between;">
+        <label class="radio-item"><input class="check" type="checkbox" id="productAllCheck" onchange="toggleAllProducts()">全选</label>
+        <div style="display:flex;gap:8px;align-items:center;"><span class="muted" id="selectedProductCount">已选（0）</span><button class="btn-secondary" onclick="closeModal('productModal')">取消</button><button class="btn-primary" onclick="confirmProducts()">确认</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="promotionModal">
+    <div class="modal modal-promo">
+      <div class="modal-hd"><span>推广</span><span class="modal-close" onclick="closeModal('promotionModal')">×</span></div>
+      <div class="modal-bd" style="padding:0;" id="promotionBody"></div>
+      <div class="modal-ft" id="promotionFooter">
+        <button class="btn-secondary" onclick="closeModal('promotionModal')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="groupLogModal">
+    <div class="modal modal-log">
+      <div class="modal-hd"><span>操作日志</span><span class="modal-close" onclick="closeModal('groupLogModal')">×</span></div>
+      <div class="modal-bd">
+        <table class="log-table">
+          <thead><tr><th style="width:90px">日志ID</th><th style="width:110px">操作人</th><th>操作描述</th><th style="width:130px">提示信息</th><th style="width:170px">操作时间</th></tr></thead>
+          <tbody id="groupLogBody"></tbody>
+        </table>
+        <div class="log-footer"><span id="groupLogCount">共 0 条</span><span style="color:#c8c8c8">&lt;</span><span class="page-no active">1</span><span style="color:#c8c8c8">&gt;</span><select class="select"><option>20 条/页</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-body">
+        <div class="confirm-title-row"><span class="confirm-icon">!</span><span id="confirmTitle">删除</span></div>
+        <div class="confirm-desc" id="confirmDesc">是否确认删除</div>
+      </div>
+      <div class="confirm-footer">
+        <button class="btn-secondary" onclick="closeModal('confirmOverlay')">取消</button>
+        <button class="btn-primary" onclick="runConfirm()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="imagePreviewOverlay">
+    <div class="modal modal-md">
+      <div class="modal-hd"><span>查看图片</span><span class="modal-close" onclick="closeModal('imagePreviewOverlay')">×</span></div>
+      <div class="modal-bd" style="display:flex;justify-content:center;align-items:center;min-height:260px;">
+        <img id="imagePreviewTarget" alt="预览图" style="max-width:100%;max-height:420px;border-radius:4px;border:1px solid #eee;">
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-menu" id="tabMenu">
+    <div onclick="tabMenuAction('current')">关闭当前</div>
+    <div onclick="tabMenuAction('other')">关闭其他</div>
+    <div onclick="tabMenuAction('all')">关闭全部</div>
+  </div>
+
+  <script>
+    const DEFAULT_DOC = `# 需求模版
+
+> 填写说明：只填业务内容，删掉不需要的占位项即可。
+
+---
+
+## 1. 业务背景
+
+> 需求描述：要解决什么问题
+> 目标结果：希望达成什么业务效果
+> 本期范围：本期明确要做什么
+> 本期不做：明确范围外的内容
+
+### 1.1 需求描述
+
+商品系列很多，为了让用户在前端更好的筛选商品，商品按功能、使用、品牌等维度分组在前端展示，用户选择分组展示对应的商品。
+
+### 1.3 目标结果
+
+后台支持按分组维护筛选项、商品来源、商品样式与前台展示配置，使用户能在前台快速按分组筛选商品并完成浏览、排序、加购。
+
+### 1.4 本期范围
+- 后台可新建多个商品分组。
+- 每个分组下可维护多个子分组筛选，子分组非必填。
+- 分组筛选支持横向样式和左侧竖向样式。
+- 每个分组下商品支持综合、新品、价格从高到低、价格从低到高、销量排序。
+- 商品列表样式支持双列、单列、单列滚动。
+- 商品信息支持配置名称、商品价格、加购按钮是否展示。
+
+### 1.5 本期不做
+- 不包含商品详情页装修。
+- 不包含真实商品库存、价格、上下架的业务审批。
+
+---
+
+## 2. 关键业务规则
+
+### 4.1 唯一性 / 并发性
+- 同一租户下分组名称建议唯一。
+- 编辑商品配置保存后前台展示生效。
+
+### 4.2 字段定义
+- 分组名称：用于后台列表和前台页面标题。
+  - 是否必填：是。
+  - 范围 / 长度：建议 20 个字符内。
+- 子分组名称：用于前台二级筛选。
+  - 是否必填：否。
+  - 不允许：空名称保存。
+- 分组搜索配置：控制搜索栏显示、背景颜色、背景图、文字颜色、搜索按钮图。
+- 分组商品配置：控制商品样式、商品信息展示项、数据来源、可见范围。
+
+### 4.4 关键联动逻辑
+- 分组筛选样式选择横向时，子分组在搜索栏下方横向展示。
+- 分组筛选样式选择左侧竖向时，子分组在商品区左侧展示。
+- 商品列表样式切换后，左侧预览需同步变化。
+- 商品信息展示项勾选后，商品卡片对应信息即时显示或隐藏。
+
+### 4.5 异常处理规则
+- 删除分组前需二次确认。
+- 分组名称为空时不允许保存。
+- 子分组为空时可保存分组，但空白子分组行不保存。
+
+---
+
+## 5. 状态与异常
+
+### 5.1 业务状态
+- 商品分组：开启 / 关闭。
+
+### 5.2 页面默认态
+- 默认展示分组列表，可按分组名称、状态、创建人查询。
+
+### 5.3 空态
+- 无分组或搜索无结果时展示暂无数据。
+
+### 5.5 权限态 / 不可操作态
+- 关闭状态分组前台不展示，但后台仍可编辑。
+
+### 5.6 状态-操作矩阵
+| 状态 | 可执行操作 | 备注 |
+| --- | --- | --- |
+| 开启 | 编辑分组、编辑商品、关闭、删除 | 关闭后前台隐藏 |
+| 关闭 | 编辑分组、编辑商品、开启、删除 | 开启后前台展示 |
+
+---
+
+## 6. 衍生需求与默认授权项
+
+### 6.2 日志
+- 新建、编辑、删除、开启、关闭、保存商品配置需记录操作日志。`;
+
+    const storeKey = 'goodsGroupPrototypeStateV1';
+    const docStoreKey = 'goodsGroupPrototypeLogicDocV1';
+    const products = [
+      {id:'105336', name:'港版Fortini纽荃星 壹...', type:'直邮', category:'跨境奶粉/成长奶粉/纽荃星', price:199.82, sales:1280, isNew:true},
+      {id:'105335', name:'港版Neocate纽康特太...', type:'直邮', category:'跨境奶粉/特配奶粉/纽迪希亚', price:318.97, sales:940, isNew:true},
+      {id:'105334', name:'港版Neocate纽康特...', type:'直邮', category:'跨境奶粉/特配奶粉/纽迪希亚', price:318.97, sales:2230, isNew:false},
+      {id:'105333', name:'纽康特呈诺HMO...', type:'直邮', category:'跨境奶粉/特配奶粉/纽迪希亚', price:399.63, sales:1760, isNew:false},
+      {id:'105332', name:'港版Neocate纽康特 ...', type:'直邮', category:'跨境奶粉/特配奶粉/纽迪希亚', price:337.31, sales:860, isNew:true},
+      {id:'105331', name:'普通奶粉成长优选装', type:'直邮', category:'跨境奶粉/普通奶粉', price:268.00, sales:1160, isNew:false}
+    ];
+    const categoryTree = [
+      {id:'cat-milk', name:'跨境奶粉', children:[
+        {id:'cat-special', name:'特配奶粉'},
+        {id:'cat-normal', name:'普通奶粉'},
+        {id:'cat-grow', name:'成长奶粉'},
+        {id:'cat-adult', name:'成人奶粉'}
+      ]},
+      {id:'cat-china', name:'国行奶粉', children:[]},
+      {id:'cat-mom', name:'母婴用品', children:[]},
+      {id:'cat-snack', name:'零食辅食', children:[]},
+      {id:'cat-health', name:'营养保健', children:[]}
+    ];
+    let state = loadState();
+    let editingGroupId = null;
+    let confirmHandler = null;
+    let activeProductTab = 'search';
+    let productDraftIds = [];
+    let activeProductConfigKey = '';
+    let activeSubgroupConfigKey = '';
+    let promotionEditingId = '';
+    let promotionTab = 'qrcode';
+    let promotionDraft = null;
+    let rightClickTab = null;
+
+    function defaultState() {
+      return {
+        page:'list',
+        tabs:[
+          {id:'home',title:'首页',fixed:true},
+          {id:'frontCategory',title:'前台分类',fixed:false},
+          {id:'pageDecor',title:'页面装修',fixed:false},
+          {id:'groupList',title:'商品分组',fixed:false},
+          {id:'newDecor',title:'新增装修页',fixed:false},
+          {id:'contentCategory',title:'内容分类管理',fixed:false}
+        ],
+        activeTab:'groupList',
+        selectedIds:[],
+        filters:{name:'',status:'',creator:''},
+        pageDecorFilters:{name:'',id:'',type:'',status:''},
+        miniGroupId:'g1',
+        decorDraft:{title:'新增装修页', linkType:'固定页面', groupId:'', interval:5, visible:'全部用户'},
+        decorPages:[
+          {id:'100009', name:'【首页】YOUO母婴', type:'首页', status:'已发布', updatedAt:'2026-06-24 14:15:41', createdAt:'2026-05-27 15:17:39', isHome:true},
+          {id:'100076', name:'爱他美全系', type:'自定义页', status:'已发布', updatedAt:'2026-06-23 16:56:30', createdAt:'2026-06-23 16:56:30', isHome:false},
+          {id:'100013', name:'积分规则', type:'自定义页', status:'已发布', updatedAt:'2026-05-27 16:59:40', createdAt:'2026-05-27 16:59:40', isHome:false},
+          {id:'100012', name:'积分商城', type:'自定义页', status:'已发布', updatedAt:'2026-05-27 16:35:58', createdAt:'2026-05-27 16:10:25', isHome:false},
+          {id:'100011', name:'YOUO母婴售后政策', type:'自定义页', status:'已发布', updatedAt:'2026-05-27 15:58:46', createdAt:'2026-05-27 15:58:46', isHome:false},
+          {id:'100010', name:'买正品就到渝欧母婴', type:'自定义页', status:'已发布', updatedAt:'2026-06-25 14:50:42', createdAt:'2026-05-27 15:44:22', isHome:false}
+        ],
+        groups:[
+          {
+            id:'g1', name:'功效护理', subgroups:['舒缓修护','补水保湿','亮肤焕采','清洁控油','敏感肌专区','屏障养护'],
+            productIds:['p1','p2','p3','p5'], status:'on', creator:'李运营',
+            createdAt:'2026-06-01 10:24:33', updatedAt:'2026-06-18 14:28:12',
+            config:{searchVisible:true,bgColor:'#ede7e7',textColor:'#666666',searchButtonColor:'#b45be0',searchButtonTextColor:'#ffffff',searchBgImage:'',searchButtonImage:'',groupStyle:'horizontal',sort:'综合',listStyle:'double',showName:true,showPrice:true,showCart:true,source:'商品分类',category:'护肤精选',visible:'全部用户'},
+            promotion:{shareTitle:'其他店铺下单，参与商城兑换好礼', shareImage:'', posterImage:'', appLink:'', appPath:'otherPackage/invite/index?id=100006'}
+          },
+          {
+            id:'g2', name:'品牌专区', subgroups:['AromaLab','PureSkin','DailyCare'],
+            productIds:['p2','p4','p6'], status:'on', creator:'王设计',
+            createdAt:'2026-06-07 09:12:48', updatedAt:'2026-06-20 16:04:09',
+            config:{searchVisible:true,bgColor:'#f6f6f6',textColor:'#555555',searchButtonColor:'#b45be0',searchButtonTextColor:'#ffffff',searchBgImage:'',searchButtonImage:'',groupStyle:'vertical',sort:'销量',listStyle:'single',showName:true,showPrice:true,showCart:false,source:'手动选择',category:'品牌专区',visible:'全部用户'},
+            promotion:{shareTitle:'品牌好物专区，会员专享兑换礼', shareImage:'', posterImage:'', appLink:'', appPath:'otherPackage/invite/index?id=100007'}
+          },
+          {
+            id:'g3', name:'夏日新品', subgroups:[],
+            productIds:['p4','p5'], status:'off', creator:'赵运营',
+            createdAt:'2026-06-10 11:35:21', updatedAt:'2026-06-11 13:10:44',
+            config:{searchVisible:false,bgColor:'#ffffff',textColor:'#666666',searchButtonColor:'#b45be0',searchButtonTextColor:'#ffffff',searchBgImage:'',searchButtonImage:'',groupStyle:'horizontal',sort:'新品',listStyle:'scroll',showName:true,showPrice:true,showCart:true,source:'商品推荐',category:'夏季活动',visible:'对以下人群显示'},
+            promotion:{shareTitle:'夏日新品上新，限时兑换好礼', shareImage:'', posterImage:'', appLink:'', appPath:'otherPackage/invite/index?id=100008'}
+          }
+        ],
+        editingId:'g1'
+      };
+    }
+    function loadState() {
+      try {
+        const loaded = JSON.parse(localStorage.getItem(storeKey)) || defaultState();
+        if (!loaded.tabs) loaded.tabs = defaultState().tabs;
+        if (!loaded.decorPages) loaded.decorPages = defaultState().decorPages;
+        if (!loaded.pageDecorFilters) loaded.pageDecorFilters = defaultState().pageDecorFilters;
+        if (!loaded.decorDraft) loaded.decorDraft = defaultState().decorDraft;
+        const desiredTabs = [
+          {id:'frontCategory',title:'前台分类',fixed:false},
+          {id:'pageDecor',title:'页面装修',fixed:false},
+          {id:'groupList',title:'商品分组',fixed:false},
+          {id:'newDecor',title:'新增装修页',fixed:false},
+          {id:'contentCategory',title:'内容分类管理',fixed:false}
+        ];
+        desiredTabs.forEach((tab, idx) => {
+          if (!loaded.tabs.some(t => t.id === tab.id)) loaded.tabs.splice(idx + 1, 0, tab);
+        });
+        const defaultProductIds = products.slice(0, 4).map(p => p.id);
+        (loaded.groups || []).forEach(group => {
+          ensurePromotion(group);
+          if (!Array.isArray(group.productIds) || !group.productIds.some(id => products.some(p => p.id === id))) group.productIds = [...defaultProductIds];
+          if (group.config && group.config.subgroupConfigs) {
+            Object.values(group.config.subgroupConfigs).forEach(cfg => {
+              if (!Array.isArray(cfg.productIds) || !cfg.productIds.some(id => products.some(p => p.id === id))) cfg.productIds = [...defaultProductIds.slice(0, 3)];
+            });
+          }
+        });
+        loaded.activeTab = loaded.activeTab === 'home' ? 'groupList' : loaded.activeTab;
+        loaded.page = loaded.page || 'list';
+        loaded.miniGroupId = loaded.miniGroupId || (loaded.groups && loaded.groups[0] && loaded.groups[0].id) || 'g1';
+        return loaded;
+      } catch(e) { return defaultState(); }
+    }
+    function persist() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+    function currentGroup() { return state.groups.find(g => g.id === state.editingId) || state.groups[0]; }
+
+    function init() {
+      restoreLogicDoc();
+      renderTabs();
+      renderPage();
+      document.getElementById('docFile').addEventListener('change', syncLocalDoc);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTopOverlay(); });
+      document.addEventListener('click', () => document.querySelectorAll('.subgroup-cell.active').forEach(item => item.classList.remove('active')));
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.color-field')) document.querySelectorAll('.color-field.open').forEach(item => item.classList.remove('open'));
+      });
+      document.addEventListener('click', e => { if (!e.target.closest('#tabMenu')) document.getElementById('tabMenu').style.display = 'none'; });
+      document.querySelectorAll('.m2-item').forEach(item => {
+        item.addEventListener('click', () => handleMenuItem(item.dataset.label, item));
+      });
+      document.querySelectorAll('.modal-overlay').forEach(ov => {
+        ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
+      });
+    }
+    function markdownToHtml(md) {
+      const lines = md.split(/\r?\n/);
+      let html = '';
+      let inList = false;
+      lines.forEach(line => {
+        const t = line.trim();
+        if (!t) { if (inList) { html += '</ul>'; inList = false; } return; }
+        if (t.startsWith('- ')) {
+          if (!inList) { html += '<ul>'; inList = true; }
+          html += '<li>' + escapeHtml(t.slice(2)) + '</li>';
+          return;
+        }
+        if (inList) { html += '</ul>'; inList = false; }
+        if (t.startsWith('### ')) html += '<h3>' + escapeHtml(t.slice(4)) + '</h3>';
+        else if (t.startsWith('## ')) html += '<h2>' + escapeHtml(t.slice(3)) + '</h2>';
+        else if (t.startsWith('# ')) html += '<h1>' + escapeHtml(t.slice(2)) + '</h1>';
+        else if (t.startsWith('|')) html += '<p class="muted">' + escapeHtml(t) + '</p>';
+        else if (t.startsWith('>')) html += '<p class="muted">' + escapeHtml(t.replace(/^>\s?/, '')) + '</p>';
+        else if (t === '---') html += '<hr>';
+        else html += '<p>' + escapeHtml(t) + '</p>';
+      });
+      if (inList) html += '</ul>';
+      return html;
+    }
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+    function restoreLogicDoc() {
+      const cached = localStorage.getItem(docStoreKey);
+      if (cached) {
+        const obj = JSON.parse(cached);
+        document.getElementById('logicDoc').innerHTML = markdownToHtml(obj.content);
+        document.getElementById('logicSource').textContent = '来源：本地缓存 + ' + obj.name;
+      } else {
+        document.getElementById('logicDoc').innerHTML = markdownToHtml(DEFAULT_DOC);
+      }
+    }
+    function syncLocalDoc(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = String(reader.result || '');
+        localStorage.setItem(docStoreKey, JSON.stringify({name:file.name, content}));
+        document.getElementById('logicDoc').innerHTML = markdownToHtml(content);
+        document.getElementById('logicSource').textContent = '来源：本地缓存 + ' + file.name;
+        showToast('左侧逻辑已同步', 'success');
+      };
+      reader.readAsText(file);
+    }
+    function toggleLogic() { document.getElementById('logicPanel').classList.toggle('collapsed'); }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    function toggleMenu(el) {
+      el.classList.toggle('open');
+      const wrap = el.nextElementSibling;
+      wrap.style.maxHeight = el.classList.contains('open') ? wrap.scrollHeight + 20 + 'px' : '0px';
+    }
+    function searchMenu(kw) {
+      const q = kw.trim();
+      let any = false;
+      document.querySelectorAll('.m-group').forEach(group => {
+        let hitGroup = false;
+        group.querySelectorAll('.m2-item').forEach(item => {
+          const hit = !q || item.dataset.label.includes(q);
+          item.style.display = hit ? '' : 'none';
+          if (hit) hitGroup = true;
+        });
+        group.style.display = hitGroup ? '' : 'none';
+        if (hitGroup) any = true;
+      });
+      document.getElementById('sbEmpty').style.display = any ? 'none' : 'block';
+    }
+    function handleMenuItem(label, el) {
+      setMenuActive(label);
+      if (label === '商品分组') {
+        if (!state.tabs.some(t => t.id === 'groupList')) state.tabs.push({id:'groupList', title:'商品分组', fixed:false});
+        state.activeTab = 'groupList';
+        state.page = 'list';
+        persist();
+        renderTabs();
+        renderPage();
+      } else if (label === '页面装修') {
+        if (!state.tabs.some(t => t.id === 'pageDecor')) state.tabs.push({id:'pageDecor', title:'页面装修', fixed:false});
+        state.activeTab = 'pageDecor';
+        state.page = 'pageDecor';
+        persist();
+        renderTabs();
+        renderPage();
+      } else if (label === '小程序分组') {
+        if (!state.tabs.some(t => t.id === 'miniGroup')) state.tabs.push({id:'miniGroup', title:'小程序分组', fixed:false});
+        state.activeTab = 'miniGroup';
+        state.page = 'mini';
+        state.miniGroupId = state.miniGroupId || (state.groups[0] && state.groups[0].id);
+        persist();
+        renderTabs();
+        renderPage();
+      }
+    }
+    function setMenuActive(label) {
+      document.querySelectorAll('.m2-item').forEach(item => item.classList.toggle('active', item.dataset.label === label));
+    }
+    function renderTabs() {
+      document.getElementById('navTabs').innerHTML = state.tabs.map(tab => `
+        <div class="nav-tab ${state.activeTab === tab.id ? 'active' : ''}" data-id="${tab.id}" onclick="switchTab('${tab.id}')" oncontextmenu="openTabMenu(event,'${tab.id}')">
+          <span>${tab.id === 'home' ? '⌂ ' : ''}${tab.title}</span>${tab.fixed || tab.id !== state.activeTab ? '' : `<span class="tab-close" onclick="closeTab(event,'${tab.id}')">×</span>`}
+        </div>`).join('');
+    }
+    function switchTab(id) {
+      state.activeTab = id;
+      if (id === 'groupList') state.page = 'list';
+      if (id === 'pageDecor') state.page = 'pageDecor';
+      if (id === 'newDecor') state.page = 'decorEdit';
+      if (id === 'miniGroup') state.page = 'mini';
+      if (id.startsWith('edit-')) { state.page = 'edit'; state.editingId = id.replace('edit-', ''); }
+      if (id === 'home') state.page = 'list';
+      persist(); renderTabs(); renderPage();
+    }
+    function ensureEditTab(group) {
+      const id = 'edit-' + group.id;
+      if (!state.tabs.some(t => t.id === id)) state.tabs.push({id, title:'编辑商品-' + group.name, fixed:false});
+      state.activeTab = id;
+      state.page = 'edit';
+      state.editingId = group.id;
+      persist(); renderTabs(); renderPage();
+    }
+    function closeTab(e, id) {
+      e.stopPropagation();
+      state.tabs = state.tabs.filter(t => t.fixed || t.id !== id);
+      if (state.activeTab === id) {
+        state.activeTab = state.tabs.some(t => t.id === 'groupList') ? 'groupList' : 'home';
+        state.page = 'list';
+      }
+      persist(); renderTabs(); renderPage();
+    }
+    function openTabMenu(e, id) {
+      e.preventDefault();
+      rightClickTab = id;
+      const menu = document.getElementById('tabMenu');
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+      menu.style.display = 'block';
+    }
+    function tabMenuAction(type) {
+      const fixed = state.tabs.filter(t => t.fixed);
+      if (type === 'current' && rightClickTab !== 'home') state.tabs = state.tabs.filter(t => t.id !== rightClickTab);
+      if (type === 'other') state.tabs = state.tabs.filter(t => t.fixed || t.id === rightClickTab);
+      if (type === 'all') state.tabs = fixed.length ? fixed : [{id:'home',title:'首页',fixed:true}];
+      if (!state.tabs.some(t => t.id === state.activeTab)) { state.activeTab = state.tabs[0].id; state.page = 'list'; }
+      document.getElementById('tabMenu').style.display = 'none';
+      persist(); renderTabs(); renderPage();
+    }
+    function renderPage() {
+      setMenuActive(state.page === 'mini' ? '小程序分组' : (state.page === 'pageDecor' || state.page === 'decorEdit' ? '页面装修' : '商品分组'));
+      if (state.page === 'edit') renderEditPage();
+      else if (state.page === 'mini') renderMiniProgramPage();
+      else if (state.page === 'pageDecor') renderPageDecorList();
+      else if (state.page === 'decorEdit') renderDecorEditor();
+      else renderListPage();
+    }
+    function filteredGroups() {
+      const f = state.filters;
+      return state.groups.filter(g => (!f.name || g.name.includes(f.name)) && (!f.status || g.status === f.status) && (!f.creator || g.id.toUpperCase().includes(f.creator.toUpperCase())));
+    }
+    function renderListPage() {
+      const rows = filteredGroups();
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="page list-page">
+          <div class="list-board">
+          <div class="card filter-card list-filter">
+            <div class="filter-row">
+              <div class="field"><label>分组名称：</label><input class="input" style="width:240px" id="filterName" value="${escapeAttr(state.filters.name)}" placeholder="请输入分组名称"></div>
+              <div class="field"><label>分组ID：</label><input class="input" style="width:240px" id="filterCreator" value="${escapeAttr(state.filters.creator)}" placeholder="请输入分组ID"></div>
+              <div class="field"><label>状态：</label><select class="select" style="width:240px" id="filterStatus"><option value="">请选择</option><option value="on" ${state.filters.status==='on'?'selected':''}>开启</option><option value="off" ${state.filters.status==='off'?'selected':''}>关闭</option></select></div>
+              <button class="search-icon" onclick="applyFilters()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+              <div class="filter-actions">
+                <button class="btn-primary" onclick="openGroupModal()">⊕ 新增</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:14%">分组ID</th>
+                    <th style="width:20%">分组名称</th>
+                    <th style="width:20%">子分组信息</th>
+                    <th style="width:10%;text-align:center;">状态</th>
+                    <th style="width:16%">更新时间</th>
+                    <th style="width:16%">创建时间</th>
+                    <th style="width:18%;text-align:left;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.length ? rows.map(g => rowHtml(g)).join('') : `<tr><td colspan="7"><div class="empty">暂无数据</div></td></tr>`}
+                </tbody>
+              </table>
+            </div>
+            <div class="table-footer pagination-only">
+              <div class="pager"><span>共 ${rows.length} 条</span><span style="color:#c8c8c8">&lt;</span><span class="page-no active">1</span><span style="color:#c8c8c8">&gt;</span><select class="select"><option>20 条/页</option><option>15 条/页</option></select></div>
+            </div>
+          </div>
+          </div>
+        </div>`;
+      ['filterName','filterCreator'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('keydown', e => { if(e.key === 'Enter') applyFilters(); });
+        el.addEventListener('change', applyFilters);
+      });
+      document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    }
+    function filteredDecorPages() {
+      const f = state.pageDecorFilters || {};
+      return (state.decorPages || []).filter(p =>
+        (!f.name || p.name.includes(f.name)) &&
+        (!f.id || p.id.includes(f.id)) &&
+        (!f.type || p.type === f.type) &&
+        (!f.status || p.status === f.status)
+      );
+    }
+    function renderPageDecorList() {
+      const rows = filteredDecorPages();
+      document.getElementById('content').innerHTML = `
+        <div class="decor-list-page">
+          <div class="list-board">
+            <div class="card filter-card list-filter">
+              <div class="filter-row">
+                <div class="field"><label>页面名称：</label><input class="input" style="width:240px" id="decorFilterName" value="${escapeAttr(state.pageDecorFilters.name || '')}" placeholder="请输入页面名称"></div>
+                <div class="field"><label>页面ID：</label><input class="input" style="width:240px" id="decorFilterId" value="${escapeAttr(state.pageDecorFilters.id || '')}" placeholder="请输入页面ID"></div>
+                <div class="field"><label>页面类型：</label><select class="select" style="width:240px" id="decorFilterType"><option value="">请选择</option><option value="首页" ${state.pageDecorFilters.type==='首页'?'selected':''}>首页</option><option value="自定义页" ${state.pageDecorFilters.type==='自定义页'?'selected':''}>自定义页</option></select></div>
+                <div class="field"><label>状态：</label><select class="select" style="width:240px" id="decorFilterStatus"><option value="">请选择</option><option value="已发布" ${state.pageDecorFilters.status==='已发布'?'selected':''}>已发布</option><option value="草稿" ${state.pageDecorFilters.status==='草稿'?'selected':''}>草稿</option></select></div>
+                <button class="search-icon" onclick="applyDecorFilters()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+                <div class="filter-actions"><button class="btn-primary" onclick="openNewDecor()">⊕ 新增</button></div>
+              </div>
+            </div>
+            <div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th style="width:14%">页面ID</th><th style="width:30%">页面名称</th><th style="width:18%">页面类型</th><th style="width:12%">发布状态</th><th style="width:14%">更新时间</th><th style="width:14%">创建时间</th><th style="width:13%">操作</th></tr></thead>
+                  <tbody>${rows.map((p, idx) => decorPageRow(p, idx)).join('')}</tbody>
+                </table>
+              </div>
+              <div class="table-footer pagination-only"><div class="pager"><span>共 ${rows.length} 条</span><span style="color:#c8c8c8">&lt;</span><span class="page-no active">1</span><span style="color:#c8c8c8">&gt;</span><select class="select"><option>20 条/页</option></select></div></div>
+            </div>
+          </div>
+        </div>`;
+      ['decorFilterName','decorFilterId'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('keydown', e => { if(e.key === 'Enter') applyDecorFilters(); });
+        el.addEventListener('change', applyDecorFilters);
+      });
+      document.getElementById('decorFilterType').addEventListener('change', applyDecorFilters);
+      document.getElementById('decorFilterStatus').addEventListener('change', applyDecorFilters);
+    }
+    function decorPageRow(p, idx) {
+      return `<tr class="${idx === 5 ? 'selected' : ''}">
+        <td>${p.id}</td>
+        <td>${escapeHtml(p.name)}${p.isHome ? '<span class="tag-blue">首页</span>' : ''}</td>
+        <td>${escapeHtml(p.type)}</td>
+        <td><span class="status on">${escapeHtml(p.status)}</span></td>
+        <td>${escapeHtml(p.updatedAt)}</td>
+        <td>${escapeHtml(p.createdAt)}</td>
+        <td><div class="ops"><span class="link" onclick="openNewDecor('${p.id}')">编辑</span><span class="link" onclick="copyDecorPage('${p.id}')">复制</span><span class="link">历史版本</span><span class="decor-row-menu"><span class="decor-row-more">...</span><div class="decor-row-dropdown"><div onclick="setDecorHome('${p.id}')">设为首页</div><div onclick="showToast('预览已打开','success')">预览</div><div onclick="deleteDecorPage('${p.id}')">删除</div></div></span></div></td>
+      </tr>`;
+    }
+    function applyDecorFilters() {
+      state.pageDecorFilters = {
+        name:document.getElementById('decorFilterName').value.trim(),
+        id:document.getElementById('decorFilterId').value.trim(),
+        type:document.getElementById('decorFilterType').value,
+        status:document.getElementById('decorFilterStatus').value
+      };
+      persist(); renderPageDecorList();
+    }
+    function openNewDecor(id) {
+      const page = id ? state.decorPages.find(p => p.id === id) : null;
+      state.decorDraft = {
+        id: page && page.id,
+        title: page ? page.name : '新增装修页',
+        linkType: state.decorDraft && state.decorDraft.linkType ? state.decorDraft.linkType : '固定页面',
+        groupId: state.decorDraft && state.decorDraft.groupId ? state.decorDraft.groupId : '',
+        interval: state.decorDraft && state.decorDraft.interval ? state.decorDraft.interval : 5,
+        visible: state.decorDraft && state.decorDraft.visible ? state.decorDraft.visible : '全部用户'
+      };
+      if (!state.tabs.some(t => t.id === 'newDecor')) state.tabs.push({id:'newDecor', title:'新增装修页', fixed:false});
+      state.activeTab = 'newDecor';
+      state.page = 'decorEdit';
+      persist(); renderTabs(); renderPage();
+    }
+    function copyDecorPage(id) {
+      const page = state.decorPages.find(p => p.id === id);
+      if (!page) return;
+      state.decorPages.unshift({...page, id:String(Date.now()).slice(-6), name:page.name + ' 副本', isHome:false, createdAt:nowText(), updatedAt:nowText()});
+      persist(); renderPageDecorList(); showToast('已复制', 'success');
+    }
+    function setDecorHome(id) {
+      state.decorPages.forEach(p => p.isHome = p.id === id);
+      persist(); renderPageDecorList(); showToast('已设为首页', 'success');
+    }
+    function deleteDecorPage(id) {
+      confirmHandler = () => {
+        state.decorPages = state.decorPages.filter(p => p.id !== id);
+        persist(); renderPageDecorList(); showToast('已删除', 'success');
+      };
+      openConfirm('删除', '是否确认删除');
+    }
+    function renderDecorEditor() {
+      const d = state.decorDraft || {title:'新增装修页', linkType:'固定页面', groupId:'', interval:5, visible:'全部用户'};
+      document.getElementById('content').innerHTML = `
+        <div class="decor-editor">
+          <div class="decor-editor-top">
+            <div class="decor-editor-title"><span class="link" onclick="backToDecorList()">‹</span><span>${escapeHtml(d.title || '新增装修页')}</span></div>
+            <div class="decor-editor-actions"><span class="link">全屏编辑</span><span class="link" onclick="saveDecorDraft()">保存草稿</span><button class="btn-primary" onclick="publishDecorPage()">发布</button></div>
+          </div>
+          <div class="decor-builder">
+            <div class="component-lib">
+              <div class="component-tabs"><div class="component-tab">常用组件</div><div class="component-tab active">全部组件</div></div>
+              ${componentSection('页面装修', ['顶栏','搜索栏','轮播','图标导航','图片魔方','多热区切图','滚动通知','富文本','内容标签','视频号','直播'])}
+              ${componentSection('商品', ['商品列表','积分商品列表'])}
+              ${componentSection('活动', ['秒杀限购','折扣立减'])}
+            </div>
+            <div class="decor-preview-area">
+              <div class="decor-preview-title">页面预览</div>
+              <div class="decor-phone-frame"><div class="decor-banner-placeholder">请上传图片</div></div>
+            </div>
+            <div class="decor-config-panel">
+              <div class="decor-config-tools"><button class="btn-secondary">页面配置</button><button class="btn-secondary">组件管理</button></div>
+              <div><button class="switch" title="关闭"></button><span class="muted" style="margin-left:8px;">关闭</span></div>
+              <div class="form-row" style="margin-top:20px;"><div class="form-label">轮播样式</div><div class="radio-row"><label class="radio-item"><input class="radio" type="radio" name="bannerStyle">平铺</label><label class="radio-item"><input class="radio" type="radio" name="bannerStyle">平行</label><label class="radio-item"><input class="radio" type="radio" name="bannerStyle">中间放大</label></div></div>
+              <div class="form-row"><div class="form-label">播放间隔（秒）</div><div><input class="input" style="width:100%" type="number" min="0" value="${escapeAttr(d.interval)}" onchange="updateDecorDraft('interval', this.value)"><div class="muted" style="margin-top:8px;">设置为 0 则不自动轮播</div></div></div>
+              <div class="decor-config-title">图片编辑</div>
+              <div class="decor-config-card">
+                <div style="display:flex;justify-content:space-between;"><span>轮播图列表</span><span class="muted">⌫</span></div>
+                <div class="decor-image-box"><div style="font-size:26px;">＋</div><div>上传图片</div></div>
+                <div class="form-row" style="display:block;margin:0;">
+                  <div class="form-label" style="margin-bottom:8px;">跳转链接</div>
+                  <select class="select" style="width:100%" onchange="updateDecorLinkType(this.value)">${decorLinkOptions().map(o => `<option value="${o}" ${d.linkType===o?'selected':''}>${o}</option>`).join('')}</select>
+                  <div class="decor-link-extra">${decorLinkExtraHtml(d)}</div>
+                </div>
+              </div>
+              <div class="decor-add-image">＋ 添加轮播图片</div>
+              <div class="decor-config-title">权限管理</div>
+              <div class="form-row"><div class="form-label">可见范围</div><div class="radio-row"><label class="radio-item"><input class="radio" type="radio" name="decorVisible" checked>全部用户</label><label class="radio-item"><input class="radio" type="radio" name="decorVisible">对以下人群显示</label><label class="radio-item"><input class="radio" type="radio" name="decorVisible">对以下人群隐藏</label></div></div>
+            </div>
+          </div>
+        </div>`;
+    }
+    function componentSection(title, items) {
+      return `<div class="component-section-title">${title}</div><div class="component-grid">${items.map(item => `<div class="component-card ${item==='轮播'?'active':''}"><span class="component-icon ${item==='搜索栏'?'search':(item==='图标导航'?'nav':'')}"></span><span>${item}</span></div>`).join('')}</div>`;
+    }
+    function decorLinkOptions() {
+      return ['装修页','固定页面','品牌','后台分类','指定商品','我的小程序','其他小程序','h5链接','弹窗','视频号','数据引用','优惠券礼包','商品分组'];
+    }
+    function decorLinkExtraHtml(d) {
+      if (d.linkType !== '商品分组') return `<select class="select" style="width:100%;margin-top:10px;"><option>请选择</option></select>`;
+      const enabled = state.groups.filter(g => g.status === 'on');
+      return `<select class="select" style="width:100%;margin-top:10px;" onchange="updateDecorDraft('groupId', this.value)">
+        <option value="">请选择开启中的分组页</option>
+        ${enabled.map(g => `<option value="${g.id}" ${d.groupId===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}
+      </select><div class="muted" style="margin-top:8px;">商品分组仅支持选择 1 个开启中的分组页。</div>`;
+    }
+    function updateDecorLinkType(value) {
+      state.decorDraft.linkType = value;
+      if (value !== '商品分组') state.decorDraft.groupId = '';
+      persist(); renderDecorEditor();
+    }
+    function updateDecorDraft(key, value) {
+      state.decorDraft[key] = value;
+      persist();
+    }
+    function backToDecorList() {
+      state.activeTab = 'pageDecor';
+      state.page = 'pageDecor';
+      persist(); renderTabs(); renderPage();
+    }
+    function saveDecorDraft() {
+      upsertDecorPage('草稿');
+      showToast('草稿已保存', 'success');
+    }
+    function publishDecorPage() {
+      if (state.decorDraft.linkType === '商品分组' && !state.decorDraft.groupId) return showToast('请选择商品分组', 'error');
+      upsertDecorPage('已发布');
+      showToast('发布成功', 'success');
+    }
+    function upsertDecorPage(status) {
+      const d = state.decorDraft;
+      const existing = d.id && state.decorPages.find(p => p.id === d.id);
+      if (existing) {
+        existing.name = d.title || '新增装修页';
+        existing.status = status;
+        existing.updatedAt = nowText();
+      } else {
+        d.id = String(Date.now()).slice(-6);
+        state.decorPages.unshift({id:d.id, name:d.title || '新增装修页', type:'自定义页', status, updatedAt:nowText(), createdAt:nowText(), isHome:false});
+      }
+      persist();
+    }
+    function renderMiniProgramPage() {
+      const groups = state.groups;
+      if (!groups.length) {
+        document.getElementById('content').innerHTML = `<div class="mini-program-page"><div class="empty">暂无商品分组</div></div>`;
+        return;
+      }
+      if (!state.miniGroupId || !groups.some(g => g.id === state.miniGroupId)) state.miniGroupId = groups[0].id;
+      const current = groups.find(g => g.id === state.miniGroupId) || groups[0];
+      document.getElementById('content').innerHTML = `
+        <div class="mini-program-page">
+          <div class="mini-program-head">
+            <div>
+              <div class="mini-program-title">小程序分组</div>
+              <div class="mini-program-sub">查看后台分组配置在小程序端的实际展示效果，样式与配置商品预览保持一致。</div>
+            </div>
+          </div>
+          <div class="mini-program-body">
+            <div class="mini-group-list">
+              <div class="mini-list-title">选择分组</div>
+              ${groups.map(g => `<div class="mini-group-card ${g.id === current.id ? 'active' : ''}" onclick="selectMiniGroup('${g.id}')">
+                <div class="mini-group-name">${escapeHtml(g.name)}</div>
+                <div class="mini-group-meta"><span class="mini-status ${g.status === 'on' ? '' : 'off'}">${g.status === 'on' ? '启用' : '禁用'}</span><span>${g.subgroups.length || 0} 个子分组</span></div>
+              </div>`).join('')}
+            </div>
+            <div class="mini-program-stage">${phoneHtml(current)}</div>
+          </div>
+        </div>`;
+      persist();
+    }
+    function selectMiniGroup(id) {
+      state.miniGroupId = id;
+      activeSubgroupConfigKey = '';
+      persist();
+      renderMiniProgramPage();
+    }
+    function rowHtml(g) {
+      const subgroupText = subgroupSummary(g.subgroups);
+      const allSubgroups = g.subgroups.length ? g.subgroups.map((s, i) => `${i + 1}. ${escapeHtml(s)}`).join('<br>') : '<span class="muted">未配置</span>';
+      return `<tr data-group-id="${g.id}">
+        <td>${g.id.toUpperCase()}</td>
+        <td><span class="link" onclick="openGroupModal('${g.id}')">${escapeHtml(g.name)}</span></td>
+        <td>
+          <div class="subgroup-cell" onclick="toggleSubgroupPopover(event,this)">
+            <span class="subgroup-summary">${subgroupText}</span>
+            <div class="subgroup-popover">${allSubgroups}</div>
+          </div>
+        </td>
+        <td style="text-align:center;"><button class="switch ${g.status==='on'?'on':''}" title="${g.status==='on'?'启用':'禁用'}" onclick="toggleStatusDirect('${g.id}', this)"></button></td>
+        <td data-field="updated"><div>${escapeHtml(g.creator || '运营管理员')}</div><div class="muted">${g.updatedAt}</div></td>
+        <td><div>${escapeHtml(g.creator || '运营管理员')}</div><div class="muted">${g.createdAt}</div></td>
+        <td>
+          <div class="ops">
+            <span class="link" onclick="openGroupModal('${g.id}')">编辑分组</span>
+            <span class="link" onclick="ensureEditTab(state.groups.find(x=>x.id==='${g.id}'))">配置商品</span>
+            <span class="link" onclick="openPromotionModal('${g.id}')">推广</span>
+            <span class="link" onclick="openGroupLogModal('${g.id}')">日志</span>
+            <span class="link danger" onclick="confirmDelete('${g.id}')">删除</span>
+          </div>
+        </td>
+      </tr>`;
+    }
+    function subgroupSummary(subgroups) {
+      if (!subgroups.length) return '<span class="muted">未配置</span>';
+      const shown = subgroups.slice(0, 5).map(escapeHtml).join('、');
+      return subgroups.length > 5 ? shown + ' .....' : shown;
+    }
+    function toggleSubgroupPopover(event, el) {
+      event.stopPropagation();
+      document.querySelectorAll('.subgroup-cell.active').forEach(item => {
+        if (item !== el) item.classList.remove('active');
+      });
+      el.classList.toggle('active');
+    }
+    function escapeAttr(str) { return escapeHtml(str).replace(/"/g, '&quot;'); }
+    function applyFilters() {
+      state.filters = {name:document.getElementById('filterName').value.trim(), status:document.getElementById('filterStatus').value, creator:document.getElementById('filterCreator').value.trim()};
+      state.selectedIds = [];
+      persist(); renderListPage();
+    }
+    function resetFilters() { state.filters = {name:'',status:'',creator:''}; state.selectedIds = []; persist(); renderListPage(); }
+    function toggleRow(id, checked) {
+      state.selectedIds = checked ? [...new Set([...state.selectedIds, id])] : state.selectedIds.filter(x => x !== id);
+      persist(); renderListPage();
+    }
+    function toggleAllRows(checked) {
+      const ids = filteredGroups().map(g => g.id);
+      state.selectedIds = checked ? ids : [];
+      persist(); renderListPage();
+    }
+    function batchDelete() {
+      if (!state.selectedIds.length) return showToast('请先选择分组', 'error');
+      confirmHandler = () => {
+        state.groups = state.groups.filter(g => !state.selectedIds.includes(g.id));
+        state.selectedIds = [];
+        persist(); renderListPage(); showToast('已批量删除', 'success');
+      };
+      openConfirm('批量删除', '是否确认删除已选分组');
+    }
+    function toggleStatus(id) {
+      const g = state.groups.find(x => x.id === id);
+      const target = g.status === 'on' ? '关闭' : '开启';
+      confirmHandler = () => {
+        g.status = g.status === 'on' ? 'off' : 'on';
+        g.updatedAt = nowText();
+        persist(); renderListPage(); showToast('状态已更新', 'success');
+      };
+      openConfirm(target, `是否确认${target}，${target === '关闭' ? '关闭后前台将不展示' : '开启后前台可展示'}`);
+    }
+    function toggleStatusDirect(id, btn) {
+      const g = state.groups.find(x => x.id === id);
+      g.status = g.status === 'on' ? 'off' : 'on';
+      g.updatedAt = nowText();
+      persist();
+      if (btn) {
+        btn.classList.toggle('on', g.status === 'on');
+        btn.title = g.status === 'on' ? '启用' : '禁用';
+        const row = btn.closest('tr');
+        const updatedCell = row && row.querySelector('[data-field="updated"]');
+        if (updatedCell) updatedCell.innerHTML = `<div>${escapeHtml(g.creator || '运营管理员')}</div><div class="muted">${g.updatedAt}</div>`;
+      }
+      showToast(g.status === 'on' ? '已启用' : '已禁用', 'success');
+    }
+    function confirmDelete(id) {
+      confirmHandler = () => {
+        state.groups = state.groups.filter(g => g.id !== id);
+        state.selectedIds = state.selectedIds.filter(x => x !== id);
+        persist(); renderListPage(); showToast('已删除', 'success');
+      };
+      openConfirm('删除', '是否确认删除');
+    }
+    function openGroupLogModal(id) {
+      const g = state.groups.find(x => x.id === id);
+      if (!g) return showToast('分组不存在', 'error');
+      const logs = groupLogRows(g);
+      document.getElementById('groupLogBody').innerHTML = logs.map(log => `<tr>
+        <td>${log.id}</td>
+        <td>${escapeHtml(log.operator)}</td>
+        <td>${escapeHtml(log.desc)}</td>
+        <td>${log.tip ? `<span class="log-tip">${escapeHtml(log.tip)}</span>` : '-'}</td>
+        <td>${escapeHtml(log.time)}</td>
+      </tr>`).join('');
+      document.getElementById('groupLogCount').textContent = `共 ${logs.length} 条`;
+      openModal('groupLogModal');
+    }
+    function groupLogRows(g) {
+      const operator = g.creator || '运营管理员';
+      return [
+        {id:'100046', operator, desc:`新增商品分组【${g.name}】`, tip:'商品分组', time:g.createdAt || '2026-06-23 15:52:38'},
+        {id:'100047', operator, desc:`配置商品分组【${g.name}】商品`, tip:'商品配置', time:g.updatedAt || '2026-06-24 10:18:20'},
+        {id:'100048', operator, desc:`状态由【${g.status === 'on' ? '禁用' : '启用'}】改为【${g.status === 'on' ? '启用' : '禁用'}】`, tip:'状态', time:g.updatedAt || '2026-06-24 10:20:10'}
+      ].slice(0, g.id === 'g1' ? 3 : 1);
+    }
+    function openGroupModal(id) {
+      editingGroupId = id || null;
+      const g = id ? state.groups.find(x => x.id === id) : {name:'', subgroups:['']};
+      document.getElementById('groupModalTitle').textContent = id ? '编辑分组' : '新增分组';
+      document.getElementById('groupNameInput').value = g.name;
+      renderSubgroupEditor(g.subgroups.length ? g.subgroups : ['']);
+      openModal('groupModal');
+    }
+    function renderSubgroupEditor(items) {
+      document.getElementById('subgroupEditor').innerHTML = items.slice(0, 20).map((name, idx) => `<div class="sub-row"><input class="input" value="${escapeAttr(name)}" placeholder="请输入子分组名称"><button class="text-btn danger" onclick="removeSubgroup(${idx})">删除</button></div>`).join('');
+    }
+    function subgroupValues() { return [...document.querySelectorAll('#subgroupEditor input')].map(i => i.value.trim()).filter(Boolean); }
+    function subgroupRawValues() { return [...document.querySelectorAll('#subgroupEditor input')].map(i => i.value); }
+    function addSubgroup() {
+      const arr = subgroupRawValues();
+      if (arr.length >= 20) return showToast('子分组最多添加20个', 'error');
+      renderSubgroupEditor([...arr, '']);
+    }
+    function removeSubgroup(idx) {
+      const arr = [...document.querySelectorAll('#subgroupEditor input')].map(i => i.value);
+      arr.splice(idx, 1);
+      renderSubgroupEditor(arr.length ? arr : ['']);
+    }
+    function clearSubgroups() { renderSubgroupEditor(['']); }
+    function saveGroupModal() {
+      const name = document.getElementById('groupNameInput').value.trim();
+      if (!name) return showToast('请输入分组名称', 'error');
+      if (editingGroupId) {
+        const g = state.groups.find(x => x.id === editingGroupId);
+        g.name = name; g.subgroups = subgroupValues(); g.updatedAt = nowText();
+      } else {
+        const id = 'g' + Date.now();
+        state.groups.unshift({id, name, subgroups:subgroupValues(), productIds:[], status:'on', creator:'运营管理员', createdAt:nowText(), updatedAt:nowText(), config:{searchVisible:true,bgColor:'#ffffff',textColor:'#666666',searchButtonColor:'#b45be0',searchButtonTextColor:'#ffffff',searchBgImage:'',searchButtonImage:'',groupStyle:'horizontal',sort:'综合',listStyle:'double',showName:true,showPrice:true,showCart:true,source:'手动选择',category:'',visible:'全部用户'}, promotion:{shareTitle:`${name} 商品分组好礼推荐`, shareImage:'', posterImage:'', appLink:'', appPath:`otherPackage/invite/index?id=${String(Date.now()).slice(-6)}`}});
+      }
+      closeModal('groupModal');
+      persist(); renderListPage(); showToast('保存成功', 'success');
+    }
+    function renderEditPage() {
+      const g = currentGroup();
+      if (!g) { state.page = 'list'; renderListPage(); return; }
+      document.getElementById('content').innerHTML = `
+        <div class="edit-page">
+          <div class="edit-top">
+            <div><div class="back-title" onclick="backToList()">‹ 商品分组</div><div class="edit-note">用于展示商品分组，便于用户筛选商品，编辑后需点击保存生效。</div></div>
+            <button class="btn-primary" onclick="saveProductConfig()">保存</button>
+          </div>
+          <div class="editor-layout">
+            <div class="preview-pane">${phoneHtml(g)}</div>
+            <div class="config-pane">
+              <div class="config-tabs">
+                <div class="config-tab ${activeProductTab==='search'?'active':''}" onclick="switchConfigTab('search')">搜索栏</div>
+                <div class="config-tab ${activeProductTab==='product'?'active':''}" onclick="switchConfigTab('product')">分组商品</div>
+              </div>
+              <div id="configBody"></div>
+            </div>
+          </div>
+        </div>`;
+      renderConfigBody();
+    }
+    function phoneHtml(g) {
+      const c = g.config;
+      const previewKey = getActivePreviewKey(g);
+      const list = sortedProducts(g, previewKey);
+      const hasSubgroups = g.subgroups && g.subgroups.length > 0;
+      const filterItems = hasSubgroups ? ['全部', ...g.subgroups] : [];
+      const groupNav = c.groupStyle === 'vertical' || !hasSubgroups ? '' : `<div class="mp-group-horizontal">${filterItems.map((s)=>`<span class="${s===previewKey?'active':''}" onclick="switchPreviewSubgroup('${escapeAttr(s)}')">${escapeHtml(s)}</span>`).join('')}</div>`;
+      const leftTabs = c.groupStyle === 'vertical' && hasSubgroups ? `<div class="mp-left-tabs">${filterItems.map((s)=>`<div class="${s===previewKey?'active':''}" onclick="switchPreviewSubgroup('${escapeAttr(s)}')">${escapeHtml(s)}</div>`).join('')}</div>` : '';
+      const searchWrapStyle = `background-color:${c.bgColor || '#ffffff'};${c.searchBgImage ? `background-image:url('${c.searchBgImage}');` : ''}`;
+      const searchBtnStyle = `background-color:#b45be0;color:#ffffff;${c.searchButtonImage ? `background-image:url('${c.searchButtonImage}');` : ''}`;
+      return `<div class="phone"><div class="mp-page" style="background:${c.bgColor};color:${c.textColor}">
+        <div class="mp-statusbar"><span class="mp-notch"></span></div>
+        <div class="mp-nav"><span class="mp-back"></span><span>${escapeHtml(g.name)}</span><span class="mp-capsule"><span>···</span><span class="mp-capsule-dot"></span></span></div>
+        ${c.searchVisible ? `<div class="mp-search-wrap" style="${searchWrapStyle}"><div class="mp-search"><span class="mp-search-placeholder" style="color:${c.textColor || '#999'}">搜索文字</span><button class="mp-search-btn ${c.searchButtonImage ? 'has-image' : ''}" style="${searchBtnStyle}"><span>搜索</span></button></div></div>` : ''}
+        ${groupNav}
+        <div class="mp-main ${c.groupStyle === 'vertical' && hasSubgroups ? 'vertical' : ''}">${leftTabs}<div class="mp-content">
+          <div class="mp-sort">${['综合','销量','价格','新品'].map(s=>`<span class="${sortMatch(c.sort,s)?'active':''}">${s}</span>`).join('')}</div>
+          <div class="mp-products ${c.listStyle}">
+            ${list.map(p => `<div class="mp-product ${c.listStyle==='single'||c.listStyle==='scroll'?'single':''}">
+              <div class="mp-img"></div>
+              <div class="mp-info">
+                ${c.showName ? `<div class="mp-name">${escapeHtml(p.name)}</div>` : ''}
+                <div class="mp-price-row">
+                  ${c.showPrice ? `<div class="mp-price">￥${p.price.toFixed(2)}</div>` : '<span></span>'}
+                  ${c.showCart ? `<button class="buy-btn" aria-label="加入购物车"></button>` : ''}
+                </div>
+              </div>
+            </div>`).join('')}
+          </div>
+        </div></div>
+      </div></div>`;
+    }
+    function sortMatch(sort, label) { return sort === label || (label === '价格' && sort.includes('价格')); }
+    function getActivePreviewKey(g) {
+      const keys = subgroupKeys(g);
+      if (!activeSubgroupConfigKey || !keys.includes(activeSubgroupConfigKey)) activeSubgroupConfigKey = keys[0];
+      return activeSubgroupConfigKey;
+    }
+    function switchPreviewSubgroup(key) {
+      activeSubgroupConfigKey = key;
+      renderPage();
+    }
+    function sortedProducts(g, key = '') {
+      const c = g.config;
+      ensureSubgroupConfigs(g);
+      const activeKey = key || subgroupKeys(g)[0];
+      const cfg = c.subgroupConfigs[activeKey] || c.subgroupConfigs[subgroupKeys(g)[0]];
+      const ids = cfg && cfg.productIds && cfg.productIds.length ? cfg.productIds : g.productIds;
+      const list = products.filter(p => ids.includes(p.id));
+      if (c.sort === '新品') return list.sort((a,b)=>Number(b.isNew)-Number(a.isNew));
+      if (c.sort === '销量') return list.sort((a,b)=>b.sales-a.sales);
+      if (c.sort === '价格从高到低') return list.sort((a,b)=>b.price-a.price);
+      if (c.sort === '价格从低到高') return list.sort((a,b)=>a.price-b.price);
+      return list;
+    }
+    function switchConfigTab(tab) { activeProductTab = tab; renderEditPage(); }
+    function renderConfigBody() {
+      const g = currentGroup();
+      const c = g.config;
+      const body = document.getElementById('configBody');
+      if (activeProductTab === 'search') {
+        body.innerHTML = `<div class="section-title">搜索栏配置</div><div class="form-card search-config-card">
+          ${radioRow('显示配置', 'searchVisible', [{v:true,t:'显示'},{v:false,t:'隐藏'}], c.searchVisible)}
+          ${colorRow('背景颜色', 'bgColor', c.bgColor || '#ffffff')}
+          ${imageRow('背景图', 'searchBgImage', c.searchBgImage, '注：仅支持jpg/png，图片尺寸：建议宽600px，高800px')}
+          ${colorRow('文字颜色', 'textColor', c.textColor || '#666666')}
+          ${imageRow('搜索按钮图', 'searchButtonImage', c.searchButtonImage, '建议：宽166px，高60px')}
+        </div>`;
+      } else if (activeProductTab === 'product') {
+        ensureSubgroupConfigs(g);
+        body.innerHTML = `<div class="section-title">商品样式</div><div class="form-card">
+          ${segRow('分组筛选样式', 'groupStyle', [{v:'horizontal',t:'横向样式'},{v:'vertical',t:'左侧竖向'}], c.groupStyle)}
+          ${segRow('商品样式', 'listStyle', [{v:'double',t:'双列'},{v:'single',t:'单列展示'}], c.listStyle === 'scroll' ? 'single' : c.listStyle)}
+          ${checkRow('商品信息显示项', [{k:'showName',t:'商品名称'},{k:'showPrice',t:'商品价格'},{k:'showCart',t:'加购按钮'}], c)}
+        </div>
+        <div class="section-title">商品配置</div><div class="form-card">
+          ${renderSubgroupProductConfigs(g)}
+        </div>
+        ${renderPermissionConfig(c)}`;
+      } else {
+        activeProductTab = 'product';
+        renderConfigBody();
+      }
+    }
+    function renderPermissionConfig(c) {
+      return `<div class="section-title">权限配置</div><div class="form-card">
+        ${radioRow('可见范围', 'visible', [{v:'全部用户',t:'全部用户'},{v:'对以下人群显示',t:'对以下人群显示'},{v:'对以下人群隐藏',t:'对以下人群隐藏'}], c.visible)}
+        <div class="form-row"><div class="form-label">选择用户群</div><div><select class="select w500"><option>请选择用户群</option><option>高价值会员</option><option>新客用户</option><option>沉睡召回用户</option></select></div></div>
+      </div>`;
+    }
+    function radioRow(label, key, options, current) {
+      return `<div class="form-row"><div class="form-label">${label}</div><div class="radio-row">${options.map(o => `<label class="radio-item"><input class="radio" type="radio" name="${key}" ${String(current)===String(o.v)?'checked':''} onchange="updateConfig('${key}', ${typeof o.v === 'boolean' ? o.v : `'${o.v}'`})">${o.t}</label>`).join('')}</div></div>`;
+    }
+    function segRow(label, key, options, current) {
+      return `<div class="form-row"><div class="form-label">${label}</div><div class="seg-row">${options.map(o => `<button class="seg-btn ${current===o.v?'active':''}" onclick="updateConfig('${key}','${o.v}')">${o.t}</button>`).join('')}</div></div>`;
+    }
+    function colorRow(label, key, value) {
+      const resetValue = key === 'bgColor' ? '#ffffff' : '#666666';
+      const normalized = normalizeHex(value || resetValue);
+      return `<div class="form-row"><div class="form-label">${label}</div><div class="color-field" id="${key}ColorField">
+        <span class="color-swatch" style="background:${normalized}" onclick="toggleColorPicker(event,'${key}')"></span>
+        <input class="input" style="width:168px" value="${normalized}" onchange="updateConfig('${key}', normalizeHex(this.value))">
+        <button class="btn-secondary" onclick="updateConfig('${key}', '${resetValue}')">重置</button>
+        <div class="color-picker-pop" style="--picker-color:${normalized}">
+          <div class="color-plane"></div>
+          <input class="color-native" type="color" value="${normalized}" oninput="updateConfig('${key}', this.value)">
+          <div class="color-meta"><span>HEX</span><input class="input" value="${normalized.toUpperCase()}" onchange="updateConfig('${key}', normalizeHex(this.value))"><span class="muted">100%</span></div>
+        </div>
+      </div></div>`;
+    }
+    function normalizeHex(value) {
+      let v = String(value || '').trim();
+      if (!v) return '#000000';
+      if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9a-fA-F]{3}$/.test(v)) v = '#' + v.slice(1).split('').map(ch => ch + ch).join('');
+      if (!/^#[0-9a-fA-F]{6}$/.test(v)) return '#000000';
+      return v.toLowerCase();
+    }
+    function toggleColorPicker(event, key) {
+      event.stopPropagation();
+      const field = document.getElementById(key + 'ColorField');
+      document.querySelectorAll('.color-field.open').forEach(item => {
+        if (item !== field) item.classList.remove('open');
+      });
+      if (field) field.classList.toggle('open');
+    }
+    function imageRow(label, key, value, tip) {
+      const inputId = `${key}Input`;
+      const iconActions = value ? `<div class="image-icon-actions" onclick="event.stopPropagation()">
+        <button class="image-icon-btn eye" title="查看" onclick="previewConfigImage('${key}')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M5.5 12s2.4-3.5 6.5-3.5 6.5 3.5 6.5 3.5-2.4 3.5-6.5 3.5S5.5 12 5.5 12z"></path><circle cx="12" cy="12" r="1.8"></circle></svg>
+        </button>
+        <button class="image-icon-btn trash" title="删除" onclick="updateConfig('${key}', '')">
+          <svg viewBox="0 0 24 24"><path d="M7 8h10"></path><path d="M9 8V6h6v2"></path><path d="M8.5 8l.8 11h5.4l.8-11"></path><path d="M11 11v5"></path><path d="M13 11v5"></path></svg>
+        </button>
+      </div>` : '';
+      const uploader = `<input id="${inputId}" type="file" accept="image/*" style="display:none" onchange="uploadConfigImage('${key}', this)">
+        <div class="upload-box ${value ? 'has-preview' : ''}" style="${value ? `background-image:url('${value}')` : ''}" onclick="document.getElementById('${inputId}').click()"><div class="upload-placeholder"><div style="font-size:28px;color:#999;">＋</div><div>上传图片</div></div>${iconActions}</div>`;
+      if (key === 'searchButtonImage') {
+        return `<div class="form-row"><div class="form-label">${label}</div><div><div class="upload-wide">${uploader}<div class="size-inputs"><span>高</span><input class="disabled-input" disabled placeholder="上传图片后自动识别"><span>宽</span><input class="disabled-input" disabled placeholder="上传图片后自动识别"></div></div><div class="muted" style="margin-top:8px;">${tip}</div></div></div>`;
+      }
+      return `<div class="form-row"><div class="form-label">${label}</div><div>
+        ${uploader}
+        <div class="muted" style="margin-top:8px;">${tip}</div>
+      </div></div>`;
+    }
+    function checkRow(label, items, c) {
+      return `<div class="form-row"><div class="form-label">${label}</div><div class="check-row">${items.map(it => `<label class="check-item"><input class="check" type="checkbox" ${c[it.k]?'checked':''} onchange="updateConfig('${it.k}', this.checked)">${it.t}</label>`).join('')}</div></div>`;
+    }
+    function subgroupKeys(g) {
+      return g.subgroups && g.subgroups.length ? g.subgroups : ['全部'];
+    }
+    function ensureSubgroupConfigs(g) {
+      const c = g.config;
+      if (!c.subgroupConfigs) c.subgroupConfigs = {};
+      subgroupKeys(g).forEach((key, idx) => {
+        if (!c.subgroupConfigs[key]) {
+          c.subgroupConfigs[key] = {
+            source: c.source === '商品分类' ? '商品分类' : '手动选择',
+            productIds: idx === 0 ? [...(g.productIds || [])] : [],
+            categoryIds: c.category ? [c.category] : []
+          };
+        }
+      });
+    }
+    function renderSubgroupProductConfigs(g) {
+      ensureSubgroupConfigs(g);
+      const keys = subgroupKeys(g);
+      if (!activeSubgroupConfigKey || !keys.includes(activeSubgroupConfigKey)) activeSubgroupConfigKey = keys[0];
+      const key = activeSubgroupConfigKey;
+      const cfg = g.config.subgroupConfigs[key];
+      return `<div class="sub-config-tabs">
+          ${keys.map(item => `<button class="sub-config-tab ${item === key ? 'active' : ''}" onclick="switchSubgroupConfig('${escapeAttr(item)}')">${escapeHtml(item)}</button>`).join('')}
+        </div>
+        <div class="sub-config-block">
+          ${radioRow(`数据源类型`, `source_${escapeAttr(key)}`, [{v:'手动选择',t:'手动选择'},{v:'商品分类',t:'商品分类'}], cfg.source).replaceAll(`updateConfig('source_${escapeAttr(key)}'`, `updateSubgroupSource('${escapeAttr(key)}'`)}
+          ${cfg.source === '商品分类' ? categorySelectorHtml(key, cfg) : selectedProductListHtml(key, cfg)}
+        </div>`;
+    }
+    function switchSubgroupConfig(key) {
+      activeSubgroupConfigKey = key;
+      renderEditPage();
+    }
+    function selectedProductListHtml(key, cfg) {
+      const selected = products.filter(p => cfg.productIds.includes(p.id));
+      return `<div class="form-row"><div class="form-label">商品列表</div><div>
+        <div class="selected-goods-list">
+          ${selected.map((p, idx) => `<div class="selected-good-card">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="good-thumb"></span>
+            <span><div class="good-title">${escapeHtml(p.name)}</div><div class="good-price">￥${p.price.toFixed(2)}</div></span>
+            <span class="good-tools">
+              <button class="icon-link" ${idx===0?'disabled':''} onclick="moveSelectedProduct('${escapeAttr(key)}','${p.id}',-1)">⌃</button>
+              <button class="icon-link" ${idx===selected.length-1?'disabled':''} onclick="moveSelectedProduct('${escapeAttr(key)}','${p.id}',1)">⌄</button>
+              <button class="icon-link" onclick="removeSelectedProduct('${escapeAttr(key)}','${p.id}')">⌫</button>
+            </span>
+          </div>`).join('')}
+        </div>
+        <button class="add-goods-btn" onclick="openProductPicker('${escapeAttr(key)}')"><span style="font-size:18px;">＋</span>选择商品</button>
+      </div></div>`;
+    }
+    function categorySelectorHtml(key, cfg) {
+      const selectedIds = cfg.categoryIds || [];
+      const selectedNames = categoryNames(selectedIds);
+      return `<div class="form-row"><div class="form-label">选择分类</div><div class="category-multi">
+        <div class="category-select-head" onclick="toggleCategoryTree(event,this)">${selectedNames.length ? selectedNames.map(name => `<span class="cat-tag">${escapeHtml(name)} ×</span>`).join('') : '<span class="muted">请选择分类</span>'}</div>
+        <div class="category-tree ${selectedNames.length ? 'collapsed' : ''}">
+          ${categoryTree.map(cat => `<div class="cat-row"><span class="cat-arrow">${cat.children.length ? '⌄' : '›'}</span><input class="check ${isSomeChildrenSelected(cat, selectedIds) ? 'indeterminate' : ''}" type="checkbox" ${isCategoryChecked(cat, selectedIds)?'checked':''} onchange="toggleCategoryForSubgroup('${escapeAttr(key)}','${cat.id}',this.checked)"><span>${escapeHtml(cat.name)}</span></div>
+            ${cat.children.map(child => `<div class="cat-row child"><span class="cat-arrow">›</span><input class="check" type="checkbox" ${selectedIds.includes(child.id)?'checked':''} onchange="toggleCategoryForSubgroup('${escapeAttr(key)}','${child.id}',this.checked)"><span>${escapeHtml(child.name)}</span></div>`).join('')}`).join('')}
+        </div>
+      </div></div>`;
+    }
+    function categoryNames(ids) {
+      const names = [];
+      categoryTree.forEach(cat => {
+        if (ids.includes(cat.id)) names.push(cat.name);
+        cat.children.forEach(child => { if (ids.includes(child.id)) names.push(child.name); });
+      });
+      return names;
+    }
+    function isCategoryChecked(cat, selectedIds) {
+      if (cat.children.length) return cat.children.every(child => selectedIds.includes(child.id));
+      return selectedIds.includes(cat.id);
+    }
+    function isSomeChildrenSelected(cat, selectedIds) {
+      return cat.children.length && cat.children.some(child => selectedIds.includes(child.id)) && !isCategoryChecked(cat, selectedIds);
+    }
+    function updateSubgroupSource(key, value) {
+      const g = currentGroup();
+      ensureSubgroupConfigs(g);
+      g.config.subgroupConfigs[key].source = value;
+      g.updatedAt = nowText();
+      persist();
+      renderEditPage();
+    }
+    function moveSelectedProduct(key, productId, dir) {
+      const cfg = currentGroup().config.subgroupConfigs[key];
+      const idx = cfg.productIds.indexOf(productId);
+      const next = idx + dir;
+      if (idx < 0 || next < 0 || next >= cfg.productIds.length) return;
+      const ids = [...cfg.productIds];
+      [ids[idx], ids[next]] = [ids[next], ids[idx]];
+      cfg.productIds = ids;
+      persist();
+      renderEditPage();
+    }
+    function removeSelectedProduct(key, productId) {
+      const cfg = currentGroup().config.subgroupConfigs[key];
+      cfg.productIds = cfg.productIds.filter(id => id !== productId);
+      persist();
+      renderEditPage();
+    }
+    function toggleCategoryForSubgroup(key, catId, checked) {
+      const cfg = currentGroup().config.subgroupConfigs[key];
+      let ids = new Set(cfg.categoryIds || []);
+      const cat = categoryTree.find(item => item.id === catId);
+      const affected = cat && cat.children.length ? cat.children.map(child => child.id) : [catId];
+      affected.forEach(id => checked ? ids.add(id) : ids.delete(id));
+      cfg.categoryIds = [...ids];
+      persist();
+      renderEditPage();
+    }
+    function toggleCategoryTree(event, el) {
+      event.stopPropagation();
+      const tree = el.nextElementSibling;
+      if (tree) tree.classList.toggle('collapsed');
+    }
+    function selectedProductsHtml(g) {
+      const selected = products.filter(p => g.productIds.includes(p.id));
+      if (!selected.length) return '<div class="muted" style="margin-top:10px;">暂未选择商品</div>';
+      return `<div class="select-panel" style="margin-top:12px;"><table class="mini-table"><tbody>${selected.map(p => `<tr><td>${escapeHtml(p.name)}</td><td style="width:90px;">￥${p.price.toFixed(2)}</td><td style="width:70px;"><span class="link danger" onclick="removeProduct('${p.id}')">移除</span></td></tr>`).join('')}</tbody></table></div>`;
+    }
+    function updateConfig(key, value) {
+      const g = currentGroup();
+      g.config[key] = value;
+      g.updatedAt = nowText();
+      persist();
+      renderEditPage();
+    }
+    function uploadConfigImage(key, input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        updateConfig(key, String(reader.result || ''));
+        showToast('图片已上传并同步预览', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+    function previewConfigImage(key) {
+      const g = currentGroup();
+      const src = g && g.config ? g.config[key] : '';
+      if (!src) return showToast('暂无图片可查看', 'error');
+      document.getElementById('imagePreviewTarget').src = src;
+      openModal('imagePreviewOverlay');
+    }
+    function removeProduct(id) {
+      const g = currentGroup();
+      g.productIds = g.productIds.filter(x => x !== id);
+      persist(); renderEditPage();
+    }
+    function openProductPicker(key = '全部') {
+      activeProductConfigKey = key;
+      ensureSubgroupConfigs(currentGroup());
+      const cfg = currentGroup().config.subgroupConfigs[key] || { productIds: [] };
+      productDraftIds = [...(cfg.productIds || [])];
+      document.getElementById('productKeyword').value = '';
+      document.getElementById('productTypeFilter').value = '';
+      renderProductPicker();
+      openModal('productModal');
+    }
+    function renderProductPicker() {
+      const kw = document.getElementById('productKeyword').value.trim();
+      const type = document.getElementById('productTypeFilter').value;
+      const list = products.filter(p => (!kw || p.name.includes(kw) || p.id.includes(kw)) && (!type || p.type === type));
+      document.getElementById('productPickerBody').innerHTML = list.map(p => `<tr>
+        <td><input class="check product-check" type="checkbox" ${productDraftIds.includes(p.id)?'checked':''} onchange="toggleProductDraft('${p.id}', this.checked)"></td>
+        <td>${p.id}</td>
+        <td><span class="good-thumb"></span></td>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.type)}</td>
+        <td>￥${p.price.toFixed(2)}</td>
+        <td>${escapeHtml(p.category)}</td>
+      </tr>`).join('');
+      document.getElementById('selectedProductCount').textContent = `已选（${productDraftIds.length}）`;
+      const all = document.getElementById('productAllCheck');
+      const headAll = document.getElementById('productAllHeadCheck');
+      [all, headAll].forEach(box => {
+        if (!box) return;
+        box.checked = list.length > 0 && list.every(p => productDraftIds.includes(p.id));
+        box.classList.toggle('indeterminate', list.some(p => productDraftIds.includes(p.id)) && !box.checked);
+      });
+    }
+    function toggleProductDraft(id, checked) {
+      productDraftIds = checked ? [...new Set([...productDraftIds, id])] : productDraftIds.filter(x => x !== id);
+      renderProductPicker();
+    }
+    function toggleAllProducts() {
+      const kw = document.getElementById('productKeyword').value.trim();
+      const type = document.getElementById('productTypeFilter').value;
+      const list = products.filter(p => (!kw || p.name.includes(kw) || p.id.includes(kw)) && (!type || p.type === type));
+      const allSelected = list.every(p => productDraftIds.includes(p.id));
+      productDraftIds = allSelected ? productDraftIds.filter(id => !list.some(p => p.id === id)) : [...new Set([...productDraftIds, ...list.map(p => p.id)])];
+      renderProductPicker();
+    }
+    function confirmProducts() {
+      const g = currentGroup();
+      ensureSubgroupConfigs(g);
+      g.config.subgroupConfigs[activeProductConfigKey].productIds = [...productDraftIds];
+      if (activeProductConfigKey === subgroupKeys(g)[0]) g.productIds = [...productDraftIds];
+      g.updatedAt = nowText();
+      closeModal('productModal');
+      persist(); renderEditPage(); showToast('商品已更新', 'success');
+    }
+    function saveProductConfig() {
+      currentGroup().updatedAt = nowText();
+      persist();
+      showToast('商品配置保存成功', 'success');
+    }
+    function backToList() {
+      state.page = 'list';
+      state.activeTab = 'groupList';
+      if (!state.tabs.some(t => t.id === 'groupList')) state.tabs.push({id:'groupList', title:'商品分组', fixed:false});
+      persist(); renderTabs(); renderListPage();
+    }
+    function defaultPromotion(group) {
+      const suffix = String(Math.abs(hashCode(group.id || group.name || 'group'))).slice(0, 6).padStart(6, '0');
+      return {
+        shareTitle: `${group.name || '商品分组'} 好礼推荐`,
+        shareImage: '',
+        posterImage: '',
+        appLink: '',
+        appPath: `otherPackage/invite/index?id=${suffix}`
+      };
+    }
+    function ensurePromotion(group) {
+      if (!group) return;
+      group.promotion = Object.assign(defaultPromotion(group), group.promotion || {});
+    }
+    function hashCode(text) {
+      return String(text).split('').reduce((sum, ch) => ((sum << 5) - sum + ch.charCodeAt(0)) | 0, 0);
+    }
+    function openPromotionModal(id) {
+      const group = state.groups.find(g => g.id === id);
+      if (!group) return;
+      ensurePromotion(group);
+      promotionEditingId = id;
+      promotionTab = 'qrcode';
+      promotionDraft = JSON.parse(JSON.stringify(group.promotion));
+      renderPromotionModal();
+      openModal('promotionModal');
+    }
+    function switchPromotionTab(tab) {
+      promotionTab = tab;
+      renderPromotionModal();
+    }
+    function renderPromotionModal() {
+      const group = state.groups.find(g => g.id === promotionEditingId);
+      if (!group || !promotionDraft) return;
+      document.getElementById('promotionBody').innerHTML = `<div class="promo-layout">
+        <div class="promo-menu">
+          <div class="promo-menu-item ${promotionTab === 'qrcode' ? 'active' : ''}" onclick="switchPromotionTab('qrcode')">小程序<br>链接与二维码</div>
+          <div class="promo-menu-item ${promotionTab === 'setting' ? 'active' : ''}" onclick="switchPromotionTab('setting')">小程序<br>分享设置</div>
+        </div>
+        <div class="promo-content">
+          ${promotionTab === 'qrcode' ? promotionQrcodeHtml(group) : promotionSettingHtml(group)}
+        </div>
+      </div>`;
+      document.getElementById('promotionFooter').innerHTML = promotionTab === 'setting'
+        ? `<button class="btn-secondary" onclick="closeModal('promotionModal')">取消</button><button class="btn-primary" onclick="savePromotion()">保存</button>`
+        : `<button class="btn-secondary" onclick="closeModal('promotionModal')">关闭</button>`;
+    }
+    function promotionPosterHtml() {
+      const hasImage = !!promotionDraft.posterImage;
+      return `<div class="promo-poster ${hasImage ? 'has-image' : ''}" style="${hasImage ? `background-image:url('${promotionDraft.posterImage}')` : ''}">
+        ${hasImage ? '' : `<div class="promo-poster-title">邀请好友<br>共赢好礼</div><div class="promo-poster-ticket"></div>`}
+        <div class="promo-qr">小程序码</div>
+      </div>`;
+    }
+    function promotionQrcodeHtml(group) {
+      return `<div class="promo-qrcode-page">
+        <div>${promotionPosterHtml()}</div>
+        <div class="promo-sep"></div>
+        <div>
+          <div class="promo-field">
+            <label>小程序链接</label>
+            <div class="promo-copy-row"><input class="input" readonly value="${escapeAttr(promotionDraft.appLink || '')}"><button class="btn-secondary" onclick="copyPromotionValue('${escapeAttr(promotionDraft.appLink || '')}')">复制链接</button></div>
+          </div>
+          <div class="promo-field">
+            <label>小程序路径</label>
+            <div class="promo-copy-row"><input class="input" readonly value="${escapeAttr(promotionDraft.appPath)}"><button class="btn-secondary" onclick="copyPromotionValue('${escapeAttr(promotionDraft.appPath)}')">复制链接</button></div>
+          </div>
+          <div class="promo-downloads">
+            <button class="btn-secondary" onclick="downloadMiniCode('${escapeAttr(group.name)}')">＋ 下载小程序码</button>
+            <button class="btn-secondary" onclick="downloadPromotionPoster('${escapeAttr(group.name)}')">＋ 下载海报</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    function promotionSettingHtml(group) {
+      const shareImgStyle = promotionDraft.shareImage ? `background-image:url('${promotionDraft.shareImage}')` : '';
+      const posterStyle = promotionDraft.posterImage ? `background-image:url('${promotionDraft.posterImage}')` : '';
+      return `<div class="promo-setting-page">
+        <div>
+          <div class="share-preview-title">小程序分享卡片设置</div>
+          <div class="wechat-preview">
+            <div class="wechat-avatar"></div>
+            <div class="wechat-bubble">
+              <div class="wechat-brand">YOUO母婴商城</div>
+              <div class="wechat-title" id="wechatShareTitle">${escapeHtml(promotionDraft.shareTitle)}</div>
+              <div class="wechat-share-img" style="${shareImgStyle}">${promotionDraft.shareImage ? '' : '分享图片'}</div>
+              <div class="wechat-mini">小程序</div>
+            </div>
+          </div>
+        </div>
+        <div class="promo-sep" style="height:448px;"></div>
+        <div>
+          <div class="form-row">
+            <div class="form-label"><span class="promo-required">*</span>分享标题 <span class="promo-required">*</span></div>
+            <div><input class="input w500" maxlength="50" value="${escapeAttr(promotionDraft.shareTitle)}" placeholder="请输入分享标题，50字内" oninput="updatePromotionTitle(this.value)"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-label"><span class="promo-required">*</span>分享图 <span class="promo-required">*</span></div>
+            <div>
+              <input id="promoShareImageInput" type="file" accept="image/*" style="display:none" onchange="uploadPromotionImage('shareImage', this)">
+              <div class="promo-upload ${promotionDraft.shareImage ? 'has-image' : ''}" style="${shareImgStyle}" onclick="document.getElementById('promoShareImageInput').click()"><span>＋<br>上传图片</span></div>
+              <div class="muted" style="margin-top:8px;">分享图尺寸建议：宽高比例 5:4；适用于分享微信好友与微信朋友圈</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-label">海报</div>
+            <div>
+              <input id="promoPosterInput" type="file" accept="image/*" style="display:none" onchange="uploadPromotionImage('posterImage', this)">
+              <div class="promo-poster-thumb" style="${posterStyle}" onclick="document.getElementById('promoPosterInput').click()"></div>
+              <div class="muted" style="margin-top:8px;">分享图尺寸建议：宽高比例 750px*1080px；适用于分享海报</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+    function updatePromotionTitle(value) {
+      promotionDraft.shareTitle = value.slice(0, 50);
+      const title = document.getElementById('wechatShareTitle');
+      if (title) title.textContent = promotionDraft.shareTitle;
+    }
+    function uploadPromotionImage(key, input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        promotionDraft[key] = e.target.result;
+        renderPromotionModal();
+        showToast('图片已上传', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+    function copyPromotionValue(value) {
+      const text = value || '';
+      if (!text) { showToast('暂无可复制内容', 'error'); return; }
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('复制成功', 'success');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('复制成功', 'success')).catch(fallback);
+      } else fallback();
+    }
+    function downloadMiniCode(groupName) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220"><rect width="220" height="220" fill="#fff"/><rect x="18" y="18" width="54" height="54" fill="#111"/><rect x="148" y="18" width="54" height="54" fill="#111"/><rect x="18" y="148" width="54" height="54" fill="#111"/><path d="M96 28h18v18H96zM124 48h18v18h-18zM92 92h18v18H92zM126 96h40v18h-40zM92 126h18v42H92zM128 132h18v18h-18zM156 150h34v18h-34zM118 176h18v18h-18z" fill="#111"/></svg>`;
+      downloadBlob(svg, `${groupName || '商品分组'}-小程序码.svg`, 'image/svg+xml');
+      showToast('已下载小程序码', 'success');
+    }
+    function downloadPromotionPoster(groupName) {
+      if (promotionDraft.posterImage) {
+        const a = document.createElement('a');
+        a.href = promotionDraft.posterImage;
+        a.download = `${groupName || '商品分组'}-推广海报.png`;
+        a.click();
+      } else {
+        downloadBlob('邀请好友，共赢好礼\n小程序码：' + promotionDraft.appPath, `${groupName || '商品分组'}-推广海报.txt`, 'text/plain');
+      }
+      showToast('已下载海报', 'success');
+    }
+    function downloadBlob(content, filename, type) {
+      const blob = new Blob([content], {type});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+    function savePromotion() {
+      const group = state.groups.find(g => g.id === promotionEditingId);
+      if (!group || !promotionDraft) return;
+      if (!promotionDraft.shareTitle.trim()) { showToast('请输入分享标题', 'error'); return; }
+      group.promotion = JSON.parse(JSON.stringify(promotionDraft));
+      group.updatedAt = nowText();
+      persist();
+      renderListPage();
+      showToast('推广设置已保存', 'success');
+      closeModal('promotionModal');
+    }
+    function openConfirm(title, desc) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmDesc').textContent = desc;
+      openModal('confirmOverlay');
+    }
+    function runConfirm() {
+      closeModal('confirmOverlay');
+      if (confirmHandler) confirmHandler();
+      confirmHandler = null;
+    }
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    function closeTopOverlay() { document.querySelectorAll('.modal-overlay.show').forEach(ov => ov.classList.remove('show')); }
+    function showToast(msg, type='info') {
+      const wrap = document.getElementById('toastWrap');
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), type === 'error' ? 5000 : 2000);
+    }
+    function nowText() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    init();
+  </script>
+</body>
+</html>
