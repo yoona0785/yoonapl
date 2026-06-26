@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户限购原型</title>
+  <style>
+    :root{
+      --primary:#051D86;--primary-hover:#3347a8;--primary-light:#EBF0FF;
+      --text-title:#17233d;--text-main:#515a6e;--text-sub:rgba(0,0,0,.45);--text-hint:#c5c8ce;
+      --border:#dcdee2;--border-inner:#e8eaec;--bg-page:#f5f7f9;--bg-white:#fff;--bg-table:#f8f8f9;
+      --warn:#ff9900;--error:#ed4014;--success:#19be6b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Helvetica Neue",Helvetica,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--text-main);font-size:14px;background:var(--bg-page)}
+    button,input,select,textarea{font-family:inherit}
+    .workbench{height:100vh;display:flex;background:#fff;overflow:hidden}
+    .logic-collapsed{width:50px;border-right:1px solid var(--border-inner);display:flex;align-items:center;justify-content:center;background:#fff;cursor:pointer;color:var(--primary);letter-spacing:1px}
+    .logic-collapsed span{writing-mode:vertical-rl}
+    .logic-panel{width:40%;border-right:1px solid var(--border-inner);background:#fff;display:none;flex-direction:column;min-width:520px}
+    .workbench.logic-open .logic-panel{display:flex}
+    .workbench.logic-open .logic-collapsed{display:none}
+    .logic-head{height:48px;border-bottom:1px solid var(--border-inner);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+    .logic-title{font-size:16px;font-weight:600;color:var(--text-title)}
+    .logic-actions{display:flex;align-items:center;gap:12px}
+    .text-btn{border:0;background:transparent;color:var(--primary);cursor:pointer;padding:0;font-size:13px}
+    .logic-source{padding:10px 18px;color:var(--text-sub);font-size:12px;background:#f9fafc;border-bottom:1px solid var(--border-inner)}
+    .logic-doc{padding:24px 34px;overflow:auto;line-height:1.72}
+    .logic-doc h1{font-size:20px;color:var(--text-title);margin:0 0 18px}
+    .logic-doc h2{font-size:16px;color:var(--text-title);margin:24px 0 10px;border-left:3px solid var(--primary);padding-left:10px}
+    .logic-doc h3{font-size:14px;color:var(--text-title);margin:18px 0 8px}
+    .logic-doc ul{padding-left:20px;margin:8px 0}
+    .logic-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}
+    .logic-doc th,.logic-doc td{border:1px solid var(--border-inner);padding:8px;text-align:left}
+    .stage{flex:1;min-width:0;background:var(--bg-page);overflow:hidden}
+    .admin{height:100%;display:flex;flex-direction:column;background:var(--bg-page)}
+    .topnav{height:48px;display:flex;align-items:stretch;background:#fff;border-bottom:1px solid var(--border-inner);flex:0 0 auto}
+    .logo{width:160px;display:flex;align-items:center;padding:0 22px;font-size:15px;font-weight:700;color:var(--primary);border-right:1px solid var(--border-inner);white-space:nowrap}
+    .toggle{width:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#666}
+    .tabs{flex:1;display:flex;align-items:stretch;overflow:auto}
+    .top-tab{height:48px;display:flex;align-items:center;padding:0 16px;gap:8px;color:#666;border-right:1px solid #f0f0f0;position:relative;white-space:nowrap;cursor:pointer;font-size:13px}
+    .top-tab.active{color:var(--primary);font-weight:600}
+    .top-tab.active:after{content:"";height:2px;background:var(--primary);position:absolute;left:14px;right:14px;bottom:0}
+    .tab-x{color:#999}
+    .nav-right{width:174px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding-right:18px;color:#666}
+    .badge{min-width:22px;height:14px;background:var(--primary);color:#fff;border-radius:7px;font-size:12px;line-height:14px;text-align:center}
+    .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(160deg,#6387ff,#051D86);position:relative}
+    .body{display:flex;min-height:0;flex:1}
+    .sidebar{width:160px;flex:0 0 160px;background:#fff;border-right:1px solid var(--border-inner);transition:.2s;overflow:hidden}
+    .admin.side-mini .sidebar{width:44px;flex-basis:44px}
+    .sb-search{padding:16px 12px 10px}
+    .admin.side-mini .sb-search{display:none}
+    .sb-search input{width:100%;height:30px;border:1px solid var(--border-inner);border-radius:15px;padding:0 12px;color:var(--text-main);outline:none;font-size:12px}
+    .menu-scroll{height:calc(100% - 58px);overflow:auto;padding-bottom:16px}
+    .m1{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;cursor:pointer;color:#333}
+    .m1:hover,.m1.open{background:#f0f3ff;color:var(--primary)}
+    .folder{width:14px;height:12px;border:1.5px solid currentColor;border-radius:2px;position:relative;flex:0 0 auto}
+    .folder:before{content:"";position:absolute;width:6px;height:3px;border:1.5px solid currentColor;border-bottom:0;left:1px;top:-5px;border-radius:2px 2px 0 0}
+    .m1-label{flex:1;white-space:nowrap}
+    .arrow{transition:.2s}.m1.open .arrow{transform:rotate(90deg)}
+    .m2-wrap{display:block}
+    .m2{height:32px;display:flex;align-items:center;margin:0 8px;padding:0 8px 0 32px;color:#666;font-size:12px;cursor:pointer;border-radius:3px;white-space:nowrap}
+    .m2:hover,.m2.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+    .admin.side-mini .m1{justify-content:center;padding:0}.admin.side-mini .m1-label,.admin.side-mini .arrow,.admin.side-mini .m2-wrap{display:none}
+    .sb-empty{display:none;padding:18px;color:#999;font-size:12px}
+    .content{flex:1;min-width:0;overflow:auto;padding:0 0 18px}
+    .panel{margin:0 0 0 0;background:#fff;min-height:calc(100vh - 48px);padding:20px 26px 0}
+    .module-tabs{height:42px;display:flex;gap:28px;align-items:flex-start;border-bottom:1px solid var(--border-inner);margin-bottom:18px}
+    .module-tab{height:42px;line-height:34px;color:#666;cursor:pointer;position:relative}
+    .module-tab.active{color:var(--primary);font-weight:600}
+    .module-tab.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--primary)}
+    .toolbar{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}
+    .filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .field{display:flex;align-items:center;gap:8px;color:#666}
+    .input,.select{height:32px;border:1px solid var(--border);border-radius:4px;background:#fff;padding:0 8px;outline:none;color:var(--text-main);font-size:13px}
+    .input{width:160px}.select{width:132px}
+    .input:focus,.select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.12)}
+    .icon-search{width:32px;height:32px;border:1px solid var(--border);background:#fff;border-radius:4px;cursor:pointer;color:#333;font-size:16px}
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn-primary,.btn-default,.btn-small{height:32px;border-radius:4px;padding:0 15px;cursor:pointer;font-size:14px}
+    .btn-primary{border:0;background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover)}
+    .btn-default{border:1px solid var(--border);background:#fff;color:var(--text-main)}.btn-default:hover{border-color:var(--primary);color:var(--primary)}
+    .btn-small{height:28px;padding:0 10px;border:1px solid var(--border);background:#fff;color:var(--text-main)}
+    .table-wrap{border-top:1px solid var(--border-inner);background:#fff}
+    table{border-collapse:collapse;width:100%;table-layout:fixed}
+    th{height:40px;background:#f8f8f9;color:#515a6e;font-weight:600;font-size:13px;text-align:left;padding:0 14px;border-bottom:1px solid var(--border-inner)}
+    td{height:68px;padding:10px 14px;border-bottom:1px solid #f2f2f2;font-size:13px;color:#515a6e;vertical-align:middle}
+    tr:hover td{background:#f9fbff}
+    tr.selected td{background:var(--primary-light)}
+    .rule-name{color:var(--primary);cursor:pointer}.rule-name:hover{text-decoration:underline}
+    .subline{font-size:12px;color:#999;margin-top:4px}
+    .tag{display:inline-flex;height:22px;align-items:center;justify-content:center;border-radius:3px;padding:0 6px;font-size:12px;margin:2px 4px 2px 0;background:#f5f5f5;color:#666}
+    .tag.on{background:#e8fff0;color:#14a94d}.tag.warn{background:#fff3e5;color:#ff8a00}.tag.off{background:#f5f5f5;color:#999}
+    .source-tag{display:inline-flex;color:#00a6ff;font-size:12px;font-weight:600;margin-top:4px}
+    .review-avatar{width:22px;height:22px;border-radius:50%;display:inline-flex;background:#ddd;vertical-align:middle;margin-right:8px}
+    .review-img{width:54px;height:54px;border-radius:4px;border:1px solid #eee;background:linear-gradient(135deg,#fff2f2,#e8e7ff);display:inline-flex;align-items:center;justify-content:center;color:var(--primary);font-size:12px;margin-right:8px}
+    .switch{width:32px;height:18px;border-radius:9px;background:#c9cdd1;display:inline-flex;align-items:center;padding:2px;cursor:pointer;transition:.18s}
+    .switch:after{content:"";width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.16);transition:.18s}
+    .switch.on{background:var(--primary)}
+    .switch.on:after{transform:translateX(14px)}
+    .op{color:var(--primary);background:transparent;border:0;cursor:pointer;padding:0;margin-right:8px;font-size:13px}
+    .op.danger{color:#ff0000}
+    .more{display:inline-block;color:var(--primary);cursor:pointer;padding:2px 5px}
+    .bottom-bar{height:48px;border-top:1px solid var(--border-inner);display:flex;align-items:center;justify-content:space-between;padding:0 0 0 0;margin-top:0}
+    .bottom-left,.pager{display:flex;align-items:center;gap:10px;color:#666;font-size:13px}
+    .page-num{min-width:28px;height:28px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center}.page-num.active{background:var(--primary);color:#fff}
+    .empty{height:220px;display:flex;align-items:center;justify-content:center;color:#aaa;flex-direction:column;border-bottom:1px solid #f2f2f2}
+    .empty-box{width:44px;height:32px;border:1px solid #ddd;border-radius:4px;margin-bottom:10px;position:relative}.empty-box:before{content:"";position:absolute;top:-8px;left:10px;width:22px;height:10px;border:1px solid #ddd;border-bottom:0;border-radius:6px 6px 0 0;background:#fff}
+    .checkbox{width:16px;height:16px;border:1px solid #c9d0e0;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;background:#fff;cursor:pointer;vertical-align:middle}
+    .checkbox.checked,.checkbox.indeterminate{background:var(--primary);border-color:var(--primary)}
+    .checkbox.checked:after{content:"";width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);margin-top:-2px}
+    .checkbox.indeterminate:after{content:"";width:8px;height:2px;background:#fff}
+    .form-page{background:#fff;min-height:calc(100vh - 48px)}
+    .form-top{height:54px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-inner);padding:0 26px}
+    .back{color:#333;cursor:pointer}.back:before{content:"‹";font-size:24px;vertical-align:-2px;margin-right:6px;color:#333}
+    .form-layout{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:16px;padding:24px 26px 40px}
+    .form-main{min-width:0}
+    .section{scroll-margin-top:16px;margin-bottom:30px}
+    .sec-title{font-size:15px;color:var(--text-title);font-weight:600;border-left:3px solid var(--primary);padding-left:10px;margin-bottom:14px}
+    .card{border:1px solid var(--border-inner);border-radius:6px;background:#fff;padding:20px 24px}
+    .form-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:flex-start;margin-bottom:16px;min-height:36px}
+    .form-row:last-child{margin-bottom:0}
+    .label{height:36px;line-height:36px;color:#666}.label.req:after{content:" *";color:#ff0000}
+    .control .input,.control .select{width:500px;height:36px}
+    textarea.input{height:auto;min-height:96px;padding-top:8px;resize:vertical}
+    .seg{display:inline-flex;border-radius:4px}
+    .seg button{width:125px;height:36px;border:1px solid var(--border);background:#fff;color:var(--text-main);cursor:pointer}
+    .seg button+button{border-left:0}.seg button.active{background:var(--primary-light);border-color:var(--primary);color:var(--primary);position:relative;z-index:1}
+    .radio-row{height:36px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+    .radio{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:#515a6e}
+    .dot{width:14px;height:14px;border:1px solid #c9d0e0;border-radius:50%;display:inline-block;position:relative}
+    .radio.active .dot{border-color:var(--primary)}.radio.active .dot:after{content:"";position:absolute;width:8px;height:8px;background:var(--primary);border-radius:50%;left:2px;top:2px}
+    .helper{font-size:12px;color:#999;margin-top:6px}
+    .selected-box{width:500px;min-height:36px;border:1px solid var(--border);border-radius:4px;padding:6px 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .product-list{width:330px}
+    .product-list-title{font-size:13px;color:#666;margin-bottom:10px}
+    .product-card{height:58px;border:1px solid var(--border-inner);border-radius:4px;margin-bottom:8px;display:grid;grid-template-columns:18px 42px minmax(0,1fr) 54px;align-items:center;gap:8px;padding:8px;background:#fff}
+    .drag-dot{color:#bbb;font-size:18px;line-height:1}
+    .product-img{width:38px;height:38px;border-radius:3px;border:1px solid #f0f0f0;background:linear-gradient(135deg,#fff4f4,#dff0ff);display:flex;align-items:center;justify-content:center;color:#051D86;font-size:12px}
+    .product-info{min-width:0}.product-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#333;font-size:13px}.product-price{color:#ff4100;font-size:12px;margin-top:4px}
+    .product-ops{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:#666}.product-ops button{border:0;background:transparent;color:#666;cursor:pointer;padding:0;font-size:16px}
+    .add-product{width:330px;height:30px;border:1px dashed var(--border);background:#fff;border-radius:4px;color:#515a6e;cursor:pointer}
+    .multi-select{position:relative;width:500px}
+    .multi-display{min-height:36px;border:1px solid var(--border);border-radius:4px;padding:4px 28px 4px 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;cursor:pointer;background:#fff}
+    .multi-display:after{content:"⌄";position:absolute;right:10px;top:8px;color:#bbb}
+    .multi-select.open .multi-display{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.12)}
+    .multi-menu{display:none;position:absolute;top:40px;left:0;width:315px;max-height:250px;overflow:auto;background:#fff;border:1px solid var(--border-inner);box-shadow:0 2px 8px rgba(0,0,0,.12);border-radius:4px;z-index:20;padding:8px 0}
+    .multi-select.open .multi-menu{display:block}
+    .multi-option{height:28px;display:flex;align-items:center;gap:8px;padding:0 12px;cursor:pointer;font-size:13px;color:#515a6e}.multi-option:hover{background:#f9fafc}
+    .tree-option{padding-left:12px}.tree-option.child{padding-left:34px}.tree-caret{width:12px;color:#666}.select-placeholder{color:#c5c8ce;font-size:13px}
+    .user-input-row{display:flex;align-items:flex-end;gap:14px}
+    .user-textarea{width:360px!important;min-height:92px!important}
+    .selector-img{width:36px;height:36px;border-radius:3px;border:1px solid #eee;background:linear-gradient(135deg,#fff2f2,#e8f3ff);display:flex;align-items:center;justify-content:center;color:#051D86;font-size:12px}
+    .anchor{position:sticky;top:16px;align-self:start;border-left:1px solid #f2f2f2;padding:0 0 0 0}
+    .anchor a{display:block;height:32px;line-height:32px;padding-left:14px;color:#666;text-decoration:none;font-size:13px;border-left:2px solid transparent;margin-left:-1px}
+    .anchor a.active{color:var(--primary);border-left-color:var(--primary);font-weight:600}
+    .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:1000;align-items:center;justify-content:center}
+    .modal-mask.show{display:flex}
+    .modal{width:880px;max-width:calc(100vw - 80px);background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.16);overflow:hidden}
+    .modal.sm{width:390px}.modal.lg{width:860px}
+    .modal-head{height:52px;border-bottom:1px solid var(--border-inner);display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:16px;color:var(--text-title);font-weight:600}
+    .modal-close{font-size:20px;color:#999;cursor:pointer}
+    .modal-body{padding:18px;max-height:560px;overflow:auto}
+    .modal-foot{height:56px;border-top:1px solid var(--border-inner);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 18px}
+    .modal-toolbar{display:flex;gap:10px;margin-bottom:12px}
+    .selector-foot{height:44px;border:1px solid var(--border-inner);border-top:0;border-radius:0 0 4px 4px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+    .confirm-body{padding:20px 22px 14px}.confirm-row{display:flex;gap:10px;align-items:center;color:#333;font-weight:600}
+    .confirm-icon{width:20px;height:20px;background:#ff7800;color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+    .confirm-desc{margin-left:30px;margin-top:8px;color:#666;font-size:13px;line-height:22px}
+    .dropdown{position:fixed;z-index:9999;display:none;background:#fff;border:1px solid #e8ecf0;border-radius:4px;min-width:96px;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+    .dropdown div{padding:9px 16px;font-size:13px;cursor:pointer;color:#515a6e;white-space:nowrap}.dropdown div:hover{background:#f0f3ff;color:var(--primary)}.dropdown .danger{color:#ff0000}.dropdown .danger:hover{background:#fff0f0;color:#ff0000}
+    .toast-wrap{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:8px}
+    .toast{height:36px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--success);color:#135200;border-radius:4px;padding:0 14px;box-shadow:0 2px 10px rgba(0,0,0,.08);font-size:13px}
+    .toast.error{border-color:var(--error);color:var(--error)}.toast.info{border-color:#c8d4f8;color:var(--primary)}
+    .more-row{display:none}.more-row.show{display:flex}
+    .limit-combo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .limit-combo .input{width:88px;height:36px}.limit-combo .select{height:36px;width:112px}
+    @media(max-width:1200px){.logic-panel{min-width:460px}.control .input,.control .select,.selected-box{width:420px}.form-layout{grid-template-columns:minmax(0,1fr)}.anchor{display:none}}
+  </style>
+</head>
+<body>
+  <div class="workbench" id="workbench">
+    <aside class="logic-collapsed" onclick="toggleLogic(true)"><span>展开逻辑</span></aside>
+    <aside class="logic-panel">
+      <div class="logic-head">
+        <div class="logic-title">用户限购业务逻辑</div>
+        <div class="logic-actions">
+          <button class="text-btn" onclick="document.getElementById('docInput').click()">同步本地文档</button>
+          <button class="text-btn" onclick="toggleLogic(false)">收起逻辑</button>
+          <input id="docInput" type="file" accept=".md,.markdown,.txt" style="display:none" />
+        </div>
+      </div>
+      <div class="logic-source" id="logicSource">来源：当前目录「用户限购需求文档.md」+ 本次需求描述补全</div>
+      <div class="logic-doc" id="logicDoc"></div>
+    </aside>
+    <main class="stage">
+      <div class="admin" id="admin">
+        <div class="topnav">
+          <div class="logo">私域运营平台</div>
+          <div class="toggle" onclick="toggleSidebar()">☰</div>
+          <div class="tabs" id="topTabs"></div>
+          <div class="nav-right"><span class="badge">17</span><span>↧</span><span class="avatar"></span><span>⌄</span></div>
+        </div>
+        <div class="body">
+          <aside class="sidebar">
+            <div class="sb-search"><input id="menuSearch" placeholder="搜索关键字" oninput="filterMenu()" /></div>
+            <div class="sb-empty" id="sbEmpty">暂无匹配报表</div>
+            <div class="menu-scroll" id="menuScroll"></div>
+          </aside>
+          <section class="content" id="content"></section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="dropdown" id="rowDrop"></div>
+  <div class="toast-wrap" id="toastWrap"></div>
+  <div class="modal-mask" id="modalMask"></div>
+
+  <script>
+    const LS_DOC='upl_logic_doc_v4', LS_DOC_NAME='upl_logic_doc_name_v4', LS_DATA='upl_data_v1';
+    const defaultLogic = `# 页面路径
+用户中心 / 用户管理
+用户中心 / 用户限购
+内容中心 / 商品评价
+
+# 原型链接
+- [打开用户限购及运营原型 HTML](file:///Users/dapiaoliang/Documents/AI%20Design/%E7%A7%81%E5%9F%9FSaaS/2.14%20%E7%94%A8%E6%88%B7%E9%99%90%E8%B4%AD/user-purchase-limit-prototype.html)
+
+# 流程状态
+- 左侧菜单仅保留本期调整模块：用户中心-用户管理、用户中心-用户限购、内容中心-商品评价。
+- 用户限购为用户中心下新增菜单，用于管理商品屏蔽规则与商品限购规则。
+- 商品屏蔽命中后，商品在列表、搜索等入口对命中用户不可见；若用户通过旧链接或缓存点击商品，前端提示“商品已下架”。
+- 商品限购命中后，商品仍可见，但下单数量需按规则校验，超过限制时阻断购买并提示限购原因。
+- 用户管理列表新增导入积分入口，支持模板下载、文件上传、解析校验和保存导入。
+- 商品评价列表新增导入评价入口，支持模板下载、文件上传、解析校验和保存导入。
+
+# 列表逻辑
+- 用户管理列表字段：用户ID、用户昵称、用户手机号、性别、生日、当前阶段、来源渠道、邀请渠道、邀请人、注册时间、上次消费时间、三方编码、操作。
+- 用户管理支持用户ID/手机号、用户昵称、用户性别、当前阶段筛选，支持导出和导入积分。
+- 商品评价列表字段：提交内容、商品信息、订单编号、评分、评价区状态、操作。
+- 商品评价提交内容字段展示评价来源标签：首次评价、追加评价、导入评价。
+- 商品评价更多搜索支持评价来源下拉筛选：首次评价、追加评价、导入评价。
+- 用户限购页面顶部使用 Tab 切换：商品屏蔽、商品限购。
+- 商品屏蔽列表字段：规则名称、屏蔽人群、状态、创建时间、更新时间、操作。
+- 商品限购列表字段：规则名称、限购人群、状态、创建时间、更新时间、操作。
+- 商品屏蔽/商品限购列表均支持按规则名称、状态、创建日期筛选。
+- 商品屏蔽/商品限购列表操作为：编辑、日志、删除；状态通过列表开关启停。
+- 商品屏蔽/商品限购列表不提供导出和批量操作。
+
+# 表单逻辑
+- 新建/编辑从当前 Tab 进入对应表单：商品屏蔽 Tab 进入商品屏蔽表单，商品限购 Tab 进入商品限购表单，表单内不再切换规则类型。
+- 新建默认启用，表单不展示规则类型和规则状态。
+- 表单字段包含：规则名称、商品范围、商品列表/商品分类、适用人群。
+- 手动选择时字段为商品列表，点击选择商品打开商品选择弹窗；已选商品支持上移、下移、删除。
+- 商品分类使用下拉多选，选择后或点击空白处收起。
+- 指定人群、指定标签使用下拉多选。
+- 指定用户使用多行输入框，支持点击查看用户打开用户信息弹窗。
+- 商品限购额外配置限购设置：终身限购、按单限购、按周期限购；周期支持每天、每月、指定周期。
+
+# 列表交互
+- 新建保存后新增规则并回到对应 Tab。
+- 编辑保存后更新当前规则并回到列表。
+- 删除确认后从列表移除规则；启用/停用会更新规则状态与更新时间。
+- 点击日志展示操作日志表格。
+- 用户管理导入积分：点击下载模板生成 CSV，字段为用户ID、积分数量、变更说明；上传 CSV 后解析表头与行数据，展示成功/失败结果；全部校验通过后点击保存提示导入积分成功。
+- 商品评价导入评价：点击下载模板生成 CSV，字段为头像、昵称、商品ID、评价内容、评价图片、商品评分、物流配送、平台服务、评价区状态；上传 CSV 后解析表头与行数据，展示成功/失败结果；全部校验通过后点击保存提示导入评价成功并新增导入评价记录。
+- 后台导入评价的用户手机号、用户ID为空；商品信息按商品ID从商品库获取，获取不到显示“-”；订单编号为“-”。`;
+
+    const menus=[
+      ['用户中心',['用户管理','用户限购']],
+      ['内容中心',['商品评价']]
+    ];
+    const seedData={
+      block:[
+        {id:'B20260625001',name:'高客单数码商品屏蔽',productMode:'手动选择',products:['Apple Watch S10','高端蓝牙耳机'],categories:[],audienceType:'指定标签',audiences:['低活跃用户','未实名用户'],status:'启用',created:'2026-06-21 10:18:32',updated:'2026-06-25 09:20:15',logs:[]},
+        {id:'B20260618002',name:'酒水类商品区域屏蔽',productMode:'商品分类',products:[],categories:['酒水饮料'],audienceType:'指定人群',audiences:['未成年风险人群'],status:'停用',created:'2026-06-18 15:44:09',updated:'2026-06-22 11:06:41',logs:[]}
+      ],
+      limit:[
+        {id:'L20260624001',name:'热门兑换商品每单限购',productMode:'手动选择',products:['积分保温杯','露营折叠椅'],categories:[],audienceType:'全部',audiences:['全部用户'],limitType:'按单限购',period:'',periodDays:'',limitQty:2,status:'启用',created:'2026-06-24 14:12:20',updated:'2026-06-25 10:33:18',logs:[]},
+        {id:'L20260616002',name:'生鲜品类每月限购',productMode:'商品分类',products:[],categories:['生鲜食品'],audienceType:'指定用户',audiences:['138****9021','186****5330'],limitType:'按周期限购',period:'每月',periodDays:'',limitQty:5,status:'启用',created:'2026-06-16 09:05:12',updated:'2026-06-23 18:15:00',logs:[]}
+      ]
+    };
+    let db=loadData(), state={page:'reviewManage',activeTab:'block',editing:null,selected:new Set(),filters:{name:'',audience:'',status:'',productMode:'',created:''},userFilters:{keyword:'',nick:'',gender:'',stage:''},reviewFilters:{content:'',status:'',method:'',reply:'',source:''},importedReviews:[],more:false,form:null,selector:null,confirm:null};
+    const productPool=[
+      {id:'105573',name:'白地球Earth地球系列纸巾',type:'普通',price:'11.97',category:'居家百货/纸巾湿巾/抽纸'},
+      {id:'105572',name:'白地球Earth地球系列手帕纸',type:'普通',price:'7.22',category:'居家百货/纸巾湿巾/抽纸'},
+      {id:'105571',name:'白地球Earth地球系列卷纸',type:'普通',price:'12.85',category:'居家百货/纸巾湿巾/抽纸'},
+      {id:'105516',name:"POM'POTES法优乐果泥蓝莓味",type:'普通',price:'12.00',category:'零食辅食/婴童辅食/酸奶'},
+      {id:'105515',name:"POM'POTES法优乐果泥草莓味",type:'普通',price:'12.00',category:'零食辅食/婴童辅食/酸奶'},
+      {id:'105498',name:'港版Fortini纽荃星营养液',type:'普通',price:'199.82',category:'营养保健'},
+      {id:'105497',name:'港版Neocate纽康特太益生菌',type:'普通',price:'318.97',category:'营养保健'}
+    ];
+    const categoryPool=['跨境奶粉','特配奶粉','普通奶粉','成长奶粉','成人奶粉','国行奶粉','母婴用品','零食辅食','营养保健'];
+    const audiencePool={指定人群:['高价值会员','沉睡用户','未成年风险人群','黑名单人群','企业客户'],指定标签:['低活跃用户','未实名用户','价格敏感','高频购买','新人'],指定用户:['138****9021','186****5330','177****6412','159****3088','136****8261']};
+    const userRows=[
+      {id:'136514',nick:'默认会员136514',phone:'136****1719',gender:'未知',birthday:'-',stage:'-',source:'小程序',inviteChannel:'客服推荐',inviter:'-',register:'2026-06-25 18:13:07',lastConsume:'2026-06-25 18:33:12',third:'-'},
+      {id:'136513',nick:'默认会员136513',phone:'184****5908',gender:'未知',birthday:'-',stage:'-',source:'小程序',inviteChannel:'朋友推荐',inviter:'-',register:'2026-06-25 18:02:47',lastConsume:'-',third:'-'},
+      {id:'136512',nick:'默认会员136512',phone:'134****0765',gender:'未知',birthday:'-',stage:'-',source:'小程序',inviteChannel:'朋友推荐',inviter:'-',register:'2026-06-25 17:52:39',lastConsume:'2026-06-25 18:16:30',third:'-'},
+      {id:'136511',nick:'默认会员136511',phone:'183****8473',gender:'未知',birthday:'-',stage:'已出生',source:'小程序',inviteChannel:'客服推荐',inviter:'-',register:'2026-06-25 17:39:09',lastConsume:'-',third:'-'},
+      {id:'136510',nick:'默认会员136510',phone:'152****0372',gender:'未知',birthday:'-',stage:'已出生',source:'小程序',inviteChannel:'朋友推荐',inviter:'-',register:'2026-06-25 17:20:55',lastConsume:'-',third:'-'},
+      {id:'136509',nick:'默认会员136509',phone:'182****2252',gender:'未知',birthday:'-',stage:'-',source:'小程序',inviteChannel:'朋友推荐',inviter:'-',register:'2026-06-25 17:19:37',lastConsume:'-',third:'-'},
+      {id:'136508',nick:'默认会员136508',phone:'177****7652',gender:'未知',birthday:'-',stage:'-',source:'小程序',inviteChannel:'客服推荐',inviter:'-',register:'2026-06-25 17:19:24',lastConsume:'-',third:'-'},
+      {id:'136507',nick:'默认会员136507',phone:'139****0892',gender:'未知',birthday:'-',stage:'-',source:'-',inviteChannel:'-',inviter:'-',register:'2026-06-25 17:15:14',lastConsume:'-',third:'-'},
+      {id:'136506',nick:'默认会员136506',phone:'158****2128',gender:'未知',birthday:'-',stage:'已出生',source:'小程序',inviteChannel:'客服推荐',inviter:'-',register:'2026-06-25 17:12:18',lastConsume:'-',third:'-'},
+      {id:'136505',nick:'默认会员136505',phone:'137****7996',gender:'未知',birthday:'-',stage:'已出生',source:'小程序',inviteChannel:'其他',inviter:'-',register:'2026-06-25 17:09:11',lastConsume:'-',third:'-'}
+    ];
+    const reviewRows=[
+      {user:'默认会员136003',phone:'13156362381',userId:'136003',content:'1',time:'2026-06-25 16:54:08',productId:'100136',productName:'港版Neocate纽康特太益启HMO深度水解乳蛋白配方 0-1岁 400g',orderNo:'X0061816583685839',score:5,logistics:5,service:5,status:'隐藏',source:'导入评价'},
+      {user:'默认会员136145',phone:'19379236486',userId:'136145',content:'很好',time:'2026-06-25 16:09:58',productId:'100136',productName:'港版Neocate纽康特太益启HMO深度水解乳蛋白配方 0-1岁 400g',orderNo:'X0062216515403420',score:5,logistics:5,service:5,status:'隐藏',source:'首次评价'},
+      {user:'Nany~',phone:'15806013218',userId:'136154',content:'还不错！一直都买这个牌子！很不错呢',time:'2026-06-23 17:35:19',productId:'100227',productName:'港版Neocate纽康特氨基酸无敏配方 1岁以上 400g',orderNo:'X0062209454540535',score:5,logistics:5,service:5,status:'隐藏',source:'追加评价'},
+      {user:'默认会员135444',phone:'13885676314',userId:'135444',content:'',time:'2026-06-22 20:24:08',productId:'100136',productName:'港版Neocate纽康特太益启HMO深度水解乳蛋白配方 0-1岁 400g',orderNo:'X0062008140834843',score:5,logistics:5,service:5,status:'隐藏',source:'首次评价'},
+      {user:'默认会员135934',phone:'15906604251',userId:'135934',content:'奶粉接受度还可以的，服务态度很好',time:'2026-06-22 14:52:15',productId:'100243',productName:'港版爱他美Aptamil奇迹白罐 3段1-3岁800g',orderNo:'X0061810033023772',score:5,logistics:5,service:5,status:'隐藏',source:'首次评价'},
+      {user:'默认会员135961',phone:'18554820509',userId:'135961',content:'包装完好速度快',time:'2026-06-22 11:21:54',productId:'100137',productName:'港版Neocate纽康特太益加HMO深度水解乳蛋白配方 1-10岁 400g',orderNo:'X0061823123374414',score:5,logistics:5,service:5,status:'隐藏',source:'首次评价'}
+    ];
+
+    function loadData(){try{return JSON.parse(localStorage.getItem(LS_DATA))||structuredClone(seedData)}catch(e){return structuredClone(seedData)}}
+    function saveData(){localStorage.setItem(LS_DATA,JSON.stringify(db))}
+    function now(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+    function toast(msg,type='info'){const t=document.createElement('div');t.className='toast '+type;t.innerHTML=`<span>${type==='error'?'✕':type==='info'?'ℹ':'✓'}</span>${msg}`;toastWrap.appendChild(t);setTimeout(()=>t.remove(),type==='error'?5000:2000)}
+    function inlineMd(text){return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,`<a href="$2" target="_blank" style="color:#051D86;text-decoration:none">$1</a>`)}
+    function mdToHtml(md){return md.replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])).split('\n').map(line=>{if(line.startsWith('# '))return `<h1>${inlineMd(line.slice(2))}</h1>`;if(line.startsWith('## '))return `<h2>${inlineMd(line.slice(3))}</h2>`;if(line.startsWith('### '))return `<h3>${inlineMd(line.slice(4))}</h3>`;if(line.startsWith('- '))return `<li>${inlineMd(line.slice(2))}</li>`;if(!line.trim())return '';return `<p>${inlineMd(line)}</p>`}).join('').replace(/(<li>.*?<\/li>)+/gs,m=>`<ul>${m}</ul>`)}
+    function initLogic(){const cached=localStorage.getItem(LS_DOC);const name=localStorage.getItem(LS_DOC_NAME);logicDoc.innerHTML=mdToHtml(cached||defaultLogic);if(cached)logicSource.textContent='来源：本地缓存 + '+name;docInput.onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{localStorage.setItem(LS_DOC,reader.result);localStorage.setItem(LS_DOC_NAME,file.name);logicDoc.innerHTML=mdToHtml(reader.result);logicSource.textContent='来源：本地缓存 + '+file.name;toast('左侧逻辑已同步','info')};reader.readAsText(file,'UTF-8')}}
+    function toggleLogic(open){workbench.classList.toggle('logic-open',open)}
+    function toggleSidebar(){admin.classList.toggle('side-mini')}
+    function renderMenu(){menuScroll.innerHTML=menus.map(([g,subs])=>`<div class="m-group"><div class="m1 open" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'"><span class="folder"></span><span class="m1-label">${g}</span><span class="arrow">›</span></div><div class="m2-wrap">${subs.map(s=>`<div class="m2 ${menuActive(s)?'active':''}" data-label="${s}" onclick="handleMenuClick(this)">${s}</div>`).join('')}</div></div>`).join('')}
+    function menuActive(s){return (s==='用户限购'&&state.page!=='userManage'&&state.page!=='reviewManage')||(s==='用户管理'&&state.page==='userManage')||(s==='商品评价'&&state.page==='reviewManage')}
+    function handleMenuClick(el){const label=el.dataset.label;if(label==='用户限购')goList();else if(label==='用户管理')goUserManage();else if(label==='商品评价')goReviewManage();else toast('原型聚焦当前菜单','info')}
+    function filterMenu(){const q=menuSearch.value.trim();let any=false;document.querySelectorAll('.m-group').forEach(g=>{let hit=false;g.querySelectorAll('.m2').forEach(m=>{const ok=!q||m.dataset.label.includes(q);m.style.display=ok?'flex':'none';hit=hit||ok});const show=hit||(!q&&g.querySelectorAll('.m2').length===0);g.style.display=show?'block':'none';any=any||show});sbEmpty.style.display=any?'none':'block'}
+    function renderTabs(){const current=state.page==='userManage'?'用户管理':state.page==='reviewManage'?'评价管理':'用户限购';const tabs=['首页','用户群管理',current];if(state.page==='form')tabs.push((state.editing?'编辑':'新建')+(state.form.type==='block'?'商品屏蔽':'商品限购'));topTabs.innerHTML=tabs.map((t,i)=>`<div class="top-tab ${i===tabs.length-1?'active':''}" oncontextmenu="showTabMenu(event)">${t}${i>0?'<span class="tab-x" onclick="event.stopPropagation();goList()">×</span>':''}</div>`).join('')}
+    function showTabMenu(e){e.preventDefault();rowDrop.innerHTML='<div onclick="goList();hideDrop()">关闭当前</div><div onclick="toast(\'已关闭其他页签\',\'info\');hideDrop()">关闭其他</div><div onclick="goList();hideDrop()">关闭全部</div>';rowDrop.style.left=e.clientX+'px';rowDrop.style.top=e.clientY+'px';rowDrop.style.display='block'}
+    function currentList(){return db[state.activeTab]}
+    function filtered(){return currentList().filter(r=>(!state.filters.name||r.name.includes(state.filters.name))&&(!state.filters.status||r.status===state.filters.status)&&(!state.filters.created||r.created.startsWith(state.filters.created)))}
+    function goList(tab){state.page='list';if(tab)state.activeTab=tab;state.editing=null;state.selected.clear();renderMenu();render()}
+    function goUserManage(){state.page='userManage';state.editing=null;state.userFilters=state.userFilters||{keyword:'',nick:'',gender:'',stage:''};renderMenu();render()}
+    function goReviewManage(){state.page='reviewManage';state.reviewFilters=state.reviewFilters||{content:'',status:'',method:'',reply:'',source:''};renderMenu();render()}
+    function render(){renderTabs();state.page==='form'?renderForm():state.page==='userManage'?renderUserManage():state.page==='reviewManage'?renderReviewManage():renderList()}
+    function renderList(){const rows=filtered();content.innerHTML=`<div class="panel"><div class="module-tabs"><div class="module-tab ${state.activeTab==='block'?'active':''}" onclick="goList('block')">商品屏蔽</div><div class="module-tab ${state.activeTab==='limit'?'active':''}" onclick="goList('limit')">商品限购</div></div><div class="toolbar"><div class="filters"><label class="field">规则名称：<input class="input" placeholder="请输入规则名称" value="${state.filters.name}" oninput="state.filters.name=this.value;renderList()"></label><label class="field">状态：<select class="select" onchange="state.filters.status=this.value;renderList()"><option value="">全部</option><option ${state.filters.status==='启用'?'selected':''}>启用</option><option ${state.filters.status==='停用'?'selected':''}>停用</option></select></label><button class="icon-search" onclick="renderList()">⌕</button><button class="text-btn" onclick="state.more=!state.more;renderList()">更多搜索 ${state.more?'⌃':'⌄'}</button><button class="text-btn" onclick="state.filters={name:'',audience:'',status:'',productMode:'',created:''};renderList()">清空</button><div class="filters more-row ${state.more?'show':''}"><label class="field">创建日期：<input type="date" class="input" value="${state.filters.created}" onchange="state.filters.created=this.value;renderList()"></label></div></div><div class="actions"><button class="btn-primary" onclick="openForm(null,state.activeTab)">⊕ 新增</button></div></div><div class="table-wrap">${rows.length?tableHtml(rows):'<div class="empty"><div class="empty-box"></div><div>暂无数据</div></div>'}</div><div class="bottom-bar"><div></div><div class="pager"><span>共 ${rows.length} 条</span><span>‹</span><span class="page-num active">1</span><span>›</span><select class="select" style="width:94px"><option>20条/页</option></select></div></div></div>`}
+    function tableHtml(rows){const isBlock=state.activeTab==='block', label=isBlock?'屏蔽':'限购';return `<table><thead><tr><th style="width:25%">规则名称</th><th>${label}人群</th><th style="width:12%">状态</th><th style="width:18%">创建时间</th><th style="width:18%">更新时间</th><th style="width:160px">操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td><div class="rule-name" onclick="openForm('${r.id}','${state.activeTab}')">${r.name}</div><div class="subline">ID：${r.id}</div></td><td>${r.audiences.map(a=>`<span class="tag">${a}</span>`).join('')}<div class="subline">${r.audienceType}</div></td><td><span class="switch ${r.status==='启用'?'on':''}" title="${r.status}" onclick="changeStatus('${r.id}','${r.status==='启用'?'停用':'启用'}')"></span></td><td>${userTime(r.createUser||'运营管理员',r.created)}</td><td>${userTime(r.updateUser||'运营管理员',r.updated)}</td><td><button class="op" onclick="openForm('${r.id}','${state.activeTab}')">编辑</button><button class="op" onclick="showLogs('${r.id}')">日志</button><button class="op danger" onclick="askDelete('${r.id}')">删除</button></td></tr>`).join('')}</tbody></table>`}
+    function userManageRows(){const f=state.userFilters||{keyword:'',nick:'',gender:'',stage:''};return userRows.filter(u=>(!f.keyword||u.id.includes(f.keyword)||u.phone.includes(f.keyword))&&(!f.nick||u.nick.includes(f.nick))&&(!f.gender||u.gender===f.gender)&&(!f.stage||u.stage===f.stage))}
+    function renderUserManage(){state.userFilters=state.userFilters||{keyword:'',nick:'',gender:'',stage:''};const f=state.userFilters, rows=userManageRows();content.innerHTML=`<div class="panel"><div class="toolbar"><div class="filters"><label class="field">用户ID/手机号：<input class="input" style="width:220px" placeholder="输入用户ID或手机号" value="${f.keyword}" oninput="state.userFilters.keyword=this.value;renderUserManage()"></label><label class="field">用户昵称：<input class="input" style="width:220px" placeholder="输入用户昵称" value="${f.nick}" oninput="state.userFilters.nick=this.value;renderUserManage()"></label><label class="field">用户性别：<select class="select" style="width:180px" onchange="state.userFilters.gender=this.value;renderUserManage()"><option value="">全部</option><option ${f.gender==='未知'?'selected':''}>未知</option><option ${f.gender==='男'?'selected':''}>男</option><option ${f.gender==='女'?'selected':''}>女</option></select></label><label class="field">当前阶段：<select class="select" style="width:180px" onchange="state.userFilters.stage=this.value;renderUserManage()"><option value="">全部</option><option ${f.stage==='已出生'?'selected':''}>已出生</option><option ${f.stage==='-'?'selected':''}>-</option></select></label><button class="icon-search" onclick="renderUserManage()">⌕</button><button class="btn-default" onclick="toast('更多搜索已展开','info')">更多搜索⌄</button></div><div class="actions"><button class="btn-default" onclick="toast('已导出用户列表','info')">↥ 导出</button><button class="btn-primary" onclick="openPointImport()">导入积分</button></div></div><div class="table-wrap"><table><thead><tr><th style="width:42px"><span class="checkbox"></span></th><th style="width:90px">用户ID</th><th style="width:140px">用户昵称</th><th style="width:130px">用户手机号</th><th style="width:70px">性别</th><th style="width:80px">生日</th><th style="width:110px">当前阶段</th><th style="width:100px">来源渠道</th><th style="width:110px">邀请渠道</th><th style="width:90px">邀请人</th><th style="width:170px">注册时间</th><th style="width:170px">上次消费时间</th><th style="width:90px">三方编码</th><th style="width:120px">操作</th></tr></thead><tbody>${rows.map((u,i)=>`<tr class="${i===1?'selected':''}"><td><span class="checkbox"></span></td><td>${u.id}</td><td><span class="rule-name">${u.nick}</span></td><td>${u.phone} ♧</td><td>${u.gender}</td><td>${u.birthday}</td><td>${u.stage}</td><td>${u.source}</td><td>${u.inviteChannel}</td><td>${u.inviter}</td><td>${u.register}</td><td>${u.lastConsume}</td><td>${u.third}</td><td><button class="op" onclick="toast('已给 ${u.nick} 发放积分','info')">给积分</button><button class="op" onclick="toast('已打开打标签','info')">打标签</button></td></tr>`).join('')}</tbody></table></div><div class="bottom-bar"><div class="bottom-left"><span class="checkbox"></span><span>已选（0）</span><button class="btn-small">对选中的人加标签</button><button class="btn-small">刷新</button></div><div class="pager"><span>共 1168 条</span><span>‹</span><span class="page-num active">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>...</span><span>59</span><span>›</span><select class="select" style="width:94px"><option>20条/页</option></select></div></div></div>`}
+    function reviewProductById(id){return reviewRows.find(r=>r.productId===id)||productPool.find(p=>p.id===id)||null}
+    function reviewRowsAll(){state.importedReviews=state.importedReviews||[];return [...state.importedReviews,...reviewRows]}
+    function reviewRowsFiltered(){const f=state.reviewFilters||{content:'',status:'',method:'',reply:'',source:''};return reviewRowsAll().filter(r=>(!f.content||r.content.includes(f.content)||r.user.includes(f.content))&&(!f.status||r.status===f.status)&&(!f.source||r.source===f.source))}
+    function renderReviewManage(){state.reviewFilters=state.reviewFilters||{content:'',status:'',method:'',reply:'',source:''};const f=state.reviewFilters, rows=reviewRowsFiltered();content.innerHTML=`<div class="panel"><div class="toolbar"><div class="filters"><label class="field">评价内容：<input class="input" style="width:220px" placeholder="模糊匹配" value="${f.content}" oninput="state.reviewFilters.content=this.value;renderReviewManage()"></label><label class="field">评价状态：<select class="select" style="width:180px" onchange="state.reviewFilters.status=this.value;renderReviewManage()"><option value="">请选择</option><option ${f.status==='隐藏'?'selected':''}>隐藏</option><option ${f.status==='展示'?'selected':''}>展示</option></select></label><label class="field">评价方式：<select class="select" style="width:180px"><option>请选择</option></select></label><label class="field">是否追评：<select class="select" style="width:180px"><option>请选择</option></select></label><button class="icon-search" onclick="renderReviewManage()">⌕</button><button class="btn-default" onclick="state.more=!state.more;renderReviewManage()">${state.more?'收起搜索⌃':'更多搜索⌄'}</button><div class="filters more-row ${state.more?'show':''}"><label class="field">是否有图：<select class="select" style="width:180px"><option>请选择</option></select></label><label class="field">是否精选：<select class="select" style="width:180px"><option>请选择</option></select></label><label class="field">评价时间：<input class="input" style="width:220px" placeholder="开始时间  →  结束时间"></label><label class="field">评价来源：<select class="select" style="width:180px" onchange="state.reviewFilters.source=this.value;renderReviewManage()"><option value="">请选择</option><option ${f.source==='首次评价'?'selected':''}>首次评价</option><option ${f.source==='追加评价'?'selected':''}>追加评价</option><option ${f.source==='导入评价'?'selected':''}>导入评价</option></select></label></div></div><div class="actions"><button class="btn-primary" onclick="openReviewImport()">导入评价</button></div></div><div class="table-wrap"><table><thead><tr><th style="width:42px"><span class="checkbox"></span></th><th style="width:33%">提交内容</th><th style="width:30%">商品信息</th><th style="width:160px">订单编号</th><th style="width:130px">评分</th><th style="width:120px">评价区状态</th><th style="width:190px">操作</th></tr></thead><tbody>${rows.map((r,i)=>reviewRowHtml(r,i)).join('')}</tbody></table></div><div class="bottom-bar"><div class="bottom-left"><span class="checkbox"></span><span>已选（0）</span><button class="btn-small">展示</button><button class="btn-small">隐藏</button><button class="btn-small">设为精选</button><button class="btn-small">取消精选</button><button class="btn-small">批量修改</button><button class="btn-small">取消选择</button></div><div class="pager"><span>共 ${rows.length} 条</span><span>‹</span><span class="page-num active">1</span><span>›</span><select class="select" style="width:94px"><option>20条/页</option></select></div></div></div>`}
+    function reviewRowHtml(r,i){const product=r.productName?{productName:r.productName,productId:r.productId}:reviewProductById(r.productId);const missing=!product||product.productName==='-';const name=missing?'-':(product.productName||product.name);const pid=missing?'-':(product.productId||product.id);return `<tr class="${i===0?'selected':''}"><td><span class="checkbox"></span></td><td><div><span class="review-avatar"></span><b>${r.user}</b> <span class="subline">${r.phone||''} ${r.userId?`ID:${r.userId}`:''}</span></div><div class="source-tag">${r.source}</div><div style="margin-top:8px">${r.content||'-'}</div>${r.image?'<div class="review-img">图</div>':''}<div class="subline">${r.time||now()}</div></td><td><div>${missing?'':'<span class="review-img">图</span>'}${name}</div><div class="subline">${missing?'-':'属性，规格数量：-'}</div><div class="subline">ID：${pid}</div></td><td><span class="rule-name">${r.orderNo||'-'}</span></td><td>商品评分：${r.score||5} 星<br>物流配送：${r.logistics||5} 星<br>平台服务：${r.service||5} 星</td><td><span class="tag off">${r.status||'隐藏'}</span></td><td><button class="op">评价展示</button><button class="op">设置关键词</button></td></tr>`}
+    function userTime(user,time){return `<div>${user}</div><div class="subline">${time}</div>`}
+    function limitText(r){return `<span class="tag warn">${r.limitType}</span><div class="subline">${r.limitType==='按周期限购'?(r.period==='每x天'||r.period==='指定周期'?`指定周期 ${r.periodDays} 天`:r.period):''} 限购 ${r.limitQty} 件</div>`}
+    function isAll(rows){return rows.length&&rows.every(r=>state.selected.has(r.id))}
+    function toggleAll(){const rows=filtered();if(isAll(rows))rows.forEach(r=>state.selected.delete(r.id));else rows.forEach(r=>state.selected.add(r.id));renderList()}
+    function toggleSelect(id){state.selected.has(id)?state.selected.delete(id):state.selected.add(id);renderList()}
+    function showRowDrop(e,id){const r=currentList().find(x=>x.id===id);rowDrop.innerHTML=`<div onclick="changeStatus('${id}','${r.status==='启用'?'停用':'启用'}');hideDrop()">${r.status==='启用'?'停用':'启用'}</div><div onclick="showLogs('${id}');hideDrop()">操作日志</div><div class="danger" onclick="askDelete('${id}');hideDrop()">删除</div>`;rowDrop.style.left=(e.clientX-60)+'px';rowDrop.style.top=(e.clientY+18)+'px';rowDrop.style.display='block'}
+    rowDrop.onmouseleave=()=>setTimeout(hideDrop,80);function hideDrop(){rowDrop.style.display='none'}
+    function changeStatus(id,status){const r=currentList().find(x=>x.id===id);r.status=status;r.updated=now();r.updateUser='运营管理员';r.logs.unshift(log(`状态改为【${status}】`));saveData();toast('状态已更新','info');renderList()}
+    function batchStatus(status){if(!state.selected.size)return toast('请先选择规则','error');currentList().forEach(r=>{if(state.selected.has(r.id)){r.status=status;r.updated=now();r.logs.unshift(log(`批量状态改为【${status}】`))}});state.selected.clear();saveData();toast('批量操作完成','info');renderList()}
+    function batchDelete(){if(!state.selected.size)return toast('请先选择规则','error');confirmBox('批量删除','是否确认删除选中的规则',()=>{db[state.activeTab]=currentList().filter(r=>!state.selected.has(r.id));state.selected.clear();saveData();renderList();toast('已删除','info')})}
+    function askDelete(id){confirmBox('删除','是否确认删除',()=>{db[state.activeTab]=currentList().filter(r=>r.id!==id);saveData();renderList();toast('已删除','info')})}
+    function copyRule(id){const r=currentList().find(x=>x.id===id);const n=JSON.parse(JSON.stringify(r));n.id=(state.activeTab==='block'?'B':'L')+Date.now();n.name=r.name+' - 复制';n.created=n.updated=now();n.logs=[log('复制创建规则')];currentList().unshift(n);saveData();toast('已复制规则','info');renderList()}
+    function log(desc){return {id:'LOG'+Math.floor(Math.random()*90000+10000),user:'运营管理员',desc,prompt:'-',time:now()}}
+    function showLogs(id){const r=currentList().find(x=>x.id===id);const logs=(r.logs&&r.logs.length?r.logs:[log('新建规则'),log('编辑规则配置')]);modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal lg"><div class="modal-head"><span>操作日志</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><table><thead><tr><th>日志ID</th><th>操作人</th><th>操作描述</th><th>提示信息</th><th>操作时间</th></tr></thead><tbody>${logs.map(l=>`<tr><td>${l.id}</td><td>${l.user}</td><td>${l.desc}</td><td>${l.prompt}</td><td>${l.time}</td></tr>`).join('')}</tbody></table></div></div>`}
+    function confirmBox(title,desc,ok){state.confirm=ok;modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal sm"><div class="confirm-body"><div class="confirm-row"><span class="confirm-icon">!</span><span>${title}</span></div><div class="confirm-desc">${desc}</div></div><div class="modal-foot" style="border-top:0;height:48px"><button class="btn-default" onclick="closeModal()">取消</button><button class="btn-primary" onclick="state.confirm&&state.confirm();closeModal()">确定</button></div></div>`}
+    function openReviewImport(){state.reviewImportResult=null;modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal" style="width:760px"><div class="modal-head"><span>导入评价</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><div class="form-row"><div class="label">导入模板</div><div class="control"><button class="btn-default" onclick="downloadReviewTemplate()">下载模板</button><div class="helper">模板字段：头像、昵称、商品ID、评价内容、评价图片、商品评分、物流配送、平台服务、评价区状态</div></div></div><div class="form-row"><div class="label req">上传文件</div><div class="control"><input id="reviewFileInput" type="file" accept=".csv,.txt" style="display:none" onchange="parseReviewFile(this.files[0])"><div class="selected-box" id="reviewUploadBox" onclick="document.getElementById('reviewFileInput').click()" style="height:72px;justify-content:center;color:#999;border-style:dashed;cursor:pointer">点击上传 CSV 文件</div></div></div><div id="reviewImportResult"></div></div><div class="modal-foot"><button class="btn-default" onclick="closeModal()">取消</button><button class="btn-primary" onclick="saveReviewImport()">保存</button></div></div>`}
+    function downloadReviewTemplate(){const csv='\ufeff头像,昵称,商品ID,评价内容,评价图片,商品评分,物流配送,平台服务,评价区状态\n,导入会员,100136,这个商品很好,,5,5,5,隐藏\n';const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='导入评价模板.csv';document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();toast('模板已下载','info')}
+    function parseReviewFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{const text=String(reader.result||'');const lines=text.replace(/^\ufeff/,'').split(/\r?\n/).filter(Boolean);const header=(lines.shift()||'').split(',').map(s=>s.trim());const required=['头像','昵称','商品ID','评价内容','评价图片','商品评分','物流配送','平台服务','评价区状态'];const headerOk=required.every((h,i)=>header[i]===h);const rows=lines.map((line,i)=>{const c=line.split(',').map(s=>s.trim());const scores=[Number(c[5]),Number(c[6]),Number(c[7])];const ok=!!c[1]&&!!c[2]&&!!c[3]&&scores.every(n=>Number.isFinite(n)&&n>=1&&n<=5)&&['隐藏','展示'].includes(c[8]||'隐藏');const product=reviewProductById(c[2]);return {row:i+2,avatar:c[0]||'',nick:c[1]||'',productId:c[2]||'',content:c[3]||'',image:c[4]||'',score:c[5]||'',logistics:c[6]||'',service:c[7]||'',status:c[8]||'隐藏',productName:product?(product.productName||product.name):'-',ok}});state.reviewImportResult={file:file.name,headerOk,rows};renderReviewImportResult()};reader.readAsText(file,'UTF-8')}
+    function renderReviewImportResult(){const r=state.reviewImportResult;if(!r)return;const success=r.headerOk&&r.rows.length&&r.rows.every(x=>x.ok);const box=document.getElementById('reviewUploadBox');if(box)box.textContent=`已选择：${r.file}`;reviewImportResult.innerHTML=`<div class="form-row"><div class="label">解析结果</div><div class="control"><div class="tag ${success?'on':'off'}">${success?'可导入':'解析失败'}</div><span class="subline"> 共 ${r.rows.length} 条，成功 ${r.rows.filter(x=>x.ok).length} 条，失败 ${r.rows.filter(x=>!x.ok).length+(r.headerOk?0:1)} 条</span></div></div>${!r.headerOk?'<div class="form-row"><div class="label"></div><div class="control"><div class="tag off">表头不符合导入评价模板</div></div></div>':''}<table><thead><tr><th style="width:62px">行号</th><th>昵称</th><th>商品ID</th><th>商品信息</th><th>评价内容</th><th style="width:86px">结果</th></tr></thead><tbody>${r.rows.map(x=>`<tr><td>${x.row}</td><td>${x.nick}</td><td>${x.productId}</td><td>${x.productName}</td><td>${x.content}</td><td><span class="tag ${x.ok?'on':'off'}">${x.ok?'成功':'失败'}</span></td></tr>`).join('')}</tbody></table>`}
+    function saveReviewImport(){const r=state.reviewImportResult;if(!r)return toast('请先上传并解析文件','error');if(!r.headerOk||!r.rows.length||r.rows.some(x=>!x.ok))return toast('存在解析失败数据，请修正后重新上传','error');state.importedReviews=state.importedReviews||[];state.importedReviews.unshift(...r.rows.map(x=>({user:x.nick,phone:'',userId:'',content:x.content,time:now(),productId:x.productId,productName:x.productName,orderNo:'-',score:x.score,logistics:x.logistics,service:x.service,status:x.status,source:'导入评价',image:x.image})));toast('导入评价成功','info');closeModal();goReviewManage()}
+    function openPointImport(){state.importResult=null;modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal" style="width:680px"><div class="modal-head"><span>导入积分</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><div class="form-row"><div class="label">导入模板</div><div class="control"><button class="btn-default" onclick="downloadPointTemplate()">下载模板</button><div class="helper">模板字段：用户ID、积分数量、变更说明</div></div></div><div class="form-row"><div class="label req">上传文件</div><div class="control"><input id="pointFileInput" type="file" accept=".csv,.txt" style="display:none" onchange="parsePointFile(this.files[0])"><div class="selected-box" id="pointUploadBox" onclick="document.getElementById('pointFileInput').click()" style="height:72px;justify-content:center;color:#999;border-style:dashed;cursor:pointer">点击上传 CSV 文件</div></div></div><div id="pointImportResult"></div></div><div class="modal-foot"><button class="btn-default" onclick="closeModal()">取消</button><button class="btn-primary" onclick="savePointImport()">保存</button></div></div>`}
+    function parsePointFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{const text=String(reader.result||'');const lines=text.replace(/^\ufeff/,'').split(/\r?\n/).filter(Boolean);const header=(lines.shift()||'').split(',').map(s=>s.trim());const required=['用户ID','积分数量','变更说明'];const headerOk=required.every((h,i)=>header[i]===h);const rows=lines.map((line,i)=>{const cols=line.split(',').map(s=>s.trim());const score=Number(cols[1]);const ok=!!cols[0]&&Number.isFinite(score)&&score!==0&&!!cols[2];return {row:i+2,userId:cols[0]||'',score:cols[1]||'',desc:cols[2]||'',ok,msg:ok?'校验通过':'用户ID、积分数量、变更说明均必填，积分数量需为非0数字'}});state.importResult={file:file.name,headerOk,rows};renderPointImportResult()};reader.readAsText(file,'UTF-8')}
+    function renderPointImportResult(){const r=state.importResult;if(!r)return;const success=r.headerOk&&r.rows.length&&r.rows.every(x=>x.ok);const box=document.getElementById('pointUploadBox');if(box)box.textContent=`已选择：${r.file}`;pointImportResult.innerHTML=`<div class="form-row"><div class="label">解析结果</div><div class="control"><div class="tag ${success?'on':'off'}">${success?'可导入':'解析失败'}</div><span class="subline"> 共 ${r.rows.length} 条，成功 ${r.rows.filter(x=>x.ok).length} 条，失败 ${r.rows.filter(x=>!x.ok).length+(r.headerOk?0:1)} 条</span></div></div>${!r.headerOk?'<div class="form-row"><div class="label"></div><div class="control"><div class="tag off">表头需为：用户ID、积分数量、变更说明</div></div></div>':''}<table><thead><tr><th style="width:70px">行号</th><th>用户ID</th><th>积分数量</th><th>变更说明</th><th style="width:110px">结果</th></tr></thead><tbody>${r.rows.map(x=>`<tr><td>${x.row}</td><td>${x.userId}</td><td>${x.score}</td><td>${x.desc}</td><td><span class="tag ${x.ok?'on':'off'}">${x.ok?'成功':'失败'}</span></td></tr>`).join('')}</tbody></table>`}
+    function savePointImport(){const r=state.importResult;if(!r)return toast('请先上传并解析文件','error');if(!r.headerOk||!r.rows.length||r.rows.some(x=>!x.ok))return toast('存在解析失败数据，请修正后重新上传','error');toast('导入积分成功','info');closeModal()}
+    function downloadPointTemplate(){const csv='\ufeff用户ID,积分数量,变更说明\n136514,100,运营手动导入积分\n';const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='导入积分模板.csv';document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();toast('模板已下载','info')}
+    function closeModal(){modalMask.className='modal-mask';modalMask.innerHTML='';state.selector=null}
+    function openForm(id,type){const rec=id?db[type].find(r=>r.id===id):null;state.page='form';state.activeTab=type;state.editing=id;state.form=rec?JSON.parse(JSON.stringify(rec)):{id:'',name:'',productMode:'手动选择',products:[],categories:[],audienceType:type==='block'?'指定人群':'全部',audiences:type==='block'?[]:['全部用户'],limitType:'终身限购',period:'每天',periodDays:7,limitQty:1,status:'启用',created:'',updated:'',logs:[]};render()}
+    function renderForm(){const f=state.form, isBlock=state.activeTab==='block';f.type=isBlock?'block':'limit';if(!f.status)f.status='启用';if(f.period==='每x天')f.period='指定周期';content.innerHTML=`<div class="form-page"><div class="form-top"><div class="back" onclick="goList()"> ${state.editing?'编辑':'新建'}${isBlock?'商品屏蔽':'商品限购'}</div><div class="actions"><button class="btn-default" onclick="goList()">取消</button><button class="btn-primary" onclick="saveForm()">保存</button></div></div><div class="form-layout"><div class="form-main"><section class="section" id="base"><div class="sec-title">基本信息</div><div class="card"><div class="form-row"><div class="label req">规则名称</div><div class="control"><input class="input" maxlength="50" placeholder="请输入规则名称" value="${f.name}" oninput="state.form.name=this.value"></div></div></div></section><section class="section" id="goods"><div class="sec-title">${isBlock?'屏蔽':'限购'}商品</div><div class="card"><div class="form-row"><div class="label req">商品范围</div><div class="control"><div class="radio-row"><span class="radio ${f.productMode==='手动选择'?'active':''}" onclick="state.form.productMode='手动选择';renderForm()"><i class="dot"></i>手动选择</span><span class="radio ${f.productMode==='商品分类'?'active':''}" onclick="state.form.productMode='商品分类';renderForm()"><i class="dot"></i>商品分类</span></div></div></div><div class="form-row"><div class="label req">${f.productMode==='手动选择'?'商品列表':'商品分类'}</div><div class="control">${f.productMode==='手动选择'?productListHtml():multiSelectHtml('categories',categoryPool,f.categories,'选择分类',true)}</div></div></div></section><section class="section" id="audience"><div class="sec-title">${isBlock?'屏蔽':'限购'}人群</div><div class="card"><div class="form-row"><div class="label req">适用人群</div><div class="control"><div class="radio-row">${(isBlock?['指定人群','指定标签','指定用户']:['全部','指定人群','指定标签','指定用户']).map(a=>`<span class="radio ${f.audienceType===a?'active':''}" onclick="setAudienceType('${a}')"><i class="dot"></i>${a}</span>`).join('')}</div></div></div>${audienceControlHtml()}</div></section>${isBlock?'':limitSection()}</div><nav class="anchor"><a class="active" href="#base">基本信息</a><a href="#goods">${isBlock?'屏蔽':'限购'}商品</a><a href="#audience">${isBlock?'屏蔽':'限购'}人群</a>${isBlock?'':'<a href="#limit">限购设置</a>'}</nav></div></div>`}
+    function selectedTags(arr){return arr&&arr.length?arr.map(x=>`<span class="tag">${x}</span>`).join(''):'<span class="select-placeholder">请选择</span>'}
+    function jsq(v){return JSON.stringify(String(v))}
+    function getProduct(name){return productPool.find(p=>p.name===name)||{id:'-',name,price:'28.00',category:'-',type:'普通'}}
+    function productListHtml(){const arr=state.form.products||[];return `<div class="product-list">${arr.map((name,i)=>{const p=getProduct(name);return `<div class="product-card"><span class="drag-dot">⋮⋮</span><span class="product-img">图</span><div class="product-info"><div class="product-name">${p.name}</div><div class="product-price">￥${p.price}</div></div><div class="product-ops"><button title="上移" onclick="moveProduct(${i},-1)">⌃</button><button title="下移" onclick="moveProduct(${i},1)">⌄</button><button title="删除" onclick="removeProduct(${i})">⌫</button></div></div>`}).join('')}<button class="add-product" onclick="openSelector('products')">＋ 选择商品</button></div>`}
+    function moveProduct(i,step){const arr=state.form.products;const j=i+step;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];renderForm()}
+    function removeProduct(i){state.form.products.splice(i,1);renderForm()}
+    function multiSelectHtml(kind,pool,selected,placeholder,isTree){const open=state.openSelect===kind;const opts=pool.map((x,i)=>`<div class="multi-option ${isTree&&i>0&&i<5?'tree-option child':'tree-option'}" onclick="event.stopPropagation();toggleMulti('${kind}','${x}')"><span class="tree-caret">${isTree?(i===0||i===5?'▾':'›'):''}</span><span class="checkbox ${(selected||[]).includes(x)?'checked':''}"></span><span>${x}</span></div>`).join('');return `<div class="multi-select ${open?'open':''}" onclick="event.stopPropagation();toggleMultiOpen('${kind}')"><div class="multi-display">${selectedTags(selected)}</div><div class="multi-menu" onclick="event.stopPropagation()">${opts}</div></div>`}
+    function toggleMultiOpen(kind){state.openSelect=state.openSelect===kind?null:kind;renderForm()}
+    function toggleMulti(kind,value){const target=kind==='categories'?state.form.categories:state.form.audiences;if(target.includes(value))target.splice(target.indexOf(value),1);else target.push(value);state.openSelect=null;renderForm()}
+    function audienceControlHtml(){const f=state.form;if(f.audienceType==='全部')return '';if(f.audienceType==='指定用户')return `<div class="form-row"><div class="label req">指定用户</div><div class="control"><div class="user-input-row"><textarea class="input user-textarea" placeholder="请输入用户ID，英文逗号、换行或空格分隔" oninput="state.form.audiences=this.value.split(/[\\s,，]+/).filter(Boolean)">${(f.audiences||[]).join('\n')}</textarea><button class="text-btn" onclick="viewUsers()">查看用户</button></div></div></div>`;const pool=audiencePool[f.audienceType]||[];return `<div class="form-row"><div class="label req">${f.audienceType}</div><div class="control">${multiSelectHtml('audiences',pool,f.audiences,`选择${f.audienceType.replace('指定','')}`,false)}</div></div>`}
+    function viewUsers(){const users=(state.form.audiences||[]).filter(Boolean);modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal lg"><div class="modal-head"><span>查看用户信息</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><table><thead><tr><th>用户ID</th><th>用户昵称</th><th>手机号</th><th>性别</th><th>注册时间</th></tr></thead><tbody>${users.length?users.map((u,i)=>`<tr><td>${u}</td><td>私域用户${i+1}</td><td>138****${String(9000+i).slice(-4)}</td><td>${i%2?'女':'男'}</td><td>2026-06-${String(10+i).padStart(2,'0')} 10:24:16</td></tr>`).join(''):`<tr><td colspan="5"><div class="empty"><div class="empty-box"></div><div>暂无数据</div></div></td></tr>`}</tbody></table></div></div>`}
+    function setAudienceType(t){state.form.audienceType=t;state.form.audiences=t==='全部'?['全部用户']:[];renderForm()}
+    function limitSection(){const f=state.form;return `<section class="section" id="limit"><div class="sec-title">限购设置</div><div class="card"><div class="form-row"><div class="label req">限购方式</div><div class="control"><div class="radio-row">${['终身限购','按单限购','按周期限购'].map(t=>`<span class="radio ${f.limitType===t?'active':''}" onclick="state.form.limitType='${t}';renderForm()"><i class="dot"></i>${t}</span>`).join('')}</div></div></div><div class="form-row"><div class="label req">限购数量</div><div class="control"><div class="limit-combo">${f.limitType==='按周期限购'?`<select class="select" onchange="state.form.period=this.value;renderForm()"><option ${f.period==='每天'?'selected':''}>每天</option><option ${f.period==='每月'?'selected':''}>每月</option><option ${f.period==='指定周期'?'selected':''}>指定周期</option></select>${f.period==='指定周期'?`<span>每</span><input type="number" min="1" class="input" value="${f.periodDays}" oninput="state.form.periodDays=this.value"><span>天</span>`:''}`:''}<span>${f.limitType==='终身限购'?'终身':f.limitType==='按单限购'?'每单':'周期内'}</span><span>限购</span><input type="number" min="1" class="input" value="${f.limitQty}" oninput="state.form.limitQty=this.value"><span>件</span></div></div></div></div></section>`}
+    function openSelector(kind){state.selector={kind,selected:new Set(state.form.products||[]),pool:productPool};modalMask.className='modal-mask show';modalMask.innerHTML=`<div class="modal"><div class="modal-head"><span>选择商品</span><span class="modal-close" onclick="closeModal()">×</span></div><div class="modal-body"><div class="modal-toolbar"><input class="input" id="selectorKw" style="width:180px" placeholder="搜索商品名称" oninput="renderSelectorList()"><select class="select" id="selectorType" style="width:180px" onchange="renderSelectorList()"><option value="">全部商品类型</option><option>普通</option></select><button class="icon-search" onclick="renderSelectorList()">⌕</button></div><div id="selectorTable"></div></div><div class="modal-foot"><button class="btn-default" onclick="closeModal()">取消</button><button class="btn-primary" onclick="confirmSelector()">确定</button></div></div>`;renderSelectorList()}
+    function renderSelectorList(){const kw=(document.getElementById('selectorKw')||{}).value||'';const type=(document.getElementById('selectorType')||{}).value||'';const list=state.selector.pool.filter(p=>(!kw||p.name.includes(kw))&&(!type||p.type===type));const all=list.length&&list.every(p=>state.selector.selected.has(p.name));selectorTable.innerHTML=`<table><thead><tr><th style="width:36px"><span class="checkbox ${all?'checked':state.selector.selected.size?'indeterminate':''}" onclick="toggleSelectorAll()"></span></th><th style="width:70px">ID</th><th style="width:90px">商品图片</th><th>商品名称</th><th style="width:90px">类型</th><th style="width:90px">价格</th><th style="width:170px">分类</th></tr></thead><tbody>${list.map(p=>`<tr><td><span class="checkbox ${state.selector.selected.has(p.name)?'checked':''}" onclick="toggleSelector(${jsq(p.name)})"></span></td><td>${p.id}</td><td><span class="selector-img">图</span></td><td><div class="product-name">${p.name}</div></td><td>${p.type}</td><td>￥${p.price}</td><td>${p.category}</td></tr>`).join('')}</tbody></table><div class="selector-foot"><div>共 56 条&nbsp;&nbsp;‹ <span class="page-num active">1</span> 2 3 4 5 6 ›</div><select class="select" style="width:90px"><option>10条/页</option></select></div>`}
+    function toggleSelector(x){state.selector.selected.has(x)?state.selector.selected.delete(x):state.selector.selected.add(x);renderSelectorList()}
+    function toggleSelectorAll(){const kw=(document.getElementById('selectorKw')||{}).value||'';const type=(document.getElementById('selectorType')||{}).value||'';const list=state.selector.pool.filter(p=>(!kw||p.name.includes(kw))&&(!type||p.type===type));const all=list.length&&list.every(p=>state.selector.selected.has(p.name));list.forEach(p=>all?state.selector.selected.delete(p.name):state.selector.selected.add(p.name));renderSelectorList()}
+    function confirmSelector(){state.form.products=[...state.selector.selected];closeModal();renderForm()}
+    function saveForm(){const f=state.form;if(!f.name.trim())return toast('请输入规则名称','error');if(f.productMode==='手动选择'&&!f.products.length)return toast('请选择商品','error');if(f.productMode==='商品分类'&&!f.categories.length)return toast('请选择商品分类','error');if(f.audienceType!=='全部'&&!f.audiences.length)return toast('请选择适用人群','error');if(f.type==='limit'&&(!f.limitQty||Number(f.limitQty)<=0))return toast('请输入正确的限购数量','error');const list=db[f.type];if(state.editing){const idx=list.findIndex(x=>x.id===state.editing);f.updated=now();f.updateUser='运营管理员';f.createUser=f.createUser||'运营管理员';f.logs=(f.logs||[]);f.logs.unshift(log('编辑规则配置'));list[idx]=f}else{f.id=(f.type==='block'?'B':'L')+Date.now();f.created=f.updated=now();f.createUser='运营管理员';f.updateUser='运营管理员';f.logs=[log('新建规则')];list.unshift(f)}saveData();state.activeTab=f.type;toast('保存成功','info');goList(f.type)}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+    document.addEventListener('click',()=>{if(state.page==='form'&&state.openSelect){state.openSelect=null;renderForm()}});
+    modalMask.addEventListener('click',e=>{if(e.target===modalMask)closeModal()});
+    initLogic();renderMenu();render();
+  </script>
+</body>
+</html>
