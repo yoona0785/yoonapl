@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>秒杀立减限购配置原型</title>
+  <style>
+    :root{--primary:#051D86;--primary-hover:#3347a8;--primary-light:#EBF0FF;--text:#333;--sub:#666;--hint:#aaa;--border:#ECECEC;--line:#F2F2F2;--page:#F4F6F9;--white:#fff;--success:#14C45A;--warn:#FF8A00;--error:#FF0000}
+    *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--text);font-size:14px;background:var(--page)}
+    button,input,select{font:inherit}button{cursor:pointer}.workbench{height:100vh;display:flex;overflow:hidden}.logic-tab{width:48px;background:#fff;border-right:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--primary);writing-mode:vertical-rl;letter-spacing:4px;cursor:pointer}.logic{width:40%;min-width:520px;background:#fff;border-right:1px solid var(--border);display:none;flex-direction:column}.logic.open{display:flex}.logic-head{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border)}.logic-title{font-size:16px;font-weight:600}.logic-actions{display:flex;gap:12px}.link{border:0;background:transparent;color:var(--primary);padding:0}.logic-source{padding:10px 18px;color:var(--hint);font-size:12px;border-bottom:1px solid var(--line)}.logic-doc{padding:22px 28px;overflow:auto;line-height:1.75}.logic-doc h1{font-size:20px}.logic-doc h2{font-size:16px;margin-top:22px}.logic-doc h3{font-size:14px;margin-top:18px}.logic-doc ul{padding-left:20px}.stage{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;background:#f5f5f5}
+    .top{height:42px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center}.logo{width:180px;padding-left:32px;color:var(--primary);font-size:20px;font-weight:700}.toggle{width:42px;text-align:center;color:#666}.tabs{display:flex;align-items:center;height:100%;gap:4px;flex:1}.tab{height:42px;display:flex;align-items:center;padding:0 14px;color:#666;border-left:1px solid #f4f4f4;position:relative}.tab.active{color:var(--primary);font-weight:600}.tab.active:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--primary)}.tab .x{margin-left:8px}.top-right{width:128px;display:flex;justify-content:center;gap:14px;color:#666}.shell{flex:1;min-height:0;display:flex}.side{width:180px;background:#fff;border-right:1px solid var(--border);padding:22px 14px;overflow:auto}.menu-search{height:32px;width:100%;border:0;border-radius:16px;background:#f6f6f6;padding:0 12px;color:#666}.m1{height:40px;display:flex;align-items:center;gap:8px;color:#333;margin-top:12px}.m1 svg{width:16px;height:16px;stroke:#999;fill:none}.m2{height:32px;display:flex;align-items:center;padding-left:22px;color:#666;font-size:13px;border-radius:4px}.m2.active{color:var(--primary);background:var(--primary-light);font-weight:600}.main{flex:1;min-width:0;overflow:auto;padding:0 28px 28px;background:#fff}.page-bar{height:54px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);margin-bottom:20px}.back{color:#222;display:flex;align-items:center;gap:8px}.bar-actions{display:flex;gap:14px}.btn-primary{height:32px;padding:0 18px;border-radius:4px;background:var(--primary);color:#fff;border:0}.btn-primary:hover{background:var(--primary-hover)}.btn-default{height:32px;padding:0 16px;border-radius:4px;background:#fff;color:#333;border:1px solid #dcdee2}.btn-sm{height:30px;padding:0 15px;border-radius:4px;border:1px solid var(--primary);background:#fff;color:var(--primary)}.text-btn{border:0;background:transparent;color:var(--primary);padding:0 4px}.danger{color:var(--error)!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.stat{background:#eef3ff;border:1px solid #d6e0ff;border-radius:6px;padding:16px}.stat div{font-size:12px;color:#555;margin-bottom:8px}.stat b{font-size:24px}.toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.field{display:inline-flex;align-items:center;gap:8px;color:#666}.input,.select{height:32px;border:1px solid #dcdee2;border-radius:4px;background:#fff;padding:0 10px;outline:none;min-width:118px}.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(5,29,134,.12)}.search-btn{height:32px;width:44px;border:1px solid #dcdee2;border-radius:4px;background:#fff}.table-card{background:#fff;box-shadow:0 1px 0 1px #EFEDED;overflow:auto}table{width:100%;border-collapse:collapse;table-layout:fixed}th{height:42px;background:#ECECEC;color:#666;font-weight:600;font-size:13px;text-align:left;padding:0 14px}td{height:68px;border-bottom:1px solid var(--line);padding:10px 14px;font-size:13px;vertical-align:middle}tr:hover td{background:#F9FBFF}.row-active td{background:var(--primary-light)!important}.blue{color:var(--primary)}.sub{color:#9aa0ad;font-size:12px;margin-top:4px}.tag{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 7px;border-radius:3px;font-size:12px;background:#F5F5F5;color:#999}.tag.run{background:#E8FFF0;color:var(--success)}.tag.wait{background:#FFF3E5;color:var(--warn)}.tag.end{background:#F5F5F5;color:#999}.ops{display:flex;gap:8px;align-items:center;white-space:nowrap}.more{position:relative}.more-menu{display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #E8ECF0;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:108px;padding:4px 0}.more-menu.show{display:block}.more-item{display:block;padding:9px 16px;color:#333;background:#fff;border:0;text-align:left;width:100%;white-space:nowrap}.more-item:hover{background:#F0F3FF;color:var(--primary)}.pager{height:48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:14px;color:#666}.page-num{min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;background:#f5f5f5}.section-grid{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:16px}.form-main{min-width:0}.anchor{position:sticky;top:16px;align-self:start;border-left:1px solid var(--line);padding:0 0 0 12px}.anchor a{display:block;padding:8px 0;color:#666;text-decoration:none;font-size:13px}.anchor a.active{color:var(--primary);font-weight:600;border-left:2px solid var(--primary);padding-left:10px;margin-left:-13px}.section{scroll-margin-top:18px;margin-bottom:24px}.sec-title{font-size:16px;font-weight:600;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--primary)}.card{border:1px solid var(--border);border-radius:6px;background:#fff;padding:20px 24px}.form-row{display:grid;grid-template-columns:98px minmax(0,1fr);gap:12px;align-items:flex-start;margin-bottom:16px}.form-row:last-child{margin-bottom:0}.label{min-height:36px;line-height:36px;color:#555;text-align:right}.req:after{content:" *";color:var(--error)}.control{min-height:36px}.control>.input{width:500px;height:36px}.range{display:inline-flex;align-items:center;width:500px}.range .input{flex:1;height:36px}.range span{padding:0 12px;color:#999}.check,.radio{display:inline-flex;align-items:center;gap:6px;margin-right:20px;height:36px;color:#555}.check i,.radio i{width:14px;height:14px;border:1px solid #C9D0E0;display:inline-block}.check i{border-radius:3px}.radio i{border-radius:50%}.check.on i,.radio.on i{border-color:var(--primary);background:var(--primary);box-shadow:inset 0 0 0 3px #fff}.hint{font-size:12px;color:#999;margin-top:6px}.batch{display:flex;align-items:center;gap:10px;margin-bottom:14px}.batch .input{width:126px}.product{display:flex;align-items:center;gap:10px}.pic{width:38px;height:38px;border:1px solid var(--border);border-radius:4px;background:linear-gradient(135deg,#e9f1ff,#fff4e5);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700}.mini-input{height:28px;width:128px;border:1px solid #dcdee2;border-radius:4px;padding:0 8px}.empty{text-align:center;height:84px;color:#333}.toast-wrap{position:fixed;z-index:11000;top:62px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px}.toast{background:#fff;border:1px solid #C8D4F8;color:var(--primary);border-radius:6px;padding:10px 16px;box-shadow:0 4px 14px rgba(0,0,0,.08)}.toast.error{border-color:#FFCCC7;color:#A8071A}.overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;z-index:1000}.modal{width:392px;background:#fff;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.16)}.confirm-body{padding:20px 22px 14px}.confirm-title{display:flex;align-items:center;gap:10px;font-weight:600}.confirm-icon{width:20px;height:20px;border-radius:50%;background:#FF7800;color:#fff;display:inline-flex;align-items:center;justify-content:center}.confirm-desc{color:#666;font-size:13px;line-height:22px;margin:8px 0 0 30px}.modal-ft{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 16px}.logic-doc table{border-collapse:collapse;width:100%;margin:12px 0}.logic-doc th,.logic-doc td{height:auto;border:1px solid #e8eaec;padding:8px;background:#fff}
+  </style>
+</head>
+<body>
+<div class="workbench">
+  <div class="logic-tab" id="logicTab" onclick="toggleLogic(true)">展开逻辑</div>
+  <aside class="logic" id="logicPanel">
+    <div class="logic-head"><div class="logic-title">秒杀 / 折扣立减限购配置逻辑</div><div class="logic-actions"><button class="link" onclick="document.getElementById('docFile').click()">同步本地文档</button><button class="link" onclick="toggleLogic(false)">收起逻辑</button><input id="docFile" type="file" accept=".md,.markdown,.txt" hidden onchange="syncDoc(event)"></div></div>
+    <div class="logic-source" id="logicSource">来源：当前目录「秒杀立减需求文档.md」+ 本次限购配置需求补全</div>
+    <div class="logic-doc" id="logicDoc"></div>
+  </aside>
+  <main class="stage">
+    <div class="top">
+      <div class="logo">私域运营平台</div><div class="toggle">☰</div>
+      <div class="tabs" id="tabs"></div><div class="top-right">⇩ <span>●</span>⌄</div>
+    </div>
+    <div class="shell">
+      <aside class="side">
+        <input class="menu-search" placeholder="搜索关键字" oninput="filterMenu(this.value)">
+        <div id="menu"></div>
+      </aside>
+      <section class="main" id="app"></section>
+    </div>
+  </main>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+<div class="overlay" id="confirmOv"><div class="modal"><div class="confirm-body"><div class="confirm-title"><span class="confirm-icon">!</span><span id="confirmTitle">删除</span></div><div class="confirm-desc" id="confirmDesc">是否确认删除</div></div><div class="modal-ft"><button class="btn-default" onclick="closeConfirm()">取消</button><button class="btn-primary" onclick="runConfirm()">确定</button></div></div></div>
+<script>
+const DOC_KEY='seckill_discount_limit_logic_doc_v2', DATA_KEY='seckill_discount_limit_data_v1';
+const defaultLogic=`# 秒杀活动 / 折扣立减限购配置需求文档
+
+---
+
+## 1. 业务背景
+
+### 1.1 需求描述
+
+当前「秒杀活动」「折扣立减」已有活动创建、商品设置、活动商品管理能力，但限购配置不完整，无法分别控制：
+
+- 活动维度：活动总可售数量、单用户在活动内可购买数量。
+- 商品维度：单商品在活动内总可售数量、单用户在活动内对单商品可购买数量。
+
+运营配置活动时，只能配置活动价、立减金额、折扣等价格信息，缺少总量和用户维度的购买约束，容易出现活动库存被快速消耗、单用户超量购买、商品活动量与商品规格库存不匹配等问题。
+
+### 1.3 目标结果
+
+- 秒杀活动支持活动维度和商品维度限购配置。
+- 折扣立减在保留原有「立减 / 打折」活动类型、价格配置和活动商品管理能力的基础上，补充活动维度和商品维度限购配置。
+- 创建活动保存后返回列表，运营可从列表进入「活动商品」继续维护商品活动数量、商品用户限购，并支持批量设置。
+- 所有限购字段为空时表示不限购；填写时统一校验正整数，避免无效配置进入活动链路。
+
+### 1.4 本期范围
+
+- 菜单范围：仅涉及「营销中心 / 秒杀活动」「营销中心 / 折扣立减」。
+- 秒杀活动列表、新建、编辑、活动商品管理。
+- 折扣立减列表、新建、编辑、活动商品管理。
+- 秒杀活动新增活动维度限购字段：
+  - 活动总数量。
+  - 活动用户限购。
+- 秒杀活动商品设置和活动商品管理新增商品维度限购字段：
+  - 商品活动数量。
+  - 商品用户限购。
+- 折扣立减新增活动维度和商品维度限购字段，规则与秒杀活动一致。
+- 商品设置和活动商品管理均支持批量设置商品活动数量、商品用户限购。
+
+### 1.5 本期不做
+
+- 不调整前台活动页面视觉样式。
+- 不调整订单支付、退款、售后链路的页面展示，仅要求下单校验接入本次限购规则。
+
+---
+
+## 2. 关键业务规则
+
+### 4.1 唯一性 / 并发性
+
+- 活动购买扣减需按服务端库存和限购规则做原子校验，避免并发下超卖或突破用户限购。
+- 当多个用户同时购买同一活动商品时，需同时校验：
+  - 活动剩余总数量。
+  - 用户活动剩余可购数量。
+  - 商品活动剩余数量。
+  - 用户商品剩余可购数量。
+- 任一维度不满足时，本次下单不得成功。
+
+### 4.2 字段定义
+
+- 活动总数量：当前活动下所有商品总计可售数量。
+  - 是否必填：否。
+  - 默认值：空。
+  - 范围 / 长度：正整数。
+  - 不允许：0、负数、小数、非数字。
+  - 为空含义：不限购。
+
+- 活动用户限购：单个用户在当前活动内累计可购买数量。
+  - 是否必填：否。
+  - 默认值：空。
+  - 范围 / 长度：正整数。
+  - 不允许：0、负数、小数、非数字。
+  - 为空含义：不限购。
+
+- 商品活动数量：单个商品在当前活动内总计可售数量。
+  - 是否必填：否。
+  - 默认值：空。
+  - 范围 / 长度：正整数。
+  - 不允许：0、负数、小数、非数字、大于商品规格数量。
+  - 为空含义：不限购。
+
+- 商品用户限购：单个用户在当前活动内对单个商品可购买数量。
+  - 是否必填：否。
+  - 默认值：空。
+  - 范围 / 长度：正整数。
+  - 不允许：0、负数、小数、非数字、大于商品活动数量。
+  - 为空含义：不限购。
+
+### 4.3 计算规则
+
+- 活动总数量校验：
+  - 若活动总数量为空，不限制活动整体售卖数量。
+  - 若活动总数量不为空，活动内所有商品累计成交数量不得超过活动总数量。
+
+- 活动用户限购校验：
+  - 若活动用户限购为空，不限制用户在活动内累计购买数量。
+  - 若活动用户限购不为空，同一用户在该活动内历史已购数量 + 本次购买数量不得超过活动用户限购。
+  - 活动总数量和活动用户限购均填写时，活动用户限购不得大于活动总数量。
+
+- 商品活动数量校验：
+  - 若商品活动数量为空，不限制该商品活动总售卖数量。
+  - 若商品活动数量不为空，该商品在当前活动内累计成交数量不得超过商品活动数量。
+  - 商品活动数量不得大于商品规格数量。
+
+- 商品用户限购校验：
+  - 若商品用户限购为空，不限制用户在该活动内对该商品的购买数量。
+  - 若商品用户限购不为空，同一用户在该活动内对该商品历史已购数量 + 本次购买数量不得超过商品用户限购。
+  - 商品活动数量和商品用户限购均填写时，商品用户限购不得大于商品活动数量。
+
+### 4.4 关键联动逻辑
+
+- 秒杀活动新建 / 编辑：
+  - 商品设置展示秒杀价、商品活动数量、商品用户限购、排序值、售价、商品名称、属性、规格数量、操作。
+- 折扣立减新建 / 编辑：
+  - 选择立减时，商品设置展示立减金额、减后价格、商品活动数量、商品用户限购。
+  - 选择打折时，商品设置展示折扣、折后价格、商品活动数量、商品用户限购。
+- 商品设置批量设置：
+  - 秒杀活动支持批量设置秒杀价、商品活动数量、商品用户限购。
+  - 折扣立减立减模式支持批量设置立减金额、商品活动数量、商品用户限购。
+  - 折扣立减打折模式支持批量设置折扣、商品活动数量、商品用户限购。
+  - 批量输入为空时，不覆盖商品原字段值。
+- 活动商品管理页可继续编辑商品活动数量、商品用户限购，并支持批量设置。
+
+### 4.5 异常处理规则
+
+- 活动总数量格式错误：提示「活动总数量必须为正整数」。
+- 活动用户限购格式错误：提示「活动用户限购必须为正整数」。
+- 活动用户限购大于活动总数量：提示「活动用户限购不能大于活动总数量」。
+- 商品活动数量格式错误：提示「商品活动数量必须为正整数」。
+- 商品用户限购格式错误：提示「商品用户限购必须为正整数」。
+- 商品活动数量大于规格数量：提示「商品活动数量不能大于规格数量」。
+- 商品用户限购大于商品活动数量：提示「商品用户限购不能大于商品活动数量」。
+
+### 4.6 上限与极限（按需）
+
+- 活动总数量、活动用户限购、商品活动数量、商品用户限购最大值建议不超过 99999999。
+- 单个活动可添加商品数量上限沿用现有秒杀 / 折扣立减规则。
+- 批量设置仅作用于当前活动商品列表中已添加的商品。
+- 已成交订单不因后续调小限购数量而回滚；新订单按最新配置校验。
+
+---
+
+## 附件 / 补充材料
+
+### A. 参考图
+
+- 秒杀活动列表参考图。
+- 秒杀活动新建页参考图。
+- 秒杀活动商品设置参考图。
+- 秒杀商品管理参考图。
+- 折扣立减活动列表参考图。
+- 新建折扣立减-立减参考图。
+- 新建折扣立减-打折参考图。
+
+### B. 历史页面
+
+- 营销中心 / 秒杀活动。
+- 营销中心 / 折扣立减。
+- 秒杀商品管理。
+- 折扣立减活动商品管理。
+
+### C. 相关文档
+
+- 原型文件：[秒杀立减限购配置原型.html](./秒杀立减限购配置原型.html)`;
+let db=loadData();
+normalizeData();
+let state={page:'list',editing:null,activeTab:'秒杀活动',filters:{name:'',id:'',status:'',date:'',discountMode:''},selectedId:null,form:null,manageId:null,confirm:null};
+function loadData(){const saved=localStorage.getItem(DATA_KEY);if(saved)return JSON.parse(saved);return {activities:[
+ {id:'100008',type:'秒杀活动',name:'测试',tag:'暑期专场',start:'2026-07-06 00:00:00',end:'2026-07-10 00:00:00',long:false,platformRate:100,supplierRate:0,totalLimit:'200',userActivityLimit:'3',users:0,participants:'全部',creator:'张文浩',created:'2026-07-06 17:47:32',updater:'系统自动触发',updated:'2026-07-06 18:30:00',status:'进行中',products:[product(1,'Babycare皇室弱酸拉拉裤',119,2,'L码','98','120','2','59')]},
+ {id:'100007',type:'折扣立减',discountMode:'立减',name:'测试勿动-立减',tag:'奶粉',start:'',end:'',long:true,platformRate:100,supplierRate:0,totalLimit:'',userActivityLimit:'',users:0,participants:'全部',creator:'测试-薛苗苗',created:'2026-05-14 16:03:57',updater:'测试-薛苗苗',updated:'2026-05-14 16:25:38',status:'已结束',products:[product(2,'POM POTES法优乐法国婴幼儿果泥',12,1,'-', '0.10','80','','12')]},
+ {id:'100002',type:'秒杀活动',name:'测试-秒杀',tag:'长期',start:'',end:'',long:true,platformRate:100,supplierRate:0,totalLimit:'1000',userActivityLimit:'5',users:1,participants:'全部',creator:'测试-薛苗苗',created:'2026-05-18 15:03:57',updater:'测试-薛苗苗',updated:'2026-05-20 11:23:04',status:'已结束',products:[product(3,'Aptamil爱他美卓萃1段奶粉',586,6,'800g','299','300','1','580')]}
+]}}
+function product(id,name,price,stock,attr,activityPrice,productLimit,userProductLimit,sort){return {id:'10755'+id,name,price,stock,attr,activityPrice,productLimit,userProductLimit,sort}}
+function normalizeData(){db.activities.forEach(a=>{if(a.type==='折扣立减'&&!a.discountMode)a.discountMode='立减';if(!Array.isArray(a.products))a.products=[];a.products.forEach(p=>{if(p.productLimit===undefined)p.productLimit='';if(p.userProductLimit===undefined)p.userProductLimit=''})});saveData()}
+function saveData(){localStorage.setItem(DATA_KEY,JSON.stringify(db))}
+function qs(id){return document.getElementById(id)}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function mdToHtml(md){let html=escapeHtml(md).replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^- (.*)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,m=>'<ul>'+m+'</ul>').replace(/\n/g,'<br>');return html}
+function initLogic(){const c=localStorage.getItem(DOC_KEY);if(c){const d=JSON.parse(c);qs('logicSource').textContent='来源：本地缓存 + '+d.name;qs('logicDoc').innerHTML=mdToHtml(d.text)}else qs('logicDoc').innerHTML=mdToHtml(defaultLogic)}
+function syncDoc(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{localStorage.setItem(DOC_KEY,JSON.stringify({name:f.name,text:r.result}));qs('logicSource').textContent='来源：本地缓存 + '+f.name;qs('logicDoc').innerHTML=mdToHtml(r.result);toast('左侧逻辑已同步','info')};r.readAsText(f,'utf-8')}
+function toggleLogic(open){qs('logicPanel').classList.toggle('open',open);qs('logicTab').style.display=open?'none':'flex'}
+function render(){renderMenu();renderTabs();if(state.page==='list')renderList();if(state.page==='form')renderForm();if(state.page==='manage')renderManage()}
+function renderTabs(){let tabs=['首页',state.activeTab];if(state.page==='form')tabs.push((state.editing?'编辑':'新建')+state.activeTab);if(state.page==='manage')tabs.push(state.activeTab==='折扣立减'?'活动商品管理':'秒杀商品管理');qs('tabs').innerHTML=tabs.map((t,i)=>`<div class="tab ${i===tabs.length-1?'active':''}" oncontextmenu="showTabMenu(event)">${t}${i?'<span class="x" onclick="event.stopPropagation();goList()">×</span>':''}</div>`).join('')}
+function renderMenu(){const groups=[['营销中心',['秒杀活动','折扣立减']]];qs('menu').innerHTML=groups.map(g=>`<div class="group" data-text="${g[0]+g[1].join('')}"><div class="m1"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 3h9v9H3z"></path></svg><span>${g[0]}</span><span style="margin-left:auto">⌄</span></div>${g[1].map(x=>`<div class="m2 ${x===state.activeTab?'active':''}" data-label="${x}" onclick="menuClick('${x}')">${x}</div>`).join('')}</div>`).join('')}
+function filterMenu(v){document.querySelectorAll('.group').forEach(g=>g.style.display=!v||g.dataset.text.includes(v)?'block':'none')}
+function menuClick(x){if(x==='秒杀活动'||x==='折扣立减'){state.activeTab=x;goList()}else toast('原型聚焦秒杀活动与折扣立减','info')}
+function filtered(){return db.activities.filter(a=>(state.activeTab==='折扣立减'?a.type==='折扣立减':a.type==='秒杀活动')&&(!state.filters.name||a.name.includes(state.filters.name))&&(!state.filters.id||a.id.includes(state.filters.id))&&(!state.filters.status||a.status===state.filters.status)&&(state.activeTab!=='折扣立减'||!state.filters.discountMode||activityMode(a)===state.filters.discountMode))}
+function renderList(){
+const rows=filtered();
+const stats=state.activeTab==='折扣立减'?{users:0,orders:0,amount:0,goods:0}:{users:rows.reduce((s,r)=>s+r.users,0),orders:rows.length,amount:120,goods:rows.reduce((s,r)=>s+r.products.length,0)};
+const typeFilter=state.activeTab==='折扣立减'?`<label class="field">类型：<select class="select" onchange="state.filters.discountMode=this.value;renderList()"><option value="">全部</option><option value="立减" ${state.filters.discountMode==='立减'?'selected':''}>立减</option><option value="打折" ${state.filters.discountMode==='打折'?'selected':''}>打折</option></select></label>`:'';
+qs('app').innerHTML=`<div style="padding-top:22px"><div class="page-bar" style="height:auto;border:0;margin-bottom:18px"><div><b>活动数据</b> <span class="sub">2026-07-07 09:47:27 更新 ⟳</span></div><button class="link">查看详情 ›</button></div><div class="stats"><div class="stat"><div>成交用户</div><b>${stats.users}</b></div><div class="stat"><div>成交订单</div><b>${stats.orders}</b></div><div class="stat"><div>成交金额</div><b>${stats.amount}</b></div><div class="stat"><div>成交商品</div><b>${stats.goods}</b></div></div><div class="toolbar"><div class="filters"><label class="field">活动名称：<input class="input" placeholder="请输入活动名称" value="${state.filters.name}" oninput="state.filters.name=this.value;renderList()"></label><label class="field">活动ID：<input class="input" placeholder="请输入活动ID" value="${state.filters.id}" oninput="state.filters.id=this.value;renderList()"></label><label class="field">活动时间：<input class="input" type="date" value="${state.filters.date}" onchange="state.filters.date=this.value;renderList()"></label>${typeFilter}<label class="field">状态：<select class="select" onchange="state.filters.status=this.value;renderList()"><option value="">全部</option><option ${state.filters.status==='待开始'?'selected':''}>待开始</option><option ${state.filters.status==='进行中'?'selected':''}>进行中</option><option ${state.filters.status==='已结束'?'selected':''}>已结束</option></select></label><button class="search-btn" onclick="renderList()">⌕</button><button class="btn-default" onclick="state.filters={name:'',id:'',status:'',date:'',discountMode:''};renderList()">更多搜索⌄</button></div><button class="btn-primary" onclick="openForm()">⊕ 新建</button></div><div class="table-card"><table><thead><tr><th style="width:16%">活动名称</th><th style="width:14%">活动时间</th><th style="width:13%">优惠承担</th><th style="width:8%">成交用户</th><th style="width:10%">参与用户</th><th style="width:13%">创建时间</th><th style="width:13%">更新时间</th><th style="width:7%">状态</th><th style="width:140px">操作</th></tr></thead><tbody>${rows.map(r=>rowHtml(r)).join('')||'<tr><td colspan="9" class="empty">暂无活动数据</td></tr>'}</tbody></table><div class="pager"><span>共 ${rows.length} 条</span><span>‹</span><span class="page-num">1</span><span>›</span><select class="select" style="min-width:88px"><option>20条/页</option></select></div></div></div>`;
+}
+function rowHtml(r){const modeTag=r.type==='折扣立减'?`<div style="margin-top:8px"><span class="tag wait">${activityMode(r)}</span></div>`:'';return `<tr class="${state.selectedId===r.id?'row-active':''}"><td><div class="blue" onclick="openForm('${r.id}')">${r.name}</div><div class="sub">ID：${r.id}</div>${modeTag}</td><td>${r.long?'<span style="color:#42c734">长期有效</span>':`${r.start}<br>-<br>${r.end}`}</td><td>平台承担${r.platformRate}%/供应商承担${r.supplierRate}%</td><td><span class="blue">${r.users}</span></td><td>${r.participants}</td><td>${r.creator}<br>${r.created}</td><td>${r.updater}<br>${r.updated}</td><td><span class="tag ${r.status==='进行中'?'run':r.status==='待开始'?'wait':'end'}">${r.status}</span></td><td><div class="ops"><button class="link" onclick="openForm('${r.id}')">编辑</button><button class="link" onclick="copyAct('${r.id}')">复制</button><span class="more" onmouseenter="showMore(event)" onmouseleave="hideMore(event)">···<span class="more-menu"><button class="more-item" onclick="openManage('${r.id}')">活动商品</button><button class="more-item" onclick="askEnd('${r.id}')">立即结束</button><button class="more-item danger" onclick="askDelete('${r.id}')">删除</button></span></span></div></td></tr>`}
+function openForm(id){const rec=id?db.activities.find(a=>a.id===id):null;state.page='form';state.editing=id||null;state.form=rec?JSON.parse(JSON.stringify(rec)):{id:'',type:state.activeTab,discountMode:state.activeTab==='折扣立减'?'立减':'',name:'',tag:'',start:'',end:'',long:false,platformRate:100,supplierRate:0,totalLimit:'',userActivityLimit:'',participants:'全部',users:0,creator:'运营管理员',created:'',updater:'运营管理员',updated:'',status:'待开始',products:[]};if(state.form.type==='折扣立减'&&!state.form.discountMode)state.form.discountMode='立减';render()}
+function formSet(k,v){state.form[k]=v}
+function activityMode(a){return a.discountMode||'立减'}
+function renderForm(){
+const f=state.form;
+const typeRow=f.type==='折扣立减'?row('活动类型','req',`<label class="radio ${activityMode(f)==='立减'?'on':''}" onclick="formSet('discountMode','立减');renderForm()"><i></i>立减</label><label class="radio ${activityMode(f)==='打折'?'on':''}" onclick="formSet('discountMode','打折');renderForm()"><i></i>打折</label>`):'';
+const shareHtml=f.type==='折扣立减'?`<div class="form-row"><div class="label">活动入口限制</div><div class="control"><label class="check"><i></i>仅装修组件入口可享受活动价</label></div></div><div class="form-row"><div class="label">分享设置</div><div class="control"><label class="check"><i></i>用户分享</label></div></div>`:`<label class="check"><i></i>只有通过【${f.type}】装修组件才可享受活动价</label><br><label class="check"><i></i>分享设置</label>`;
+qs('app').innerHTML=`<div class="page-bar"><div class="back" onclick="goList()">‹ ${state.editing?'编辑活动':'新建活动'}</div><div class="bar-actions"><button class="link" onclick="goList()">取消</button><button class="btn-primary" onclick="saveForm()">保存</button></div></div><div class="section-grid"><div class="form-main"><section class="section" id="base"><div class="sec-title">基础信息</div><div class="card">${typeRow}${row('活动名称','req',`<input class="input" maxlength="50" placeholder="请输入活动名称，50个字内" value="${escapeHtml(f.name)}" oninput="formSet('name',this.value)">`)}${row('活动标签','req',`<input class="input" maxlength="10" placeholder="请输入活动标签，10个字内" value="${escapeHtml(f.tag)}" oninput="formSet('tag',this.value)">`)}${row('活动时间','req',`<div class="range"><input class="input" type="datetime-local" value="${toLocal(f.start)}" onchange="formSet('start',fromLocal(this.value))"><span>—</span><input class="input" type="datetime-local" value="${toLocal(f.end)}" onchange="formSet('end',fromLocal(this.value))"></div><label class="check ${f.long?'on':''}" onclick="formSet('long',!state.form.long);renderForm()"><i></i>长期有效</label>`)}${row('优惠承担','req',`<span>平台承担比例</span><input class="input" style="width:90px;margin-left:8px" type="number" min="0" max="100" value="${f.platformRate}" oninput="formSet('platformRate',this.value)"> <span class="hint">%</span> <span style="margin-left:22px">供应商承担比例</span><input class="input" style="width:90px;margin-left:8px" type="number" min="0" max="100" value="${f.supplierRate}" oninput="formSet('supplierRate',this.value)"> <span class="hint">%</span>`)}${row('同享优惠','',`<label class="check on"><i></i>积分</label><label class="check on"><i></i>优惠券</label>`)}${row('活动总数量','',`<input class="input" type="number" min="1" placeholder="不填写表示不限购" value="${f.totalLimit}" oninput="formSet('totalLimit',this.value)">`)}${row('活动用户限购','',`<input class="input" type="number" min="1" placeholder="不填写表示不限购" value="${f.userActivityLimit}" oninput="formSet('userActivityLimit',this.value)">`)}</div></section><section class="section" id="users"><div class="sec-title">参与用户</div><div class="card">${row('参与用户','req',`<label class="radio on"><i></i>全部用户</label><label class="radio"><i></i>指定人群</label><label class="radio"><i></i>指定标签</label><label class="radio"><i></i>新客</label><label class="radio"><i></i>指定用户</label>`)}</div></section><section class="section" id="goods"><div class="sec-title">商品设置</div><div class="card">${goodsEditor('form')}</div></section><section class="section" id="share"><div class="sec-title">推广分享</div><div class="card">${shareHtml}</div></section></div><nav class="anchor"><a class="active" href="#base">基础信息</a><a href="#users">参与用户</a><a href="#goods">商品设置</a><a href="#share">推广分享</a></nav></div>`;
+}
+function row(label,cls,html){return `<div class="form-row"><div class="label ${cls}">${label}</div><div class="control">${html}</div></div>`}
+function goodsEditor(mode){
+const activity=mode==='form'?state.form:db.activities.find(a=>a.id===state.manageId);
+const list=activity.products;
+const isDiscount=activity.type==='折扣立减';
+const isFold=isDiscount&&activityMode(activity)==='打折';
+const promoLabel=isDiscount?(isFold?'折扣':'立减金额'):'秒杀价';
+const promoUnit=isDiscount?(isFold?'折':'(元)'):'(元)';
+const afterLabel=isDiscount?(isFold?'折后价格':'减后价格'):'';
+const afterHead=isDiscount?`<th style="width:10%">${afterLabel}</th>`:'';
+return `<div class="batch">${mode==='form'?'<b>批量设置：</b>':''}<span>${promoLabel}</span><input class="input" id="${mode}BatchPrice" placeholder="${isFold?'请输入折扣':'请输入金额'}"><span>${promoUnit}</span><span>商品活动数量</span><input class="input" id="${mode}BatchProductLimit" placeholder="请输入数量"><span>商品用户限购</span><input class="input" id="${mode}BatchUserLimit" placeholder="请输入数量"><button class="btn-sm" onclick="applyBatch('${mode}')">批量设置</button><span style="margin-left:auto"></span><button class="link" onclick="addProduct('${mode}')">＋ 添加商品</button></div><div class="table-card"><table><thead><tr><th style="width:12%">${isDiscount?'* ':''}${promoLabel}${isFold?'':'（元）'}</th>${afterHead}<th style="width:12%">商品活动数量</th><th style="width:12%">商品用户限购</th><th style="width:9%">排序值</th><th style="width:9%">售价</th><th style="width:24%">商品名称</th><th style="width:9%">商品规格</th><th style="width:8%">规格数量</th><th style="width:70px">操作</th></tr></thead><tbody>${list.map((p,i)=>productRow(p,i,mode,activity)).join('')||`<tr><td colspan="${isDiscount?10:9}" class="empty">暂无活动商品，请点击添加商品</td></tr>`}</tbody></table></div>`;
+}
+function productRow(p,i,mode,activity){
+const isDiscount=activity.type==='折扣立减';
+const afterCell=isDiscount?`<td>${promoAfterPrice(p,activity)}</td>`:'';
+const placeholder=isDiscount&&activityMode(activity)==='打折'?'请输入折扣':'不大于最低售价';
+return `<tr><td><input class="mini-input" placeholder="${placeholder}" value="${p.activityPrice}" oninput="setProduct('${mode}',${i},'activityPrice',this.value);render()"></td>${afterCell}<td><input class="mini-input" placeholder="不填写不限购" value="${p.productLimit}" oninput="setProduct('${mode}',${i},'productLimit',this.value)"></td><td><input class="mini-input" placeholder="不填写不限购" value="${p.userProductLimit}" oninput="setProduct('${mode}',${i},'userProductLimit',this.value)"></td><td><input class="mini-input" value="${p.sort}" oninput="setProduct('${mode}',${i},'sort',this.value)"></td><td>¥${p.price}</td><td><div class="product"><div class="pic">货</div><div><span class="tag run">普通</span> ${p.name}<div class="sub">ID：${p.id}</div></div></div></td><td>${p.attr}</td><td>${p.stock}</td><td><button class="link danger" onclick="removeProduct('${mode}',${i})">删除</button></td></tr>`;
+}
+function promoAfterPrice(p,activity){const price=Number(p.price)||0,v=Number(p.activityPrice);if(!v)return '-';if(activityMode(activity)==='打折')return '¥'+(price*v/10).toFixed(2);return '¥'+Math.max(price-v,0).toFixed(2)}
+function getList(mode){return mode==='form'?state.form.products:db.activities.find(a=>a.id===state.manageId).products}
+function setProduct(mode,i,k,v){getList(mode)[i][k]=v;if(mode==='manage')saveData()}
+function addProduct(mode){getList(mode).push(product(Date.now()%1000,'新增活动商品 '+(getList(mode).length+1),88,10,'默认','', '', '', '0'));if(mode==='manage')saveData();render()}
+function removeProduct(mode,i){getList(mode).splice(i,1);if(mode==='manage')saveData();render()}
+function applyBatch(mode){const price=qs(mode+'BatchPrice').value, pl=qs(mode+'BatchProductLimit').value, ul=qs(mode+'BatchUserLimit').value;if(!validateOptionalInt(pl,'商品活动数量')||!validateOptionalInt(ul,'商品用户限购'))return;getList(mode).forEach(p=>{if(price!=='')p.activityPrice=price;if(pl!=='')p.productLimit=pl;if(ul!=='')p.userProductLimit=ul});if(mode==='manage')saveData();toast('批量设置成功','info');render()}
+function saveForm(){const f=state.form;if(!f.name.trim())return toast('请输入活动名称','error');if(!f.tag.trim())return toast('请输入活动标签','error');if(!f.long&&(!f.start||!f.end))return toast('请选择活动时间','error');if(!validateOptionalInt(f.totalLimit,'活动总数量')||!validateOptionalInt(f.userActivityLimit,'活动用户限购'))return;if(f.totalLimit&&f.userActivityLimit&&Number(f.userActivityLimit)>Number(f.totalLimit))return toast('活动用户限购不能大于活动总数量','error');for(const p of f.products){if(!validateProduct(p))return}if(state.editing){const idx=db.activities.findIndex(a=>a.id===state.editing);f.updated=now();f.updater='运营管理员';db.activities[idx]=f}else{f.id=String(Date.now()).slice(-6);f.created=f.updated=now();db.activities.unshift(f)}saveData();state.selectedId=f.id;toast('保存成功','info');goList()}
+function validateOptionalInt(v,label){if(v===''||v===undefined||v===null)return true;if(!/^[1-9]\d*$/.test(String(v)))return toast(label+'必须为正整数','error'),false;return true}
+function validateProduct(p){if(!validateOptionalInt(p.productLimit,'商品活动数量')||!validateOptionalInt(p.userProductLimit,'商品用户限购'))return false;if(p.productLimit&&Number(p.productLimit)>Number(p.stock))return toast('商品活动数量不能大于规格数量','error'),false;if(p.productLimit&&p.userProductLimit&&Number(p.userProductLimit)>Number(p.productLimit))return toast('商品用户限购不能大于商品活动数量','error'),false;return true}
+function openManage(id){state.page='manage';state.manageId=id;state.selectedId=id;render()}
+function renderManage(){const a=db.activities.find(x=>x.id===state.manageId);qs('app').innerHTML=`<div class="page-bar"><div class="back" onclick="goList()">‹ ${a.name}</div><div class="bar-actions"><button class="link" onclick="goList()">取消</button><button class="btn-primary" onclick="saveManage()">保存</button></div></div><div class="toolbar"><div class="filters"><label class="field">商品ID：<input class="input" placeholder="请输入商品ID"></label><label class="field">商品名称：<input class="input" placeholder="请输入商品名称"></label><button class="search-btn">⌕</button></div></div>${goodsEditor('manage')}` }
+function saveManage(){const a=db.activities.find(x=>x.id===state.manageId);for(const p of a.products){if(!validateProduct(p))return}a.updated=now();a.updater='运营管理员';saveData();toast('保存成功','info');goList()}
+function goList(){state.page='list';state.editing=null;state.form=null;state.manageId=null;render()}
+function copyAct(id){const r=JSON.parse(JSON.stringify(db.activities.find(a=>a.id===id)));r.id=String(Date.now()).slice(-6);r.name=r.name+'-复制';r.status='待开始';r.created=r.updated=now();db.activities.unshift(r);saveData();toast('复制成功','info');renderList()}
+function askDelete(id){state.confirm=()=>{db.activities=db.activities.filter(a=>a.id!==id);saveData();closeConfirm();toast('删除成功','info');renderList()};qs('confirmTitle').textContent='删除';qs('confirmDesc').textContent='是否确认删除';qs('confirmOv').style.display='flex'}
+function askEnd(id){state.confirm=()=>{const r=db.activities.find(a=>a.id===id);r.status='已结束';r.updated=now();saveData();closeConfirm();toast('已立即结束','info');renderList()};qs('confirmTitle').textContent='立即结束';qs('confirmDesc').textContent='是否立即结束，结束后用户将不可领取';qs('confirmOv').style.display='flex'}
+function closeConfirm(){qs('confirmOv').style.display='none';state.confirm=null}
+function runConfirm(){if(state.confirm)state.confirm()}
+function showMore(e){const m=e.currentTarget.querySelector('.more-menu');m.classList.add('show');const r=e.currentTarget.getBoundingClientRect();m.style.top=(r.bottom+2)+'px';m.style.left=(r.right-108)+'px'}
+function hideMore(e){setTimeout(()=>e.currentTarget.querySelector('.more-menu').classList.remove('show'),80)}
+function toast(msg,type='info'){const el=document.createElement('div');el.className='toast '+(type==='error'?'error':'');el.textContent=(type==='error'?'✕ ':'ℹ ')+msg;qs('toasts').appendChild(el);setTimeout(()=>el.remove(),type==='error'?5000:2000)}
+function now(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+function toLocal(s){return s?String(s).replace(' ','T').slice(0,16):''}function fromLocal(s){return s?String(s).replace('T',' ')+':00':''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm()});
+qs('confirmOv').addEventListener('click',e=>{if(e.target.id==='confirmOv')closeConfirm()});
+initLogic();render();
+</script>
+</body>
+</html>
